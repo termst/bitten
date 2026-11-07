@@ -3727,6 +3727,7 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     }
   }
   Sched.every('ui', 'v12.4 captions', capTick, () => !!(Cap.el && Cap.hideAt));
+  Object.assign(window.__bitten || (window.__bitten = {}), { pop14: { popShow, capShow, Pop, Cap } });   /* test hooks (T4 check) */
 
   /* ---- what the answers at a Choice do */
   const FX_SUB = {

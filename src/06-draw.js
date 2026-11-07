@@ -11,9 +11,16 @@ function rrect(c, x, y, w, h, r) {
 }
 function glowDot(c, x, y, r, col, a) {
   if (!(isFinite(x) && isFinite(y) && r > 0 && isFinite(r))) return;
-  const g = c.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, rgba(col, a)); g.addColorStop(1, rgba(col, 0));
-  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  /* P2: a cached sprite at full strength, the strength goes through globalAlpha */
+  if (!(a > 0)) return;
+  const m = c.getTransform(), px = SPR14.bucket(r * Math.hypot(m.a, m.b));
+  const spr = SPR14.get('g|' + col + '|' + px, px, (sc, p) => {
+    const g = sc.createRadialGradient(p, p, 0, p, p, p); g.addColorStop(0, rgba(col, 1)); g.addColorStop(1, rgba(col, 0));
+    sc.fillStyle = g; sc.fillRect(0, 0, p * 2, p * 2);
+  });
+  const ga = c.globalAlpha; c.globalAlpha = ga * Math.min(1, a);
+  c.drawImage(spr, x - r, y - r, r * 2, r * 2);
+  c.globalAlpha = ga;
 }
 
 /* ------------------------------------------------------------------ apple */

@@ -184,9 +184,19 @@ function renderRoom(c, L) {
   }
   // boss bar sits on the room
   c.setTransform(View.dpr, 0, 0, View.dpr, 0, 0);
-  const vg = c.createRadialGradient(View.W / 2, View.H / 2, Math.min(View.W, View.H) * 0.35, View.W / 2, View.H / 2, Math.max(View.W, View.H) * 0.75);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
-  c.fillStyle = vg; c.fillRect(0, 0, View.W, View.H);
+  /* P4: the vignette is baked once per screen size and drawn as an image */
+  const vk = 'vig|' + View.W + 'x' + View.H + '|' + View.dpr;
+  let vgc = SPR14.m.get(vk);
+  if (!vgc) {
+    vgc = document.createElement('canvas'); vgc.width = Math.max(1, Math.round(View.W * View.dpr)); vgc.height = Math.max(1, Math.round(View.H * View.dpr));
+    const vx = vgc.getContext('2d'); vx.setTransform(View.dpr, 0, 0, View.dpr, 0, 0);
+    const vg = vx.createRadialGradient(View.W / 2, View.H / 2, Math.min(View.W, View.H) * 0.35, View.W / 2, View.H / 2, Math.max(View.W, View.H) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    vx.fillStyle = vg; vx.fillRect(0, 0, View.W, View.H);
+    for (const k of SPR14.m.keys()) if (k.startsWith('vig|')) SPR14.m.delete(k);
+    SPR14.m.set(vk, vgc);
+  }
+  c.drawImage(vgc, 0, 0, View.W, View.H);
   if (P.hp <= 2 && P.dying <= 0 && P.hp > 0) {
     const a = 0.12 + 0.1 * Math.sin(G.t * 6);
     const rg = c.createRadialGradient(View.W / 2, View.H / 2, Math.min(View.W, View.H) * 0.3, View.W / 2, View.H / 2, Math.max(View.W, View.H) * 0.7);
@@ -215,9 +225,15 @@ function renderDarkness(c, room, L, ox, oy) {
   dc.setTransform(k, 0, 0, k, WALL * k, WALL * k);
   const light = (x, y, r, i) => {
     if (r <= 1 || i <= 0) return;
-    const g = dc.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(0,0,0,${i})`); g.addColorStop(0.45, `rgba(0,0,0,${i * 0.82})`); g.addColorStop(1, 'rgba(0,0,0,0)');
-    dc.fillStyle = g; dc.beginPath(); dc.arc(x, y, r, 0, TAU); dc.fill();
+    /* P2: one cached hole per radius bucket, its strength through globalAlpha (stops 1, 0.82 at 0.45, 0) */
+    /* above 1 the old stops clamp (0.82 * i reaches 1), so strong lights get their own sprite */
+    const px = SPR14.bucket(r * k), iq = i > 1 ? Math.min(1.22, Math.round(i * 20) / 20) : 1, mid = Math.min(1, 0.82 * iq);
+    const spr = SPR14.get('L|' + px + '|' + iq, px, (sc, p) => {
+      const g = sc.createRadialGradient(p, p, 0, p, p, p);
+      g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.45, `rgba(0,0,0,${mid})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      sc.fillStyle = g; sc.fillRect(0, 0, p * 2, p * 2);
+    });
+    dc.globalAlpha = Math.min(1, i); dc.drawImage(spr, x - r, y - r, r * 2, r * 2); dc.globalAlpha = 1;
   };
   let pr = L.light * (1 + Math.sin(t * 7.3) * 0.02 + Math.sin(t * 13.1) * 0.015);
   if (P.dying > 0) pr *= Math.max(0, 1 - P.dying / 1.7);

@@ -284,3 +284,20 @@ function renderQ14() {
 /* S1 (v14.0): while an Arcade look renders the apple into its buffer, soft glows are captured here instead of
    drawn, so the filter does not turn them into solid discs. The look draws them on top afterwards. */
 const GLOW14 = { cap: null };
+
+/* P2 (v14.0): the hottest gradient sites are drawn from pre-rendered sprites instead of a new gradient each
+   frame: glowDot (133 call sites: glows, lights, halos), the light holes in the dark layer and the vignette.
+   Sprites are keyed by colour, strength and a radius bucket in device pixels. */
+const SPR14 = {
+  m: new Map(),
+  get(key, px, paint) {
+    let s = this.m.get(key);
+    if (!s) {
+      if (this.m.size > 400) this.m.clear();
+      s = document.createElement('canvas'); s.width = s.height = px * 2;
+      paint(s.getContext('2d'), px); this.m.set(key, s);
+    }
+    return s;
+  },
+  bucket(r) { return r <= 4 ? 4 : r <= 8 ? 8 : r <= 16 ? 16 : r <= 32 ? 32 : r <= 64 ? 64 : r <= 128 ? 128 : 256; },
+};

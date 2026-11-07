@@ -693,6 +693,23 @@ function renderQ14() {
 /* S1 (v14.0): while an Arcade look renders the apple into its buffer, soft glows are captured here instead of
    drawn, so the filter does not turn them into solid discs. The look draws them on top afterwards. */
 const GLOW14 = { cap: null };
+
+/* P2 (v14.0): the hottest gradient sites are drawn from pre-rendered sprites instead of a new gradient each
+   frame: glowDot (133 call sites: glows, lights, halos), the light holes in the dark layer and the vignette.
+   Sprites are keyed by colour, strength and a radius bucket in device pixels. */
+const SPR14 = {
+  m: new Map(),
+  get(key, px, paint) {
+    let s = this.m.get(key);
+    if (!s) {
+      if (this.m.size > 400) this.m.clear();
+      s = document.createElement('canvas'); s.width = s.height = px * 2;
+      paint(s.getContext('2d'), px); this.m.set(key, s);
+    }
+    return s;
+  },
+  bucket(r) { return r <= 4 ? 4 : r <= 8 ? 8 : r <= 16 ? 16 : r <= 32 ? 32 : r <= 64 ? 64 : r <= 128 ? 128 : 256; },
+};
 /* src/02-sound.js: Sfx: every sound synthesized with WebAudio. From v1 to v8. Lines 586 to 806 of the v13.7 script. */
 /* =====================================================================
    Sound: everything is synthesized, nothing is loaded
@@ -1948,9 +1965,16 @@ function rrect(c, x, y, w, h, r) {
 }
 function glowDot(c, x, y, r, col, a) {
   if (!(isFinite(x) && isFinite(y) && r > 0 && isFinite(r))) return;
-  const g = c.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, rgba(col, a)); g.addColorStop(1, rgba(col, 0));
-  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  /* P2: a cached sprite at full strength, the strength goes through globalAlpha */
+  if (!(a > 0)) return;
+  const m = c.getTransform(), px = SPR14.bucket(r * Math.hypot(m.a, m.b));
+  const spr = SPR14.get('g|' + col + '|' + px, px, (sc, p) => {
+    const g = sc.createRadialGradient(p, p, 0, p, p, p); g.addColorStop(0, rgba(col, 1)); g.addColorStop(1, rgba(col, 0));
+    sc.fillStyle = g; sc.fillRect(0, 0, p * 2, p * 2);
+  });
+  const ga = c.globalAlpha; c.globalAlpha = ga * Math.min(1, a);
+  c.drawImage(spr, x - r, y - r, r * 2, r * 2);
+  c.globalAlpha = ga;
 }
 
 /* ------------------------------------------------------------------ apple */
@@ -10091,9 +10115,19 @@ function renderRoom(c, L) {
   }
   // boss bar sits on the room
   c.setTransform(View.dpr, 0, 0, View.dpr, 0, 0);
-  const vg = c.createRadialGradient(View.W / 2, View.H / 2, Math.min(View.W, View.H) * 0.35, View.W / 2, View.H / 2, Math.max(View.W, View.H) * 0.75);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
-  c.fillStyle = vg; c.fillRect(0, 0, View.W, View.H);
+  /* P4: the vignette is baked once per screen size and drawn as an image */
+  const vk = 'vig|' + View.W + 'x' + View.H + '|' + View.dpr;
+  let vgc = SPR14.m.get(vk);
+  if (!vgc) {
+    vgc = document.createElement('canvas'); vgc.width = Math.max(1, Math.round(View.W * View.dpr)); vgc.height = Math.max(1, Math.round(View.H * View.dpr));
+    const vx = vgc.getContext('2d'); vx.setTransform(View.dpr, 0, 0, View.dpr, 0, 0);
+    const vg = vx.createRadialGradient(View.W / 2, View.H / 2, Math.min(View.W, View.H) * 0.35, View.W / 2, View.H / 2, Math.max(View.W, View.H) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    vx.fillStyle = vg; vx.fillRect(0, 0, View.W, View.H);
+    for (const k of SPR14.m.keys()) if (k.startsWith('vig|')) SPR14.m.delete(k);
+    SPR14.m.set(vk, vgc);
+  }
+  c.drawImage(vgc, 0, 0, View.W, View.H);
   if (P.hp <= 2 && P.dying <= 0 && P.hp > 0) {
     const a = 0.12 + 0.1 * Math.sin(G.t * 6);
     const rg = c.createRadialGradient(View.W / 2, View.H / 2, Math.min(View.W, View.H) * 0.3, View.W / 2, View.H / 2, Math.max(View.W, View.H) * 0.7);
@@ -10122,9 +10156,15 @@ function renderDarkness(c, room, L, ox, oy) {
   dc.setTransform(k, 0, 0, k, WALL * k, WALL * k);
   const light = (x, y, r, i) => {
     if (r <= 1 || i <= 0) return;
-    const g = dc.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(0,0,0,${i})`); g.addColorStop(0.45, `rgba(0,0,0,${i * 0.82})`); g.addColorStop(1, 'rgba(0,0,0,0)');
-    dc.fillStyle = g; dc.beginPath(); dc.arc(x, y, r, 0, TAU); dc.fill();
+    /* P2: one cached hole per radius bucket, its strength through globalAlpha (stops 1, 0.82 at 0.45, 0) */
+    /* above 1 the old stops clamp (0.82 * i reaches 1), so strong lights get their own sprite */
+    const px = SPR14.bucket(r * k), iq = i > 1 ? Math.min(1.22, Math.round(i * 20) / 20) : 1, mid = Math.min(1, 0.82 * iq);
+    const spr = SPR14.get('L|' + px + '|' + iq, px, (sc, p) => {
+      const g = sc.createRadialGradient(p, p, 0, p, p, p);
+      g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.45, `rgba(0,0,0,${mid})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      sc.fillStyle = g; sc.fillRect(0, 0, p * 2, p * 2);
+    });
+    dc.globalAlpha = Math.min(1, i); dc.drawImage(spr, x - r, y - r, r * 2, r * 2); dc.globalAlpha = 1;
   };
   let pr = L.light * (1 + Math.sin(t * 7.3) * 0.02 + Math.sin(t * 13.1) * 0.015);
   if (P.dying > 0) pr *= Math.max(0, 1 - P.dying / 1.7);
@@ -38327,6 +38367,7 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     }
   }
   Sched.every('ui', 'v12.4 captions', capTick, () => !!(Cap.el && Cap.hideAt));
+  Object.assign(window.__bitten || (window.__bitten = {}), { pop14: { popShow, capShow, Pop, Cap } });   /* test hooks (T4 check) */
 
   /* ---- what the answers at a Choice do */
   const FX_SUB = {
