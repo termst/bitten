@@ -3,7 +3,7 @@
    Rare weight 0.2, so they show up far less often than the other legendaries. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { if (window.console) console.warn('v12.8', e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe73'); if (window.console) console.warn('v12.8', e); return fb; } };
   const bossK = (sn) => (sn && sn.isBoss ? 0.5 : 1); // room-wide and proc damage is halved on bosses
   const ECHO_DELAY = 2.5, ECHO_MAX = 12, BUS_EVERY = 18, BUS_WARN = 1.2, BUS_RUN = 0.8, HAP_EVERY = 20;
 
@@ -159,8 +159,7 @@
 
   /* ------------------------------------------------------------------ Airbag: the bite that does not count */
   {
-    const h0 = Player.prototype.hurt;
-    Player.prototype.hurt = function (n, sx, sy, src) {
+    Hooks.layer('Player.hurt', 'v12.8 airbag', function (next, n, sx, sy, src) {
       if (this === G.player && n > 0 && this.bag34 && !this.bagUsed34 && G.room && !(this.inv > 0) && !(this.dashT > 0) && !(this.dying > 0) && !(this.escaping > 0) && !this.god && G.state === 'play') {
         this.bagUsed34 = true; this.inv = Math.max(this.inv || 0, 0.9);
         safe(() => {
@@ -180,8 +179,8 @@
         });
         return true;
       }
-      return h0.apply(this, arguments);
-    };
+      return next.apply(this, [].slice.call(arguments, 1));
+    });
   }
 
   /* ------------------------------------------------------------------ drawing: the shadow, the lane and the bus */

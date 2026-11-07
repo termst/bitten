@@ -6,7 +6,7 @@
    visit, one set per visit, gains stack additively and have caps.
    ===================================================================== */
 (() => {
-  const safe = (fn) => { try { return fn(); } catch (e) { if (window.console) console.warn('v11.8', e); return undefined; } };
+  const safe = (fn) => { try { return fn(); } catch (e) { errNote14(e, 'safe66'); if (window.console) console.warn('v11.8', e); return undefined; } };
   const LIME = '#b4f03c';
   // gains add up per run and stop at these caps (percent, and halves of an apple for health)
   const GYM_CAP = { speed: 30, dmg: 36, shot: 60, hp: 4 };

@@ -2,7 +2,7 @@
 /* ===== v10.1: DagelijksHaaDee (achievement "F#@% BITTEN, IK STAP ER UIT!!!") ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe47'); return fb; } };
 
   /* achievement + stat */
   safe(() => {
@@ -53,11 +53,8 @@
   ITEM_IDS.push('haadee');
 
 
-  /* tick: own rAF loop, reads state, cycles acts every 10 rooms */
-  let last = performance.now();
-  function tick(now) {
-    requestAnimationFrame(tick);
-    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  /* tick: reads state, cycles acts every 10 rooms. T3: runs in the game substeps with the same dt */
+  function tick(now, dt) {
     safe(() => {
       if (G.state !== 'play' || !G.run || !G.player) return;
       if (!owned()) { hs.has = false; return; }
@@ -71,7 +68,7 @@
       if (hs.t - hs.lastSay > 7) { hs.lastSay = hs.t; const a = ACTS[hs.act]; if (a) say(a.say[Math.floor(Math.random() * a.say.length)], hs.act >= 4 ? '#ff9a9a' : '#fff'); }
     });
   }
-  requestAnimationFrame(tick);
+  Sched.every('step', 'v10.1 haadee', tick);
 
   /* damage: seedDmg is called by name everywhere, so this covers every seed and hit */
   const origSeed = seedDmg;

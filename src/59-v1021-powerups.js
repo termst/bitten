@@ -3,7 +3,7 @@
    new court rulings (eiser and gedaagde), 15 new BP pumps. Bonuses from this patch stack additively and are capped. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe59'); console.error(e); return fb; } };
   const bossK = (sn) => (sn.isBoss ? 0.5 : 1); // room-wide and proc damage is halved on bosses
 
   /* ------------------------------------------------------------------ powerups */
@@ -869,8 +869,7 @@
     }
 
     /* ---------- per frame effects */
-    const upd = Game.update;
-    Game.update = function (dt) {
+    Hooks.layer('Game.update', 'v10.21 admin toggles', function (next, dt) {
       if (A.on) {
         const P = G.player;
         if (P && G.state === 'play') {
@@ -882,10 +881,10 @@
         }
         if (A.scale && A.scale !== 1) dt *= A.scale;
       }
-      const out = upd.call(this, dt);
+      const out = next.call(this, dt);
       if (A.on && A.t.rapid && G.player && G.state === 'play') G.player.cool = Math.min(G.player.cool, 0.05);
       return out;
-    };
+    });
     const pz = Game.pause;
     Game.pause = function () { const o = pz.apply(this, arguments); refreshTabs(); return o; };
     Object.assign(window.__bitten || (window.__bitten = {}), { admin23: { A, CODES, unlockAll, undoUnlock, openAdmin } });

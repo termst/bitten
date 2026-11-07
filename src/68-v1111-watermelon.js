@@ -2,7 +2,7 @@
 /* ===== v11.11: Watermelon. Seeds become big round melons. They burst, stick to the floor, and shove snakes back a little. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe68'); console.error(e); return fb; } };
   const MAX_LIVE = 5, MAX_PUDDLES = 10, PUDDLE_T = 6, KB_STEPS = 2, KB_STEP = 4;
 
   const NEW = {

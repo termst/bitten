@@ -5,7 +5,7 @@
    and a button straight into the wardrobe. Locked apples show the achievement and how far along. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { try { console.error('chars137', e); } catch (x) { /* ignore */ } return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe77'); try { console.error('chars137', e); } catch (x) { /* ignore */ } return fb; } };
   const CATS = [
     { id: 'Original', col: '#a69688', blurb: 'How the apple left the factory.' },
     { id: 'Epic', col: '#e3a54a', blurb: 'Full outfits. Aura, light rays, own particles, a trail in fights.' },

@@ -63,7 +63,6 @@
 
   let ok = true;
   function tick() {
-    requestAnimationFrame(tick);
     if (!ok) return;
     try {
       const c = Sfx.ctx;
@@ -83,7 +82,7 @@
       }
     } catch (e) { ok = false; }
   }
-  requestAnimationFrame(tick);
+  Sched.every('audio', 'v10.3 remix', tick);             /* T3 */
   Object.assign(window.__bitten || (window.__bitten = {}), { regularBus: () => S.bus, remixState: () => S, remixSec: SEC });
 })();
 

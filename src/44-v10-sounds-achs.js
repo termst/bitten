@@ -308,20 +308,27 @@ for (const s of ["SWAP", "CRIT", "GOTCHA", "SUPER READY", "MEP", "SUPER", "HELM"
 for (const s of ["Part of you", "Reuzenkracht", "You are really angry now. Six seconds.", "Covered by warranty", "That downgrade bounced right off. Once per floor.", "The lair", "Uitverkoop", "Everything must go. Even the cables.", "Hypercharge", "The Champion is glowing purple. Everything faster.", "Gas", "He pulls his mask down. The tunnel fills up.", "Lights out", "The station lamp dies. Only his headlamp is left.", "A secret room", "The Rot Eater", ", ", "A hidden room", "Clini-Clown HQ", "The clowns took over the hospital. They want you to smile.", "TADA", "The clowns left you a present. No strings attached. Probably.", "HAHA", "The joke is on you: half an apple of health, gone for good.", "A quiet moment. Everything is a little lighter.", "Rested", "A quiet moment. That helped.", "Jaude is awake", "Fight her: every bite stays for good. Say sorry: she yells, you lose a bite or two.", "A small boss", "Jaude", "Every bite she gets in stays for good.", "The gas is coming", "It closes in from the walls. Stay in the middle."]) if (!TEXT_LIT9.messages.includes(s)) TEXT_LIT9.messages.push(s);
 /* ------------------------------------------------------------------ loop and boot */
 let lastFrame = performance.now();
+/* T3 (v14.0): the only requestAnimationFrame loop. Phases in order: input, game substeps (Game.update, then the
+   'step' systems with the same dt), screen updates for the other states, audio, ui, the one-shot Sched.raf
+   callbacks, render. Every phase task is guarded on its own and counted in G.errors (T2). */
 function frame(now) {
   let dt = (now - lastFrame) / 1000; lastFrame = now;
   if (!(dt > 0)) dt = 0;
   dt = Math.min(dt, 0.05);
+  Sched.run('input', now, dt);
   try {
     if (G.state === 'play') {
       const steps = Math.max(1, Math.ceil(dt / (1 / 60) - 1e-6));
       const h = dt / steps;
-      for (let i = 0; i < steps && G.state === 'play'; i++) Game.update(h);
+      for (let i = 0; i < steps && G.state === 'play'; i++) { Game.update(h); Sched.run('step', now, h); }
     } else if (G.state === 'cutscene') Story.update(dt);
     else if (G.state === 'menu') { MenuScene.step(dt); Sfx.musicTick(); }
     else if (G.state === 'win') Sfx.musicTick();
-    render(dt);
-  } catch (err) { console.error(err); }
+  } catch (err) { console.error(err); errNote14(err, 'update'); }
+  Sched.run('audio', now, dt);
+  Sched.run('ui', now, dt);
+  Sched.flush(now);
+  try { render(dt); } catch (err) { console.error(err); errNote14(err, 'render'); }
   requestAnimationFrame(frame);
 }
 

@@ -3,7 +3,7 @@
    Rooms tab as little rooms in their own color, Modes tab as mode cards with emblems and a difficulty ladder ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe58'); console.error(e); return fb; } };
   const $ = (id) => document.getElementById(id);
   const say = (s) => safe(() => (typeof sayF9 === 'function' ? sayF9(s) : s), s);
   const DPR = () => Math.min(window.devicePixelRatio || 1, 2);

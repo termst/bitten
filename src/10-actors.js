@@ -367,6 +367,7 @@ class Player {
     Sfx.shoot();
   }
 }
+Hooks.install(Player.prototype, 'hurt', 'Player.hurt');      /* T1: layers in 32, 46, 52, 72, 73 */
 
 const HAGEL_COLS = ['#4a2a16', '#f2e6d0', '#e86a9a', '#6ac0f0', '#f2d24a', '#4a2a16'];
 function makeSeed(P, x, y, a, o = {}) {

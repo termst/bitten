@@ -4,7 +4,7 @@
    the chameleon, and an egg that sat on a wall. Clash rules for every overlap. */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe52'); console.error(e); return fb; } };
 
   /* ------------------------------------------------------------------ the powerups */
   const NEW = {
@@ -214,8 +214,7 @@
 
   /* ------------------------------------------------------------------ getting bitten */
   {
-    const hu0 = Player.prototype.hurt;
-    Player.prototype.hurt = function (n, sx, sy, src) {
+    Hooks.layer('Player.hurt', 'v10.10 camo and terugblik', function (next, n, sx, sy, src) {
       const P = this;
       const open = !(P.inv > 0 || P.dashT > 0 || P.dying > 0 || P.escaping > 0 || G.state !== 'play' || P.god);
       if (open && P.flags && P.flags.camo11 && Math.random() < 0.25) {
@@ -236,8 +235,8 @@
         Sfx.tone(900, 0.4, { to: 300, type: 'triangle', vol: 0.05, verb: true });
         return true;
       }
-      return hu0.call(this, n, sx, sy, src);
-    };
+      return next.call(this, n, sx, sy, src);
+    });
     const b0 = bitten10;
     bitten10 = function (P, lost, sx, sy, src) {
       b0(P, lost, sx, sy, src);

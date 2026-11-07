@@ -2,7 +2,7 @@
 /* ===== v11.12: Mud. Seeds are clumps of mud. Hits stack up to 3 layers on a snake: more damage taken, slowed, and at 3 layers it cakes and staggers. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe69'); console.error(e); return fb; } };
   const MAXL = 3, LIFE = 4, CAKE_CD = 2.5, BOSS_CAKE_CD = 4, DMG_L = 0.05;
   const bossK = (sn) => (sn.isBoss ? 0.5 : 1);
   const NEW = {

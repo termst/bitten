@@ -2,7 +2,7 @@
 /* ===== v12.1: Ty-Go! A starting gun. When a fight starts: GO for 4 seconds, walk faster and shoot faster. Kills add a little time, capped. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe71'); console.error(e); return fb; } };
   const GO_T = 4, GO_BOSS_T = 3, GO_MAX = 8, GO_ADD = 0.4, GO_EXT = 5, SPD_ADD = 0.25, RATE_SUB = 0.15, SPD_CAP = 2.0, RATE_MIN = 0.6;
   const NEW = {
     tygo: {

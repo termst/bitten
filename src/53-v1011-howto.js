@@ -2,7 +2,7 @@
 /* ===== v10.11: How to play, cleaner. One sticky header, one row of tabs, grouped lists ===== */
 (function () {
   'use strict';
-  const safe = (fn) => { try { fn(); } catch (e) { console.error(e); } };
+  const safe = (fn) => { try { fn(); } catch (e) { errNote14(e, 'safe53'); console.error(e); } };
   const how = document.getElementById('how'); if (!how) return;
   const inner = how.querySelector('.sheet-inner'); if (!inner) return;
   inner.classList.add('how11');

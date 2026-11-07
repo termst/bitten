@@ -603,6 +603,73 @@ async function saveFile14(name, txt, dlP) {
     return 'saved';
   } catch (e) { return 'failed'; }
 }
+
+/* T1 (v14.0): explicit, ordered hook lists for the hot functions (Game.update, Game.startRun, Game.loadLevel,
+   Game.enterRoom, Game.clearRoom, Player.prototype.hurt). Each function is installed once with Hooks.install
+   next to its core body. Every later version adds a named layer with Hooks.layer instead of wrapping the
+   function again. A layer gets next() as its first argument and runs around every layer added before it,
+   so the order is the old load order: the last layer added runs first. Hooks.order(name) lists them.
+   (Snake.prototype.hurt and Snake.prototype.update were never wrapped in v13.7: nothing to flatten there.) */
+const Hooks = {
+  lists: Object.create(null),
+  cores: Object.create(null),
+  install(obj, key, name) {
+    const core = obj[key];
+    this.cores[name] = core;
+    if (!this.lists[name]) this.lists[name] = [];
+    const H = this;
+    obj[key] = function () { return H.call(name, this, arguments); };
+    obj[key].hookName = name;
+  },
+  layer(name, label, fn) {
+    if (!this.lists[name]) this.lists[name] = [];
+    this.lists[name].push({ label, fn });
+  },
+  call(name, self, args) {
+    const L = this.lists[name], core = this.cores[name];
+    if (!L.length) return core.apply(self, args);
+    const step = (i) => (i < 0 ? core : function () {
+      const a = [step(i - 1)]; for (let k = 0; k < arguments.length; k++) a.push(arguments[k]);
+      return L[i].fn.apply(this, a);
+    });
+    return step(L.length - 1).apply(self, args);
+  },
+  order(name) { return (this.lists[name] || []).map((h) => h.label).reverse(); },
+};
+
+/* T2 (v14.0): the safety nets stay, but every error they catch is counted. G.errors is the count, G.errorLog
+   the last 20 messages. A red counter shows in the corner with the Debug setting or ?debug in the URL. */
+const ERR14 = { n: 0, log: [], g: null };
+function errNote14(e, where) {
+  ERR14.n++;
+  const msg = (where ? where + ': ' : '') + String(e && (e.message || e) || e).slice(0, 200);
+  ERR14.log.push(msg); if (ERR14.log.length > 20) ERR14.log.shift();
+  if (ERR14.g) ERR14.g.errors = ERR14.n;
+}
+
+/* T3 (v14.0): one scheduler. frame() is the only requestAnimationFrame loop in the game. It runs, in order:
+   'input', the game substeps (Game.update, then the 'step' systems with the same dt), 'audio', 'ui', the
+   one-shot Sched.raf callbacks (screens that draw while they are open), then render. A task with a `when`
+   test only runs while that test is true, so UI work stops while its screen is hidden. */
+const Sched = {
+  phases: { input: [], step: [], audio: [], ui: [] },
+  queue: [], nextId: 1,
+  every(phase, name, fn, when) { this.phases[phase].push({ name, fn, when }); },
+  raf(fn) { const id = this.nextId++; this.queue.push({ id, fn }); return id; },
+  cancel(id) { for (let i = 0; i < this.queue.length; i++) if (this.queue[i].id === id) { this.queue.splice(i, 1); return; } },
+  run(phase, now, dt) {
+    const L = this.phases[phase];
+    for (let i = 0; i < L.length; i++) {
+      const t = L[i];
+      try { if (!t.when || t.when()) t.fn(now, dt); } catch (e) { errNote14(e, t.name); }
+    }
+  },
+  flush(now) {
+    if (!this.queue.length) return;
+    const q = this.queue; this.queue = [];
+    for (const o of q) { try { o.fn(now); } catch (e) { errNote14(e, 'raf'); } }
+  },
+};
 /* src/02-sound.js: Sfx: every sound synthesized with WebAudio. From v1 to v8. Lines 586 to 806 of the v13.7 script. */
 /* =====================================================================
    Sound: everything is synthesized, nothing is loaded
@@ -6054,6 +6121,7 @@ class Player {
     Sfx.shoot();
   }
 }
+Hooks.install(Player.prototype, 'hurt', 'Player.hurt');      /* T1: layers in 32, 46, 52, 72, 73 */
 
 const HAGEL_COLS = ['#4a2a16', '#f2e6d0', '#e86a9a', '#6ac0f0', '#f2d24a', '#4a2a16'];
 function makeSeed(P, x, y, a, o = {}) {
@@ -16957,6 +17025,8 @@ const Game = {
     }
   },
 };
+/* T1: one entry per hot function, every later version adds a layer (see Hooks in 01-core.js) */
+for (const k of ['update', 'startRun', 'loadLevel', 'enterRoom', 'clearRoom']) Hooks.install(Game, k, 'Game.' + k);
 
 /* src/31-v10-hospital.js: v10: the clown hospital, rage worms. From v10. Lines 16934 to 17019 of the v13.7 script. */
 /* =====================================================================
@@ -17568,8 +17638,7 @@ function superShot10(P, base) {
 
 /* ------------------------------------------------------------------ getting bitten */
 {
-  const hurt0 = Player.prototype.hurt;
-  Player.prototype.hurt = function (n, sx, sy, src) {
+  Hooks.layer('Player.hurt', 'v10 helm and zone', function (next, n, sx, sy, src) {
     const P = this;
     const open = !(P.inv > 0 || P.dashT > 0 || P.dying > 0 || P.escaping > 0 || G.state !== 'play');
     if (open && P.helmUp) {
@@ -17579,7 +17648,7 @@ function superShot10(P, base) {
       return true;
     }
     const hp0 = P.hp;
-    const r = hurt0.call(this, n, sx, sy, src);
+    const r = next.call(this, n, sx, sy, src);
     if (open && r) {
       P.zoneT = 0; if (P.inZone) { P.inZone = false; floatText(P.x, P.y - 36, 'OUT OF THE ZONE', '#c8c0d8'); }
       if (P.koptelefoon) { P.kbx = 0; P.kby = 0; }
@@ -17587,7 +17656,7 @@ function superShot10(P, base) {
     const lost = hp0 - P.hp;
     if (lost > 0) bitten10(P, lost, sx, sy, src);
     return r;
-  };
+  });
 }
 function bitten10(P, lost, sx, sy, src) {
   const room = G.room;
@@ -19536,13 +19605,12 @@ function rareLevel10(slot, set) {
     }
     return lb0.call(this, i);
   };
-  const ll0 = Game.loadLevel;
-  Game.loadLevel = function (i) {
-    ll0.call(this, i);
+  Hooks.layer('Game.loadLevel', 'v10 floors', function (next, i) {
+    next.call(this, i);
     const L = G.levelDef;
     if (L && L.set) Meta.mark('floorsSeen', L.set);
     if (L && L.rare10) { Meta.add('rareFloors'); G.run.rareSeen10 = (G.run.rareSeen10 || 0) + 1; }
-  };
+  });
 }
 
 /* ------------------------------------------------------------------ boss rooms bring their own furniture */
@@ -20146,12 +20214,11 @@ function jaudeBite10(P, lost) {
 
 /* ------------------------------------------------------------------ rooms clearing */
 {
-  const cr0 = Game.clearRoom;
-  Game.clearRoom = function (room) {
+  Hooks.layer('Game.clearRoom', 'v10 rooms', function (next, room) {
     const J = room.jaude10;
     if (J && J.phase !== 'done') { if (J.phase === 'fight') jaudeWon10(room); return; }
-    return cr0.call(this, room);
-  };
+    return next.call(this, room);
+  });
   const c9 = clearRoom9;
   clearRoom9 = function (room) {
     c9(room);
@@ -20398,10 +20465,9 @@ function updatePick10(dt, room) {
 }
 // leaving a room: what was flying around stays behind
 {
-  const en0 = Game.enterRoom;
-  Game.enterRoom = function (room, entry) {
+  Hooks.layer('Game.enterRoom', 'v10 rooms', function (next, room, entry) {
     const prev = G.room;
-    en0.call(this, room, entry);
+    next.call(this, room, entry);
     if (prev && prev !== room) {
       const F = prev.fx10;
       if (F) { F.balloons.length = 0; F.pballs.length = 0; F.lobs.length = 0; F.warns.length = 0; F.zones.length = 0; F.ads.length = 0; F.carts.length = 0; }
@@ -20409,7 +20475,7 @@ function updatePick10(dt, room) {
       if (prev.jaude10 && prev.jaude10.phase !== 'done') prev.jaude10.phase = 'done';
     }
     G.scare10 = null;
-  };
+  });
 }
 // a flying apple does not fall when the floor goes
 {
@@ -21119,13 +21185,12 @@ function afterTake10(p) {
 }
 // the gift from the last run: never something this apple cannot hold
 {
-  const sr0 = Game.startRun;
-  Game.startRun = function (story, mode) {
-    sr0.call(this, story, mode);
+  Hooks.layer('Game.startRun', 'v10 powerup rules', function (next, story, mode) {
+    next.call(this, story, mode);
     const P = G.player, st = G.map && G.map.start;
     if (!P || !st) return;
     for (const p of st.pickups) if (p.kind === 'item' && p.gift && clashHard10(p.id, P)) { G.run.pending.delete(p.id); p.id = nextItemId(0.3); if (p.id !== 'golden') G.run.pending.add(p.id); }
-  };
+  });
 }
 // saves remember which floors you saw and which Rot Eaters you killed
 {
@@ -21704,20 +21769,27 @@ for (const s of ["SWAP", "CRIT", "GOTCHA", "SUPER READY", "MEP", "SUPER", "HELM"
 for (const s of ["Part of you", "Reuzenkracht", "You are really angry now. Six seconds.", "Covered by warranty", "That downgrade bounced right off. Once per floor.", "The lair", "Uitverkoop", "Everything must go. Even the cables.", "Hypercharge", "The Champion is glowing purple. Everything faster.", "Gas", "He pulls his mask down. The tunnel fills up.", "Lights out", "The station lamp dies. Only his headlamp is left.", "A secret room", "The Rot Eater", ", ", "A hidden room", "Clini-Clown HQ", "The clowns took over the hospital. They want you to smile.", "TADA", "The clowns left you a present. No strings attached. Probably.", "HAHA", "The joke is on you: half an apple of health, gone for good.", "A quiet moment. Everything is a little lighter.", "Rested", "A quiet moment. That helped.", "Jaude is awake", "Fight her: every bite stays for good. Say sorry: she yells, you lose a bite or two.", "A small boss", "Jaude", "Every bite she gets in stays for good.", "The gas is coming", "It closes in from the walls. Stay in the middle."]) if (!TEXT_LIT9.messages.includes(s)) TEXT_LIT9.messages.push(s);
 /* ------------------------------------------------------------------ loop and boot */
 let lastFrame = performance.now();
+/* T3 (v14.0): the only requestAnimationFrame loop. Phases in order: input, game substeps (Game.update, then the
+   'step' systems with the same dt), screen updates for the other states, audio, ui, the one-shot Sched.raf
+   callbacks, render. Every phase task is guarded on its own and counted in G.errors (T2). */
 function frame(now) {
   let dt = (now - lastFrame) / 1000; lastFrame = now;
   if (!(dt > 0)) dt = 0;
   dt = Math.min(dt, 0.05);
+  Sched.run('input', now, dt);
   try {
     if (G.state === 'play') {
       const steps = Math.max(1, Math.ceil(dt / (1 / 60) - 1e-6));
       const h = dt / steps;
-      for (let i = 0; i < steps && G.state === 'play'; i++) Game.update(h);
+      for (let i = 0; i < steps && G.state === 'play'; i++) { Game.update(h); Sched.run('step', now, h); }
     } else if (G.state === 'cutscene') Story.update(dt);
     else if (G.state === 'menu') { MenuScene.step(dt); Sfx.musicTick(); }
     else if (G.state === 'win') Sfx.musicTick();
-    render(dt);
-  } catch (err) { console.error(err); }
+  } catch (err) { console.error(err); errNote14(err, 'update'); }
+  Sched.run('audio', now, dt);
+  Sched.run('ui', now, dt);
+  Sched.flush(now);
+  try { render(dt); } catch (err) { console.error(err); errNote14(err, 'render'); }
   requestAnimationFrame(frame);
 }
 
@@ -21980,8 +22052,7 @@ const LUCKY12 = { six: 2.5, one: 0.5, dodge: 1 / 6 };
     else if (r === 1) { s.dmg *= LUCKY12.one; s.size *= 0.8; s.lucky12 = 1; }
   };
 
-  const h0 = Player.prototype.hurt;
-  Player.prototype.hurt = function (n, sx, sy, src) {
+  Hooks.layer('Player.hurt', 'v12.2 Lucky dodge', function (next, n, sx, sy, src) {
     if (this.lucky12 && !this.god && !(this.inv > 0 || this.dashT > 0 || this.dying > 0 || this.escaping > 0) && G.state === 'play' && Math.random() < LUCKY12.dodge) {
       this.inv = 0.6;
       floatText(this.x, this.y - 24, 'LUCKY', '#ffd84a');
@@ -21989,8 +22060,8 @@ const LUCKY12 = { six: 2.5, one: 0.5, dodge: 1 / 6 };
       Sfx.coin();
       return true;
     }
-    return h0.apply(this, arguments);
-  };
+    return next.apply(this, [].slice.call(arguments, 1));
+  });
 }
 
 /* ------------------------------------------------------------------ how he looks */
@@ -22163,7 +22234,7 @@ boot();
 /* ===== v10.1: DagelijksHaaDee (achievement "F#@% BITTEN, IK STAP ER UIT!!!") ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe47'); return fb; } };
 
   /* achievement + stat */
   safe(() => {
@@ -22214,11 +22285,8 @@ boot();
   ITEM_IDS.push('haadee');
 
 
-  /* tick: own rAF loop, reads state, cycles acts every 10 rooms */
-  let last = performance.now();
-  function tick(now) {
-    requestAnimationFrame(tick);
-    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  /* tick: reads state, cycles acts every 10 rooms. T3: runs in the game substeps with the same dt */
+  function tick(now, dt) {
     safe(() => {
       if (G.state !== 'play' || !G.run || !G.player) return;
       if (!owned()) { hs.has = false; return; }
@@ -22232,7 +22300,7 @@ boot();
       if (hs.t - hs.lastSay > 7) { hs.lastSay = hs.t; const a = ACTS[hs.act]; if (a) say(a.say[Math.floor(Math.random() * a.say.length)], hs.act >= 4 ? '#ff9a9a' : '#fff'); }
     });
   }
-  requestAnimationFrame(tick);
+  Sched.every('step', 'v10.1 haadee', tick);
 
   /* damage: seedDmg is called by name everywhere, so this covers every seed and hit */
   const origSeed = seedDmg;
@@ -22330,7 +22398,6 @@ boot();
 
   let ok = true;
   function tick() {
-    requestAnimationFrame(tick);
     if (!ok) return;
     try {
       const c = Sfx.ctx;
@@ -22350,7 +22417,7 @@ boot();
       }
     } catch (e) { ok = false; }
   }
-  requestAnimationFrame(tick);
+  Sched.every('audio', 'v10.3 remix', tick);             /* T3 */
   Object.assign(window.__bitten || (window.__bitten = {}), { regularBus: () => S.bus, remixState: () => S, remixSec: SEC });
 })();
 
@@ -22445,12 +22512,11 @@ boot();
 
   /* fade the song out when the player leaves the game over screen */
   function watch() {
-    requestAnimationFrame(watch);
     try {
       if (D.out && !D.jb && G.state !== 'over') { D.out.gain.setTargetAtTime(0, Sfx.ctx.currentTime, 0.15); D.out = null; }
     } catch (e) { D.out = null; }
   }
-  requestAnimationFrame(watch);
+  Sched.every('audio', 'v10.4 death remix', watch);      /* T3 */
 })();
 
 /* src/50-v105-soundtracks.js: v10.5: Soundtracks tab. From v10.5. Lines 22410 to 22487 of the v13.7 script. */
@@ -22536,7 +22602,7 @@ boot();
 /* ===== v10.7: noodles, De Wals, big-screen HUD, more settings and run tweaks ===== */
 (function () {
   'use strict';
-  const safe = (f) => { try { return f(); } catch (e) { console.error(e); } };
+  const safe = (f) => { try { return f(); } catch (e) { errNote14(e, 'safe51'); console.error(e); } };
 
   /* ---------------- settings that live next to the save (the save only keeps on/off switches) */
   const OPT_KEY = 'bitten-v107-opts';
@@ -22733,9 +22799,8 @@ boot();
   if (typeof bossHpK === 'function') { const bh0 = bossHpK; bossHpK = function () { return bh0() * RP('bossHp'); }; }
 
   /* ---------------- every frame */
-  const up0 = Game.update;
-  Game.update = function (dt) {
-    up0.call(this, dt);
+  Hooks.layer('Game.update', 'v10.7 noodles', function (next, dt) {
+    next.call(this, dt);
     safe(() => {
       const room = G.room, P = G.player;
       if (G.state !== 'play' || !room || !P || !G.run) return;
@@ -22748,7 +22813,7 @@ boot();
       G.run.noodleT = rnd(14, 22);
       if (Math.random() < (lvl === 2 ? 0.7 : 0.3) && room.snakes.length < 14) spawnNoodles(room, lvl === 2 ? rndi(1, 3) : rndi(1, 2));
     });
-  };
+  });
 
   /* ================================================================ big screens: a bigger HUD and room for it */
   function hudK() {
@@ -22922,9 +22987,8 @@ boot();
   };
 
   /* custom run tweaks at the start of the run */
-  const sr0 = Game.startRun;
-  Game.startRun = function () {
-    const r = sr0.apply(this, arguments);
+  Hooks.layer('Game.startRun', 'v10.7 run tweaks', function (next) {
+    const r = next.apply(this, [].slice.call(arguments, 1));
     safe(() => {
       if (!G.run) return;
       G.run.noodleT = rnd(10, 16);
@@ -22944,7 +23008,7 @@ boot();
       });
     });
     return r;
-  };
+  });
 
   /* ================================================================ Play menu: the builder (v10.18: tighter) */
   safe(() => {
@@ -23234,7 +23298,7 @@ boot();
   });
 
   /* music runs on its own clock so it also stops on the menu */
-  (function mt() { requestAnimationFrame(mt); safe(musicTick); })();
+  Sched.every('audio', 'v10.7 wals track', () => safe(musicTick));   /* T3 */
   Object.assign(window.__bitten || (window.__bitten = {}), { spawnNoodles, OPTS7: OPTS, cust10: { norm, ensureCust, floorList, bossList, floorOpen, bossOpen, itemOpen, floorBase, NO_PICK, RP }, walsTrack: M, walsLoad: () => { if (!Sfx.ctx) Sfx.init(); loadTrack(); }, walsFetch: fetchTrack });
 })();
 
@@ -23245,7 +23309,7 @@ boot();
    the chameleon, and an egg that sat on a wall. Clash rules for every overlap. */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe52'); console.error(e); return fb; } };
 
   /* ------------------------------------------------------------------ the powerups */
   const NEW = {
@@ -23455,8 +23519,7 @@ boot();
 
   /* ------------------------------------------------------------------ getting bitten */
   {
-    const hu0 = Player.prototype.hurt;
-    Player.prototype.hurt = function (n, sx, sy, src) {
+    Hooks.layer('Player.hurt', 'v10.10 camo and terugblik', function (next, n, sx, sy, src) {
       const P = this;
       const open = !(P.inv > 0 || P.dashT > 0 || P.dying > 0 || P.escaping > 0 || G.state !== 'play' || P.god);
       if (open && P.flags && P.flags.camo11 && Math.random() < 0.25) {
@@ -23477,8 +23540,8 @@ boot();
         Sfx.tone(900, 0.4, { to: 300, type: 'triangle', vol: 0.05, verb: true });
         return true;
       }
-      return hu0.call(this, n, sx, sy, src);
-    };
+      return next.call(this, n, sx, sy, src);
+    });
     const b0 = bitten10;
     bitten10 = function (P, lost, sx, sy, src) {
       b0(P, lost, sx, sy, src);
@@ -23968,7 +24031,7 @@ boot();
 /* ===== v10.11: How to play, cleaner. One sticky header, one row of tabs, grouped lists ===== */
 (function () {
   'use strict';
-  const safe = (fn) => { try { fn(); } catch (e) { console.error(e); } };
+  const safe = (fn) => { try { fn(); } catch (e) { errNote14(e, 'safe53'); console.error(e); } };
   const how = document.getElementById('how'); if (!how) return;
   const inner = how.querySelector('.sheet-inner'); if (!inner) return;
   inner.classList.add('how11');
@@ -24284,7 +24347,7 @@ function bestiaryBg11(c, w, h, kinds) {
 (function () {
   'use strict';
   const root = document.getElementById('jukebox'); if (!root) return;
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe55'); console.error(e); return fb; } };
   const BR = BittenRemix;
   const fmt = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
   const BAR = BR.BAR, LEAD = BR.SECTIONS[0].start;
@@ -24616,7 +24679,6 @@ function bestiaryBg11(c, w, h, kinds) {
   }
   // the clock: progress, the part that is playing, the moving picture
   function tick() {
-    requestAnimationFrame(tick);
     if (!J.cur || how.hidden) return;
     const C = cards[J.cur], S = C.S, c = Sfx.ctx; if (!c) return;
     const now = c.currentTime;
@@ -24637,7 +24699,7 @@ function bestiaryBg11(c, w, h, kinds) {
     draw(C, now - J.t0);
   }
   const how = document.getElementById('how');
-  requestAnimationFrame(tick);
+  Sched.every('ui', 'v10.13 music tab', tick, () => !!J.cur && !how.hidden);   /* T3: only while the tab plays */
 
   /* leaving the tab or the guide stops the song */
   const hc = UI.closeHow;
@@ -24652,7 +24714,7 @@ function bestiaryBg11(c, w, h, kinds) {
 /* ===== v10.15: Basics as plain rules, a frame for every character, the achievements page rebuilt ===== */
 (function () {
   'use strict';
-  const safe = (fn) => { try { return fn(); } catch (e) { console.error(e); return undefined; } };
+  const safe = (fn) => { try { return fn(); } catch (e) { errNote14(e, 'safe56'); console.error(e); return undefined; } };
   const say = (s) => { try { return typeof sayF9 === 'function' ? sayF9(s) : s; } catch (e) { return s; } };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -25475,7 +25537,7 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
    Rooms tab as little rooms in their own color, Modes tab as mode cards with emblems and a difficulty ladder ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe58'); console.error(e); return fb; } };
   const $ = (id) => document.getElementById(id);
   const say = (s) => safe(() => (typeof sayF9 === 'function' ? sayF9(s) : s), s);
   const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -26121,7 +26183,7 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
    new court rulings (eiser and gedaagde), 15 new BP pumps. Bonuses from this patch stack additively and are capped. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe59'); console.error(e); return fb; } };
   const bossK = (sn) => (sn.isBoss ? 0.5 : 1); // room-wide and proc damage is halved on bosses
 
   /* ------------------------------------------------------------------ powerups */
@@ -26987,8 +27049,7 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
     }
 
     /* ---------- per frame effects */
-    const upd = Game.update;
-    Game.update = function (dt) {
+    Hooks.layer('Game.update', 'v10.21 admin toggles', function (next, dt) {
       if (A.on) {
         const P = G.player;
         if (P && G.state === 'play') {
@@ -27000,10 +27061,10 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
         }
         if (A.scale && A.scale !== 1) dt *= A.scale;
       }
-      const out = upd.call(this, dt);
+      const out = next.call(this, dt);
       if (A.on && A.t.rapid && G.player && G.state === 'play') G.player.cool = Math.min(G.player.cool, 0.05);
       return out;
-    };
+    });
     const pz = Game.pause;
     Game.pause = function () { const o = pz.apply(this, arguments); refreshTabs(); return o; };
     Object.assign(window.__bitten || (window.__bitten = {}), { admin23: { A, CODES, unlockAll, undoUnlock, openAdmin } });
@@ -27016,7 +27077,7 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
 /* ===== v10.24: Rotting. Seeds rot what they hit. Rot ticks, softens the snake, and spreads when it dies. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe60'); console.error(e); return fb; } };
   const bossK = (sn) => (sn.isBoss ? 0.5 : 1);
   const MAXR = 4, ROT_T = 6;
 
@@ -27168,7 +27229,7 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
    keep the terms, get paid when the room is clear. Break the terms and the stake is gone. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe61'); console.error(e); return fb; } };
   const DISPLAY = '"Grenze Gotisch", Georgia, serif';
   const TIER = [null,
     { n: 'I', name: 'Brons', wax: '#9a4f22', hi: '#e8a066', band: '#b8682e', stake: 3, pay: 2.0, extra: '' },
@@ -27763,15 +27824,15 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
     sec.hidden = false; sec.classList.remove('enter'); void sec.offsetWidth; sec.classList.add('enter');
     const por = $('.ct-por'); por.width = por.height = Math.round(58 * dpr);
     const pc = por.getContext('2d'), t0 = performance.now();
-    cancelAnimationFrame(rafId);
-    const loop = () => { if (sec.hidden) return; safe(() => drawBroker(pc, por.width, (performance.now() - t0) / 1000)); rafId = requestAnimationFrame(loop); };
+    Sched.cancel(rafId);
+    const loop = () => { if (sec.hidden) return; safe(() => drawBroker(pc, por.width, (performance.now() - t0) / 1000)); rafId = Sched.raf(loop); };
     loop();
     safe(() => { Sfx.noise(0.18, { filter: 'bandpass', f: 2400, q: 0.7, vol: 0.05 }); Sfx.tone(392, 0.12, { vol: 0.04 }); });
     Meta.add('contractOffers');
     setTimeout(() => { const b = sec.querySelector('.ct-go:not(:disabled)') || $('.ct-none'); if (b) b.focus({ preventScroll: true }); }, 60);
   }
   function close() {
-    sec.hidden = true; cancelAnimationFrame(rafId);
+    sec.hidden = true; Sched.cancel(rafId);
     if (G.state === 'contract') { G.state = 'play'; safe(() => { UI.el.btnPause.hidden = false; }); }
     safe(() => Input.reset());
     safe(() => View.cv.focus({ preventScroll: true }));
@@ -27970,7 +28031,7 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
 /* ===== v11.1: Skins. Every playable apple gets a second look in its own theme. Tap a character to open the wardrobe. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe62'); console.error(e); return fb; } };
   const DISPLAY = '"Grenze Gotisch", Georgia, serif';
 
   /* ------------------------------------------------------------------ shared pieces */
@@ -30945,7 +31006,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     const big = $('.sk-big');
     const size = () => { const d = dpr(), r = big.getBoundingClientRect(); big.width = Math.max(64, Math.round(r.width * d)); big.height = Math.max(64, Math.round(r.height * d)); sizeCards(); };
     size(); V.size = size;
-    cancelAnimationFrame(V.raf);
+    Sched.cancel(V.raf);
     let last = 0, k = 0;
     const loop = (now) => {
       if (sec.hidden) return;
@@ -30961,17 +31022,17 @@ function drawGullWingsOranje24(c, R, flap, behind) {
           const i = +b.dataset.i; safe(() => drawOn(b.querySelector('canvas'), V.id, i, t + i * 0.7));
         }
       }
-      V.raf = requestAnimationFrame(loop);
+      V.raf = Sched.raf(loop);
     };
     // first paint of every thumbnail at once, so nothing sits empty
     sec.querySelectorAll('.sk-card').forEach((b) => { const i = +b.dataset.i; safe(() => drawOn(b.querySelector('canvas'), V.id, i, i * 0.7)); });
-    V.raf = requestAnimationFrame(loop);
+    V.raf = Sched.raf(loop);
     safe(() => Sfx.pickup());
     setTimeout(() => { const b = sec.querySelector('.sk-card[aria-checked="true"]'); if (b) { b.focus({ preventScroll: true }); b.scrollIntoView({ block: 'nearest' }); } }, 60);
   }
   function close() {
     if (sec.hidden) return;
-    sec.hidden = true; cancelAnimationFrame(V.raf);
+    sec.hidden = true; Sched.cancel(V.raf);
     safe(() => UI.paintChars());
     const b = document.querySelector(`#charList .ccard[data-id="${V.id}"]`); if (b) b.focus({ preventScroll: true });
   }
@@ -31031,11 +31092,10 @@ function drawGullWingsOranje24(c, R, flap, behind) {
 
   /* a new look every run, for apples that have the switch on */
   safe(() => {
-    const sr0 = Game.startRun;
-    Game.startRun = function () {
+    Hooks.layer('Game.startRun', 'v13.6 random look', function (next) {
       safe(() => { const id = Save.data.char; if (SKINS[id] && Save.data.settings[shuffleKey(id)]) Save.data.settings[skinKey(id)] = randomIdx(id); });
-      return sr0.apply(this, arguments);
-    };
+      return next.apply(this, [].slice.call(arguments, 1));
+    });
   });
 
   /* tap a character on the Characters screen: it is picked, and its wardrobe opens */
@@ -31086,7 +31146,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
    film grain. Settings switch "Fancy graphics"; slow devices drop to a lighter mode on their own. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe63'); console.error(e); return fb; } };
   const on = () => !!(Save.data && Save.data.settings && Save.data.settings.fx !== false);
   // per floor: light tint for torches, a soft-light grade, how strong the bloom is
   const GRADE = {
@@ -31306,7 +31366,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
    Zoute Drop, Paraplu and the legendary De Nachtwacht. Clash rules for all five. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe64'); console.error(e); return fb; } };
   const bossK = (sn) => (sn.isBoss ? 0.5 : 1);
 
   /* ------------------------------------------------------------------ admin: the look */
@@ -31582,7 +31642,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
    intro, build, drop, break and drop II, with a now playing slip. Settings switch "Party menu". ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe65'); console.error(e); return fb; } };
 
   /* ------------------------------------------------------------------ the old screens, new look */
   const css = document.createElement('style');
@@ -31816,7 +31876,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
    visit, one set per visit, gains stack additively and have caps.
    ===================================================================== */
 (() => {
-  const safe = (fn) => { try { return fn(); } catch (e) { if (window.console) console.warn('v11.8', e); return undefined; } };
+  const safe = (fn) => { try { return fn(); } catch (e) { errNote14(e, 'safe66'); if (window.console) console.warn('v11.8', e); return undefined; } };
   const LIME = '#b4f03c';
   // gains add up per run and stop at these caps (percent, and halves of an apple for health)
   const GYM_CAP = { speed: 30, dmg: 36, shot: 60, hp: 4 };
@@ -32487,7 +32547,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
    locked so a floor can always be finished.
    ===================================================================== */
 (() => {
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { if (window.console) console.warn('v11.9', e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe67'); if (window.console) console.warn('v11.9', e); return fb; } };
   // id, label, three letter code for the map cell
   const TYPES = [
     ['fight', 'Fight room', 'FGT'], ['chest', 'Chest room', 'CHS'], ['shop', 'Shop', 'SHP'], ['challenge', 'Challenge altar', 'CHL'],
@@ -32715,7 +32775,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
 /* ===== v11.11: Watermelon. Seeds become big round melons. They burst, stick to the floor, and shove snakes back a little. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe68'); console.error(e); return fb; } };
   const MAX_LIVE = 5, MAX_PUDDLES = 10, PUDDLE_T = 6, KB_STEPS = 2, KB_STEP = 4;
 
   const NEW = {
@@ -32898,7 +32958,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
 /* ===== v11.12: Mud. Seeds are clumps of mud. Hits stack up to 3 layers on a snake: more damage taken, slowed, and at 3 layers it cakes and staggers. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe69'); console.error(e); return fb; } };
   const MAXL = 3, LIFE = 4, CAKE_CD = 2.5, BOSS_CAKE_CD = 4, DMG_L = 0.05;
   const bossK = (sn) => (sn.isBoss ? 0.5 : 1);
   const NEW = {
@@ -33599,7 +33659,7 @@ airmiles:'More coins, weaker seeds.'
 /* ===== v12.1: Ty-Go! A starting gun. When a fight starts: GO for 4 seconds, walk faster and shoot faster. Kills add a little time, capped. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe71'); console.error(e); return fb; } };
   const GO_T = 4, GO_BOSS_T = 3, GO_MAX = 8, GO_ADD = 0.4, GO_EXT = 5, SPD_ADD = 0.25, RATE_SUB = 0.15, SPD_CAP = 2.0, RATE_MIN = 0.6;
   const NEW = {
     tygo: {
@@ -33721,7 +33781,7 @@ airmiles:'More coins, weaker seeds.'
    Gummy worms, a lucky strike, Europe, Ukraine, Russia, the USA, tariffs, China and rice waffles. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { if (window.console) console.warn('v12.7', e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe72'); if (window.console) console.warn('v12.7', e); return fb; } };
   const bossK = (sn) => (sn && sn.isBoss ? 0.5 : 1); // room-wide and proc damage is halved on bosses
 
   /* ------------------------------------------------------------------ powerups */
@@ -33927,8 +33987,7 @@ airmiles:'More coins, weaker seeds.'
 
   /* ------------------------------------------------------------------ getting bitten: dolls first, then the bill */
   {
-    const h0 = Player.prototype.hurt;
-    Player.prototype.hurt = function (n, sx, sy, src) {
+    Hooks.layer('Player.hurt', 'v12.7 matroesjka and the bill', function (next, n, sx, sy, src) {
       if (this === G.player && n > 0 && this.doll33 && this.dolls33 > 0 && !(this.inv > 0) && !(this.dashT > 0) && !(this.dying > 0) && !this.god) {
         this.dolls33--; this.inv = Math.max(this.inv || 0, 0.9);
         floatText(this.x, this.y - 30, this.dolls33 ? 'MATROESJKA' : 'LAATSTE POP', '#ff6a4a', true);
@@ -33937,14 +33996,14 @@ airmiles:'More coins, weaker seeds.'
         return;
       }
       const before = this.hp;
-      const r = h0.apply(this, arguments);
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (this === G.player && this.hp < before && this.flags && this.flags.dream33 && G.run) safe(() => {
         const c = G.run.coins || 0;
         if (c >= 4) { G.run.coins = c - 4; floatText(this.x, this.y - 44, 'REKENING -4', '#ffd84a'); }
         else { G.run.coins = 0; if (this.downs.length < DOWN_CAP) giveDown(); floatText(this.x, this.y - 44, 'ONVERZEKERD', '#ff7a8a'); }
       });
       return r;
-    };
+    });
   }
 
   /* ------------------------------------------------------------------ the frame: sugar crash text, cheap shopping */
@@ -34160,7 +34219,7 @@ airmiles:'More coins, weaker seeds.'
    Rare weight 0.2, so they show up far less often than the other legendaries. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { if (window.console) console.warn('v12.8', e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe73'); if (window.console) console.warn('v12.8', e); return fb; } };
   const bossK = (sn) => (sn && sn.isBoss ? 0.5 : 1); // room-wide and proc damage is halved on bosses
   const ECHO_DELAY = 2.5, ECHO_MAX = 12, BUS_EVERY = 18, BUS_WARN = 1.2, BUS_RUN = 0.8, HAP_EVERY = 20;
 
@@ -34316,8 +34375,7 @@ airmiles:'More coins, weaker seeds.'
 
   /* ------------------------------------------------------------------ Airbag: the bite that does not count */
   {
-    const h0 = Player.prototype.hurt;
-    Player.prototype.hurt = function (n, sx, sy, src) {
+    Hooks.layer('Player.hurt', 'v12.8 airbag', function (next, n, sx, sy, src) {
       if (this === G.player && n > 0 && this.bag34 && !this.bagUsed34 && G.room && !(this.inv > 0) && !(this.dashT > 0) && !(this.dying > 0) && !(this.escaping > 0) && !this.god && G.state === 'play') {
         this.bagUsed34 = true; this.inv = Math.max(this.inv || 0, 0.9);
         safe(() => {
@@ -34337,8 +34395,8 @@ airmiles:'More coins, weaker seeds.'
         });
         return true;
       }
-      return h0.apply(this, arguments);
-    };
+      return next.apply(this, [].slice.call(arguments, 1));
+    });
   }
 
   /* ------------------------------------------------------------------ drawing: the shadow, the lane and the bus */
@@ -34455,7 +34513,7 @@ airmiles:'More coins, weaker seeds.'
    ===================================================================== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { if (window.console) console.warn('v12.3', e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe74'); if (window.console) console.warn('v12.3', e); return fb; } };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const S9 = (s) => (typeof say9 === 'function' ? say9(s) : s);
@@ -35558,21 +35616,19 @@ airmiles:'More coins, weaker seeds.'
     });
   }
   safe(() => {
-    const sr0 = Game.startRun;
-    Game.startRun = function (story, mode) {
-      if (mode !== 'map' || !RTM.cur) return sr0.apply(this, arguments);
+    Hooks.layer('Game.startRun', 'v12.3 map runs', function (next, story, mode) {
+      if (mode !== 'map' || !RTM.cur) return next.apply(this, [].slice.call(arguments, 1));
       const M = RTM.cur, D = Save.data, keepDiff = D.diff, keepChar = D.char;
       if (M.diff) D.diff = M.diff === 'nightmare' && !D.unlocks.nightmare ? 'hard' : M.diff;
       if (M.char && (M.char === 'apple' || D.unlocks[M.char])) D.char = M.char;
       let r;
-      try { r = sr0.call(this, false, 'map'); } finally { D.diff = keepDiff; D.char = keepChar; }
+      try { r = next.call(this, false, 'map'); } finally { D.diff = keepDiff; D.char = keepChar; }
       safe(() => applyRules(M));
       safe(() => mapButtons(true));
       return r;
-    };
-    const ll0 = Game.loadLevel;
-    Game.loadLevel = function (i) {
-      const r = ll0.apply(this, arguments);
+    });
+    Hooks.layer('Game.loadLevel', 'v12.3 map floors', function (next, i) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (!inMap()) return r;
       safe(() => {
         const M = RTM.cur, map = G.map;
@@ -35590,14 +35646,13 @@ airmiles:'More coins, weaker seeds.'
         if (map.rooms.some((rm) => rm.chaosBoss === 'manu' || rm.chaosBoss === 'manudevil') && typeof DJ !== 'undefined') DJ.prepare();
       });
       return r;
-    };
+    });
   });
 
   /* ---- entering rooms: teleports land on their pad, guarded rooms close */
   safe(() => {
-    const er0 = Game.enterRoom;
-    Game.enterRoom = function (room, entry) {
-      const r = er0.apply(this, arguments);
+    Hooks.layer('Game.enterRoom', 'v12.3 map rooms', function (next, room, entry) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (!inMap()) return r;
       safe(() => {
         const P = G.player;
@@ -35616,7 +35671,7 @@ airmiles:'More coins, weaker seeds.'
         if (room.mkExit && !room.locked && !room.exit && !mustFight(room)) openExit(room);
       });
       return r;
-    };
+    });
     const sc0 = Game.startCombat;
     Game.startCombat = function (room) {
       if (!inMap() || !room.mkSn) return sc0.apply(this, arguments);
@@ -35630,13 +35685,12 @@ airmiles:'More coins, weaker seeds.'
       if (inMap() && room.mkSn && room.mkSn.length && !room.mkSnDone) { room.mkSnDone = true; safe(() => spawnMapSnakes(room)); }
       return r;
     };
-    const cr0 = Game.clearRoom;
-    Game.clearRoom = function (room) {
+    Hooks.layer('Game.clearRoom', 'v12.3 map rooms', function (next, room) {
       if (inMap() && room.mkE && room.mkE.some((k) => k.t === 'ns' && k.ob && !k.ob.broken)) return;
-      const r = cr0.apply(this, arguments);
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (inMap()) safe(() => { if (room.mkExit) openExit(room); });
       return r;
-    };
+    });
   });
   function mustFight(room) { return !room.cleared && (room.type === 'fight' || room.mkGuard || ['boss', 'chaosboss', 'miniboss', 'challenge', 'survival'].includes(room.type)); }
   function openExit(room) {
@@ -37594,13 +37648,13 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   function loop(now) {
     Maker.raf = 0;
     if (!Maker.open || Maker.view !== 'editor') return;
-    Maker.raf = requestAnimationFrame(loop);
+    Maker.raf = Sched.raf(loop);
     if (now - Maker.last < 33) return;
     Maker.last = now;
     safe(() => drawEditor(now));
   }
-  function startLoop() { if (!Maker.raf) Maker.raf = requestAnimationFrame(loop); }
-  function stopLoop() { if (Maker.raf) cancelAnimationFrame(Maker.raf); Maker.raf = 0; }
+  function startLoop() { if (!Maker.raf) Maker.raf = Sched.raf(loop); }
+  function stopLoop() { if (Maker.raf) Sched.cancel(Maker.raf); Maker.raf = 0; }
 
   /* ---- painting */
   function mirrorCells(c, r) {
@@ -38119,10 +38173,11 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     if (Pop.el) { Pop.el.hidden = true; Pop.el.firstChild.classList.remove('in'); }
   }
   // typing runs on its own clock, the game clock is stopped
-  (function popTick() {
-    if (Pop.on && Pop.typed < Pop.full.length && Pop.el && !Pop.el.hidden) { Pop.typed = Math.min(Pop.full.length, Pop.typed + (Pop.cur && Pop.cur.look === 'phone' ? 1.6 : 2.2)); popPaint(); if (Math.floor(Pop.typed) % 5 === 0) safe(() => Sfx.tone(900 + Math.random() * 200, 0.02, { type: 'square', vol: 0.008, lp: 2400 })); }
-    requestAnimationFrame(popTick);
-  })();
+  /* T3, T4: a UI task of the one scheduler, typed by time: 132 characters a second (the phone look 96) */
+  function popTick(now, dt) {
+    if (Pop.on && Pop.typed < Pop.full.length && Pop.el && !Pop.el.hidden) { Pop.typed = Math.min(Pop.full.length, Pop.typed + (Pop.cur && Pop.cur.look === 'phone' ? 96 : 132) * dt); popPaint(); if (Math.floor(Pop.typed) % 5 === 0) safe(() => Sfx.tone(900 + Math.random() * 200, 0.02, { type: 'square', vol: 0.008, lp: 2400 })); }
+  }
+  Sched.every('ui', 'v12.4 pop typing', popTick, () => Pop.on);
   window.addEventListener('keydown', (e) => {
     if (!Pop.on || !Pop.el || Pop.el.hidden || G.state !== 'play') return;
     const o = Pop.cur; if (!o) return;
@@ -38136,16 +38191,16 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   }, true);
   window.addEventListener('resize', () => safe(popPlace));
   safe(() => {
-    const up0 = Game.update;
-    Game.update = function () { if (Pop.on && G.state === 'play') return; return up0.apply(this, arguments); };
+    Hooks.layer('Game.update', 'v12.4 Pop freeze', function (next) { if (Pop.on && G.state === 'play') return; return next.apply(this, [].slice.call(arguments, 1)); });
     const pa0 = Game.pause;
     Game.pause = function () { const r = pa0.apply(this, arguments); if (Pop.el && G.state === 'pause') Pop.el.hidden = true; return r; };
     const rs0 = Game.resume;
     Game.resume = function () { const r = rs0.apply(this, arguments); if (Pop.on && Pop.el && G.state === 'play') { Pop.el.hidden = false; Input.reset(); requestAnimationFrame(popPlace); } return r; };
-    for (const k of ['toMenu', 'gameOver', 'win', 'startRun']) {
+    for (const k of ['toMenu', 'gameOver', 'win']) {
       const f0 = Game[k];
       if (typeof f0 === 'function') Game[k] = function () { Pop.q.length = 0; popClose(); capHide(); return f0.apply(this, arguments); };
     }
+    Hooks.layer('Game.startRun', 'v12.4 Pop close', function (next) { Pop.q.length = 0; popClose(); capHide(); return next.apply(this, [].slice.call(arguments, 1)); });
   });
 
   /* ---- the caption: a line of text at the top of the room, for room texts */
@@ -38164,16 +38219,17 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     Cap.hideAt = performance.now() + 2600 + text.length * 55;
   }
   function capHide() { if (Cap.el) Cap.el.classList.remove('show'); Cap.hideAt = 0; }
-  (function capTick() {
+  /* T3, T4: typed by time, 84 characters a second; while the game waits the hide clock waits by real time */
+  function capTick(now, dt) {
     if (Cap.el && Cap.hideAt) {
       if (G.state === 'play' && !Pop.on) {
-        if (Cap.typed < Cap.full.length) { Cap.typed = Math.min(Cap.full.length, Cap.typed + 1.4); Cap.el.lastChild.textContent = Cap.full.slice(0, Math.floor(Cap.typed)); }
+        if (Cap.typed < Cap.full.length) { Cap.typed = Math.min(Cap.full.length, Cap.typed + 84 * dt); Cap.el.lastChild.textContent = Cap.full.slice(0, Math.floor(Cap.typed)); }
         else if (performance.now() > Cap.hideAt) capHide();
       } else if (G.state !== 'play' && G.state !== 'pause') capHide();
-      else Cap.hideAt += 16;
+      else Cap.hideAt += dt * 1000;
     }
-    requestAnimationFrame(capTick);
-  })();
+  }
+  Sched.every('ui', 'v12.4 captions', capTick, () => !!(Cap.el && Cap.hideAt));
 
   /* ---- what the answers at a Choice do */
   const FX_SUB = {
@@ -38340,9 +38396,8 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
 
   /* ---- intros, room lines and the last word */
   safe(() => {
-    const ll8 = Game.loadLevel;
-    Game.loadLevel = function (i) {
-      const r = ll8.apply(this, arguments);
+    Hooks.layer('Game.loadLevel', 'v12.4 floor text', function (next, i) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (inMap()) safe(() => {
         const M = RTM.cur, F = M.floors[G.levelIdx] || M.floors[0];
         const q = [];
@@ -38351,23 +38406,21 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
         if (q.length) { const run = G.run; setTimeout(() => { if (G.run === run && G.state === 'play') for (const o of q) popShow(o); }, 1300); }
       });
       return r;
-    };
-    const er8 = Game.enterRoom;
-    Game.enterRoom = function (room) {
-      const r = er8.apply(this, arguments);
+    });
+    Hooks.layer('Game.enterRoom', 'v12.4 room words', function (next, room) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (inMap()) safe(() => {
         if (room && room.mkR && room.mkR.ie && !room.mkIeDone) { room.mkIeDone = true; setTimeout(() => { if (G.room === room && G.state === 'play') capShow(room.mkR.ie); }, 450); }
         else if (room && G.room === room) capHide();
       });
       return r;
-    };
-    const cr8 = Game.clearRoom;
-    Game.clearRoom = function (room) {
+    });
+    Hooks.layer('Game.clearRoom', 'v12.4 room words', function (next, room) {
       const was = room && room.cleared;
-      const r = cr8.apply(this, arguments);
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (inMap()) safe(() => { if (room && !was && room.cleared && room.mkR && room.mkR.ic && !room.mkIcDone) { room.mkIcDone = true; setTimeout(() => { if (G.room === room && G.state === 'play') capShow(room.mkR.ic); }, 700); } });
       return r;
-    };
+    });
     const w8 = Game.win;
     Game.win = function () {
       const r = w8.apply(this, arguments);
@@ -38952,12 +39005,11 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     });
   }
   safe(() => {
-    const cr9 = Game.clearRoom;
-    Game.clearRoom = function (room) {
-      if (!inMap() || !room || !room.mkR) return cr9.apply(this, arguments);
+    Hooks.layer('Game.clearRoom', 'v12.5 room rewards', function (next, room) {
+      if (!inMap() || !room || !room.mkR) return next.apply(this, [].slice.call(arguments, 1));
       const R = room.mkR, keep = R.rg !== 0, first = !room.mkRwDone;
       const before = new Set(room.pickups);
-      const r = cr9.apply(this, arguments);
+      const r = next.apply(this, [].slice.call(arguments, 1));
       safe(() => {
         // a mimic outside a treasure room still pays out once it is dead
         const ch = room.chest;
@@ -38968,7 +39020,7 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
         } else if (first && !keep) { for (const p of room.pickups.slice()) if (!before.has(p) && (p.kind === 'item' || p.kind === 'heart' || p.kind === 'coin')) { room.pickups.splice(room.pickups.indexOf(p), 1); if (p.kind === 'item') G.run.pending.delete(p.id); } room.mkRwDone = true; }
       });
       return r;
-    };
+    });
   });
 
   /* ---- the powerup pool: which powerups the map can roll */
@@ -39648,7 +39700,7 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
    and a button straight into the wardrobe. Locked apples show the achievement and how far along. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { try { console.error('chars137', e); } catch (x) { /* ignore */ } return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe77'); try { console.error('chars137', e); } catch (x) { /* ignore */ } return fb; } };
   const CATS = [
     { id: 'Original', col: '#a69688', blurb: 'How the apple left the factory.' },
     { id: 'Epic', col: '#e3a54a', blurb: 'Full outfits. Aura, light rays, own particles, a trail in fights.' },

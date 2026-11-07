@@ -4,7 +4,7 @@
    intro, build, drop, break and drop II, with a now playing slip. Settings switch "Party menu". ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe65'); console.error(e); return fb; } };
 
   /* ------------------------------------------------------------------ the old screens, new look */
   const css = document.createElement('style');

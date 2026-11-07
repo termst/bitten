@@ -2,7 +2,7 @@
 /* ===== v11.1: Skins. Every playable apple gets a second look in its own theme. Tap a character to open the wardrobe. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe62'); console.error(e); return fb; } };
   const DISPLAY = '"Grenze Gotisch", Georgia, serif';
 
   /* ------------------------------------------------------------------ shared pieces */
@@ -2977,7 +2977,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     const big = $('.sk-big');
     const size = () => { const d = dpr(), r = big.getBoundingClientRect(); big.width = Math.max(64, Math.round(r.width * d)); big.height = Math.max(64, Math.round(r.height * d)); sizeCards(); };
     size(); V.size = size;
-    cancelAnimationFrame(V.raf);
+    Sched.cancel(V.raf);
     let last = 0, k = 0;
     const loop = (now) => {
       if (sec.hidden) return;
@@ -2993,17 +2993,17 @@ function drawGullWingsOranje24(c, R, flap, behind) {
           const i = +b.dataset.i; safe(() => drawOn(b.querySelector('canvas'), V.id, i, t + i * 0.7));
         }
       }
-      V.raf = requestAnimationFrame(loop);
+      V.raf = Sched.raf(loop);
     };
     // first paint of every thumbnail at once, so nothing sits empty
     sec.querySelectorAll('.sk-card').forEach((b) => { const i = +b.dataset.i; safe(() => drawOn(b.querySelector('canvas'), V.id, i, i * 0.7)); });
-    V.raf = requestAnimationFrame(loop);
+    V.raf = Sched.raf(loop);
     safe(() => Sfx.pickup());
     setTimeout(() => { const b = sec.querySelector('.sk-card[aria-checked="true"]'); if (b) { b.focus({ preventScroll: true }); b.scrollIntoView({ block: 'nearest' }); } }, 60);
   }
   function close() {
     if (sec.hidden) return;
-    sec.hidden = true; cancelAnimationFrame(V.raf);
+    sec.hidden = true; Sched.cancel(V.raf);
     safe(() => UI.paintChars());
     const b = document.querySelector(`#charList .ccard[data-id="${V.id}"]`); if (b) b.focus({ preventScroll: true });
   }
@@ -3063,11 +3063,10 @@ function drawGullWingsOranje24(c, R, flap, behind) {
 
   /* a new look every run, for apples that have the switch on */
   safe(() => {
-    const sr0 = Game.startRun;
-    Game.startRun = function () {
+    Hooks.layer('Game.startRun', 'v13.6 random look', function (next) {
       safe(() => { const id = Save.data.char; if (SKINS[id] && Save.data.settings[shuffleKey(id)]) Save.data.settings[skinKey(id)] = randomIdx(id); });
-      return sr0.apply(this, arguments);
-    };
+      return next.apply(this, [].slice.call(arguments, 1));
+    });
   });
 
   /* tap a character on the Characters screen: it is picked, and its wardrobe opens */

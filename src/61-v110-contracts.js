@@ -3,7 +3,7 @@
    keep the terms, get paid when the room is clear. Break the terms and the stake is gone. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe61'); console.error(e); return fb; } };
   const DISPLAY = '"Grenze Gotisch", Georgia, serif';
   const TIER = [null,
     { n: 'I', name: 'Brons', wax: '#9a4f22', hi: '#e8a066', band: '#b8682e', stake: 3, pay: 2.0, extra: '' },
@@ -598,15 +598,15 @@
     sec.hidden = false; sec.classList.remove('enter'); void sec.offsetWidth; sec.classList.add('enter');
     const por = $('.ct-por'); por.width = por.height = Math.round(58 * dpr);
     const pc = por.getContext('2d'), t0 = performance.now();
-    cancelAnimationFrame(rafId);
-    const loop = () => { if (sec.hidden) return; safe(() => drawBroker(pc, por.width, (performance.now() - t0) / 1000)); rafId = requestAnimationFrame(loop); };
+    Sched.cancel(rafId);
+    const loop = () => { if (sec.hidden) return; safe(() => drawBroker(pc, por.width, (performance.now() - t0) / 1000)); rafId = Sched.raf(loop); };
     loop();
     safe(() => { Sfx.noise(0.18, { filter: 'bandpass', f: 2400, q: 0.7, vol: 0.05 }); Sfx.tone(392, 0.12, { vol: 0.04 }); });
     Meta.add('contractOffers');
     setTimeout(() => { const b = sec.querySelector('.ct-go:not(:disabled)') || $('.ct-none'); if (b) b.focus({ preventScroll: true }); }, 60);
   }
   function close() {
-    sec.hidden = true; cancelAnimationFrame(rafId);
+    sec.hidden = true; Sched.cancel(rafId);
     if (G.state === 'contract') { G.state = 'play'; safe(() => { UI.el.btnPause.hidden = false; }); }
     safe(() => Input.reset());
     safe(() => View.cv.focus({ preventScroll: true }));

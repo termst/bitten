@@ -194,3 +194,70 @@ async function saveFile14(name, txt, dlP) {
     return 'saved';
   } catch (e) { return 'failed'; }
 }
+
+/* T1 (v14.0): explicit, ordered hook lists for the hot functions (Game.update, Game.startRun, Game.loadLevel,
+   Game.enterRoom, Game.clearRoom, Player.prototype.hurt). Each function is installed once with Hooks.install
+   next to its core body. Every later version adds a named layer with Hooks.layer instead of wrapping the
+   function again. A layer gets next() as its first argument and runs around every layer added before it,
+   so the order is the old load order: the last layer added runs first. Hooks.order(name) lists them.
+   (Snake.prototype.hurt and Snake.prototype.update were never wrapped in v13.7: nothing to flatten there.) */
+const Hooks = {
+  lists: Object.create(null),
+  cores: Object.create(null),
+  install(obj, key, name) {
+    const core = obj[key];
+    this.cores[name] = core;
+    if (!this.lists[name]) this.lists[name] = [];
+    const H = this;
+    obj[key] = function () { return H.call(name, this, arguments); };
+    obj[key].hookName = name;
+  },
+  layer(name, label, fn) {
+    if (!this.lists[name]) this.lists[name] = [];
+    this.lists[name].push({ label, fn });
+  },
+  call(name, self, args) {
+    const L = this.lists[name], core = this.cores[name];
+    if (!L.length) return core.apply(self, args);
+    const step = (i) => (i < 0 ? core : function () {
+      const a = [step(i - 1)]; for (let k = 0; k < arguments.length; k++) a.push(arguments[k]);
+      return L[i].fn.apply(this, a);
+    });
+    return step(L.length - 1).apply(self, args);
+  },
+  order(name) { return (this.lists[name] || []).map((h) => h.label).reverse(); },
+};
+
+/* T2 (v14.0): the safety nets stay, but every error they catch is counted. G.errors is the count, G.errorLog
+   the last 20 messages. A red counter shows in the corner with the Debug setting or ?debug in the URL. */
+const ERR14 = { n: 0, log: [], g: null };
+function errNote14(e, where) {
+  ERR14.n++;
+  const msg = (where ? where + ': ' : '') + String(e && (e.message || e) || e).slice(0, 200);
+  ERR14.log.push(msg); if (ERR14.log.length > 20) ERR14.log.shift();
+  if (ERR14.g) ERR14.g.errors = ERR14.n;
+}
+
+/* T3 (v14.0): one scheduler. frame() is the only requestAnimationFrame loop in the game. It runs, in order:
+   'input', the game substeps (Game.update, then the 'step' systems with the same dt), 'audio', 'ui', the
+   one-shot Sched.raf callbacks (screens that draw while they are open), then render. A task with a `when`
+   test only runs while that test is true, so UI work stops while its screen is hidden. */
+const Sched = {
+  phases: { input: [], step: [], audio: [], ui: [] },
+  queue: [], nextId: 1,
+  every(phase, name, fn, when) { this.phases[phase].push({ name, fn, when }); },
+  raf(fn) { const id = this.nextId++; this.queue.push({ id, fn }); return id; },
+  cancel(id) { for (let i = 0; i < this.queue.length; i++) if (this.queue[i].id === id) { this.queue.splice(i, 1); return; } },
+  run(phase, now, dt) {
+    const L = this.phases[phase];
+    for (let i = 0; i < L.length; i++) {
+      const t = L[i];
+      try { if (!t.when || t.when()) t.fn(now, dt); } catch (e) { errNote14(e, t.name); }
+    }
+  },
+  flush(now) {
+    if (!this.queue.length) return;
+    const q = this.queue; this.queue = [];
+    for (const o of q) { try { o.fn(now); } catch (e) { errNote14(e, 'raf'); } }
+  },
+};

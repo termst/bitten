@@ -89,11 +89,10 @@
 
   /* fade the song out when the player leaves the game over screen */
   function watch() {
-    requestAnimationFrame(watch);
     try {
       if (D.out && !D.jb && G.state !== 'over') { D.out.gain.setTargetAtTime(0, Sfx.ctx.currentTime, 0.15); D.out = null; }
     } catch (e) { D.out = null; }
   }
-  requestAnimationFrame(watch);
+  Sched.every('audio', 'v10.4 death remix', watch);      /* T3 */
 })();
 

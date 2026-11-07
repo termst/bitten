@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const root = document.getElementById('jukebox'); if (!root) return;
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe55'); console.error(e); return fb; } };
   const BR = BittenRemix;
   const fmt = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
   const BAR = BR.BAR, LEAD = BR.SECTIONS[0].start;
@@ -335,7 +335,6 @@
   }
   // the clock: progress, the part that is playing, the moving picture
   function tick() {
-    requestAnimationFrame(tick);
     if (!J.cur || how.hidden) return;
     const C = cards[J.cur], S = C.S, c = Sfx.ctx; if (!c) return;
     const now = c.currentTime;
@@ -356,7 +355,7 @@
     draw(C, now - J.t0);
   }
   const how = document.getElementById('how');
-  requestAnimationFrame(tick);
+  Sched.every('ui', 'v10.13 music tab', tick, () => !!J.cur && !how.hidden);   /* T3: only while the tab plays */
 
   /* leaving the tab or the guide stops the song */
   const hc = UI.closeHow;

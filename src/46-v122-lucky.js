@@ -30,8 +30,7 @@ const LUCKY12 = { six: 2.5, one: 0.5, dodge: 1 / 6 };
     else if (r === 1) { s.dmg *= LUCKY12.one; s.size *= 0.8; s.lucky12 = 1; }
   };
 
-  const h0 = Player.prototype.hurt;
-  Player.prototype.hurt = function (n, sx, sy, src) {
+  Hooks.layer('Player.hurt', 'v12.2 Lucky dodge', function (next, n, sx, sy, src) {
     if (this.lucky12 && !this.god && !(this.inv > 0 || this.dashT > 0 || this.dying > 0 || this.escaping > 0) && G.state === 'play' && Math.random() < LUCKY12.dodge) {
       this.inv = 0.6;
       floatText(this.x, this.y - 24, 'LUCKY', '#ffd84a');
@@ -39,8 +38,8 @@ const LUCKY12 = { six: 2.5, one: 0.5, dodge: 1 / 6 };
       Sfx.coin();
       return true;
     }
-    return h0.apply(this, arguments);
-  };
+    return next.apply(this, [].slice.call(arguments, 1));
+  });
 }
 
 /* ------------------------------------------------------------------ how he looks */

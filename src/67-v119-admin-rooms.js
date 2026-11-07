@@ -7,7 +7,7 @@
    locked so a floor can always be finished.
    ===================================================================== */
 (() => {
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { if (window.console) console.warn('v11.9', e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe67'); if (window.console) console.warn('v11.9', e); return fb; } };
   // id, label, three letter code for the map cell
   const TYPES = [
     ['fight', 'Fight room', 'FGT'], ['chest', 'Chest room', 'CHS'], ['shop', 'Shop', 'SHP'], ['challenge', 'Challenge altar', 'CHL'],

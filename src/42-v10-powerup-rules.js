@@ -34,13 +34,12 @@ function afterTake10(p) {
 }
 // the gift from the last run: never something this apple cannot hold
 {
-  const sr0 = Game.startRun;
-  Game.startRun = function (story, mode) {
-    sr0.call(this, story, mode);
+  Hooks.layer('Game.startRun', 'v10 powerup rules', function (next, story, mode) {
+    next.call(this, story, mode);
     const P = G.player, st = G.map && G.map.start;
     if (!P || !st) return;
     for (const p of st.pickups) if (p.kind === 'item' && p.gift && clashHard10(p.id, P)) { G.run.pending.delete(p.id); p.id = nextItemId(0.3); if (p.id !== 'golden') G.run.pending.add(p.id); }
-  };
+  });
 }
 // saves remember which floors you saw and which Rot Eaters you killed
 {

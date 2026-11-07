@@ -221,13 +221,12 @@ function rareLevel10(slot, set) {
     }
     return lb0.call(this, i);
   };
-  const ll0 = Game.loadLevel;
-  Game.loadLevel = function (i) {
-    ll0.call(this, i);
+  Hooks.layer('Game.loadLevel', 'v10 floors', function (next, i) {
+    next.call(this, i);
     const L = G.levelDef;
     if (L && L.set) Meta.mark('floorsSeen', L.set);
     if (L && L.rare10) { Meta.add('rareFloors'); G.run.rareSeen10 = (G.run.rareSeen10 || 0) + 1; }
-  };
+  });
 }
 
 /* ------------------------------------------------------------------ boss rooms bring their own furniture */

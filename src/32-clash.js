@@ -521,8 +521,7 @@ function superShot10(P, base) {
 
 /* ------------------------------------------------------------------ getting bitten */
 {
-  const hurt0 = Player.prototype.hurt;
-  Player.prototype.hurt = function (n, sx, sy, src) {
+  Hooks.layer('Player.hurt', 'v10 helm and zone', function (next, n, sx, sy, src) {
     const P = this;
     const open = !(P.inv > 0 || P.dashT > 0 || P.dying > 0 || P.escaping > 0 || G.state !== 'play');
     if (open && P.helmUp) {
@@ -532,7 +531,7 @@ function superShot10(P, base) {
       return true;
     }
     const hp0 = P.hp;
-    const r = hurt0.call(this, n, sx, sy, src);
+    const r = next.call(this, n, sx, sy, src);
     if (open && r) {
       P.zoneT = 0; if (P.inZone) { P.inZone = false; floatText(P.x, P.y - 36, 'OUT OF THE ZONE', '#c8c0d8'); }
       if (P.koptelefoon) { P.kbx = 0; P.kby = 0; }
@@ -540,7 +539,7 @@ function superShot10(P, base) {
     const lost = hp0 - P.hp;
     if (lost > 0) bitten10(P, lost, sx, sy, src);
     return r;
-  };
+  });
 }
 function bitten10(P, lost, sx, sy, src) {
   const room = G.room;

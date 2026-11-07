@@ -3,7 +3,7 @@
    Gummy worms, a lucky strike, Europe, Ukraine, Russia, the USA, tariffs, China and rice waffles. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { if (window.console) console.warn('v12.7', e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe72'); if (window.console) console.warn('v12.7', e); return fb; } };
   const bossK = (sn) => (sn && sn.isBoss ? 0.5 : 1); // room-wide and proc damage is halved on bosses
 
   /* ------------------------------------------------------------------ powerups */
@@ -209,8 +209,7 @@
 
   /* ------------------------------------------------------------------ getting bitten: dolls first, then the bill */
   {
-    const h0 = Player.prototype.hurt;
-    Player.prototype.hurt = function (n, sx, sy, src) {
+    Hooks.layer('Player.hurt', 'v12.7 matroesjka and the bill', function (next, n, sx, sy, src) {
       if (this === G.player && n > 0 && this.doll33 && this.dolls33 > 0 && !(this.inv > 0) && !(this.dashT > 0) && !(this.dying > 0) && !this.god) {
         this.dolls33--; this.inv = Math.max(this.inv || 0, 0.9);
         floatText(this.x, this.y - 30, this.dolls33 ? 'MATROESJKA' : 'LAATSTE POP', '#ff6a4a', true);
@@ -219,14 +218,14 @@
         return;
       }
       const before = this.hp;
-      const r = h0.apply(this, arguments);
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (this === G.player && this.hp < before && this.flags && this.flags.dream33 && G.run) safe(() => {
         const c = G.run.coins || 0;
         if (c >= 4) { G.run.coins = c - 4; floatText(this.x, this.y - 44, 'REKENING -4', '#ffd84a'); }
         else { G.run.coins = 0; if (this.downs.length < DOWN_CAP) giveDown(); floatText(this.x, this.y - 44, 'ONVERZEKERD', '#ff7a8a'); }
       });
       return r;
-    };
+    });
   }
 
   /* ------------------------------------------------------------------ the frame: sugar crash text, cheap shopping */

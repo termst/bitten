@@ -4,7 +4,7 @@
    Zoute Drop, Paraplu and the legendary De Nachtwacht. Clash rules for all five. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe64'); console.error(e); return fb; } };
   const bossK = (sn) => (sn.isBoss ? 0.5 : 1);
 
   /* ------------------------------------------------------------------ admin: the look */

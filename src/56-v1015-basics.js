@@ -2,7 +2,7 @@
 /* ===== v10.15: Basics as plain rules, a frame for every character, the achievements page rebuilt ===== */
 (function () {
   'use strict';
-  const safe = (fn) => { try { return fn(); } catch (e) { console.error(e); return undefined; } };
+  const safe = (fn) => { try { return fn(); } catch (e) { errNote14(e, 'safe56'); console.error(e); return undefined; } };
   const say = (s) => { try { return typeof sayF9 === 'function' ? sayF9(s) : s; } catch (e) { return s; } };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };

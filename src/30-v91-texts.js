@@ -1147,4 +1147,6 @@ const Game = {
     }
   },
 };
+/* T1: one entry per hot function, every later version adds a layer (see Hooks in 01-core.js) */
+for (const k of ['update', 'startRun', 'loadLevel', 'enterRoom', 'clearRoom']) Hooks.install(Game, k, 'Game.' + k);
 

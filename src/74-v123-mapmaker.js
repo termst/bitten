@@ -10,7 +10,7 @@
    ===================================================================== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { if (window.console) console.warn('v12.3', e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe74'); if (window.console) console.warn('v12.3', e); return fb; } };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const S9 = (s) => (typeof say9 === 'function' ? say9(s) : s);
@@ -1113,21 +1113,19 @@
     });
   }
   safe(() => {
-    const sr0 = Game.startRun;
-    Game.startRun = function (story, mode) {
-      if (mode !== 'map' || !RTM.cur) return sr0.apply(this, arguments);
+    Hooks.layer('Game.startRun', 'v12.3 map runs', function (next, story, mode) {
+      if (mode !== 'map' || !RTM.cur) return next.apply(this, [].slice.call(arguments, 1));
       const M = RTM.cur, D = Save.data, keepDiff = D.diff, keepChar = D.char;
       if (M.diff) D.diff = M.diff === 'nightmare' && !D.unlocks.nightmare ? 'hard' : M.diff;
       if (M.char && (M.char === 'apple' || D.unlocks[M.char])) D.char = M.char;
       let r;
-      try { r = sr0.call(this, false, 'map'); } finally { D.diff = keepDiff; D.char = keepChar; }
+      try { r = next.call(this, false, 'map'); } finally { D.diff = keepDiff; D.char = keepChar; }
       safe(() => applyRules(M));
       safe(() => mapButtons(true));
       return r;
-    };
-    const ll0 = Game.loadLevel;
-    Game.loadLevel = function (i) {
-      const r = ll0.apply(this, arguments);
+    });
+    Hooks.layer('Game.loadLevel', 'v12.3 map floors', function (next, i) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (!inMap()) return r;
       safe(() => {
         const M = RTM.cur, map = G.map;
@@ -1145,14 +1143,13 @@
         if (map.rooms.some((rm) => rm.chaosBoss === 'manu' || rm.chaosBoss === 'manudevil') && typeof DJ !== 'undefined') DJ.prepare();
       });
       return r;
-    };
+    });
   });
 
   /* ---- entering rooms: teleports land on their pad, guarded rooms close */
   safe(() => {
-    const er0 = Game.enterRoom;
-    Game.enterRoom = function (room, entry) {
-      const r = er0.apply(this, arguments);
+    Hooks.layer('Game.enterRoom', 'v12.3 map rooms', function (next, room, entry) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (!inMap()) return r;
       safe(() => {
         const P = G.player;
@@ -1171,7 +1168,7 @@
         if (room.mkExit && !room.locked && !room.exit && !mustFight(room)) openExit(room);
       });
       return r;
-    };
+    });
     const sc0 = Game.startCombat;
     Game.startCombat = function (room) {
       if (!inMap() || !room.mkSn) return sc0.apply(this, arguments);
@@ -1185,13 +1182,12 @@
       if (inMap() && room.mkSn && room.mkSn.length && !room.mkSnDone) { room.mkSnDone = true; safe(() => spawnMapSnakes(room)); }
       return r;
     };
-    const cr0 = Game.clearRoom;
-    Game.clearRoom = function (room) {
+    Hooks.layer('Game.clearRoom', 'v12.3 map rooms', function (next, room) {
       if (inMap() && room.mkE && room.mkE.some((k) => k.t === 'ns' && k.ob && !k.ob.broken)) return;
-      const r = cr0.apply(this, arguments);
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (inMap()) safe(() => { if (room.mkExit) openExit(room); });
       return r;
-    };
+    });
   });
   function mustFight(room) { return !room.cleared && (room.type === 'fight' || room.mkGuard || ['boss', 'chaosboss', 'miniboss', 'challenge', 'survival'].includes(room.type)); }
   function openExit(room) {
@@ -3149,13 +3145,13 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   function loop(now) {
     Maker.raf = 0;
     if (!Maker.open || Maker.view !== 'editor') return;
-    Maker.raf = requestAnimationFrame(loop);
+    Maker.raf = Sched.raf(loop);
     if (now - Maker.last < 33) return;
     Maker.last = now;
     safe(() => drawEditor(now));
   }
-  function startLoop() { if (!Maker.raf) Maker.raf = requestAnimationFrame(loop); }
-  function stopLoop() { if (Maker.raf) cancelAnimationFrame(Maker.raf); Maker.raf = 0; }
+  function startLoop() { if (!Maker.raf) Maker.raf = Sched.raf(loop); }
+  function stopLoop() { if (Maker.raf) Sched.cancel(Maker.raf); Maker.raf = 0; }
 
   /* ---- painting */
   function mirrorCells(c, r) {
@@ -3674,10 +3670,11 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     if (Pop.el) { Pop.el.hidden = true; Pop.el.firstChild.classList.remove('in'); }
   }
   // typing runs on its own clock, the game clock is stopped
-  (function popTick() {
-    if (Pop.on && Pop.typed < Pop.full.length && Pop.el && !Pop.el.hidden) { Pop.typed = Math.min(Pop.full.length, Pop.typed + (Pop.cur && Pop.cur.look === 'phone' ? 1.6 : 2.2)); popPaint(); if (Math.floor(Pop.typed) % 5 === 0) safe(() => Sfx.tone(900 + Math.random() * 200, 0.02, { type: 'square', vol: 0.008, lp: 2400 })); }
-    requestAnimationFrame(popTick);
-  })();
+  /* T3, T4: a UI task of the one scheduler, typed by time: 132 characters a second (the phone look 96) */
+  function popTick(now, dt) {
+    if (Pop.on && Pop.typed < Pop.full.length && Pop.el && !Pop.el.hidden) { Pop.typed = Math.min(Pop.full.length, Pop.typed + (Pop.cur && Pop.cur.look === 'phone' ? 96 : 132) * dt); popPaint(); if (Math.floor(Pop.typed) % 5 === 0) safe(() => Sfx.tone(900 + Math.random() * 200, 0.02, { type: 'square', vol: 0.008, lp: 2400 })); }
+  }
+  Sched.every('ui', 'v12.4 pop typing', popTick, () => Pop.on);
   window.addEventListener('keydown', (e) => {
     if (!Pop.on || !Pop.el || Pop.el.hidden || G.state !== 'play') return;
     const o = Pop.cur; if (!o) return;
@@ -3691,16 +3688,16 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   }, true);
   window.addEventListener('resize', () => safe(popPlace));
   safe(() => {
-    const up0 = Game.update;
-    Game.update = function () { if (Pop.on && G.state === 'play') return; return up0.apply(this, arguments); };
+    Hooks.layer('Game.update', 'v12.4 Pop freeze', function (next) { if (Pop.on && G.state === 'play') return; return next.apply(this, [].slice.call(arguments, 1)); });
     const pa0 = Game.pause;
     Game.pause = function () { const r = pa0.apply(this, arguments); if (Pop.el && G.state === 'pause') Pop.el.hidden = true; return r; };
     const rs0 = Game.resume;
     Game.resume = function () { const r = rs0.apply(this, arguments); if (Pop.on && Pop.el && G.state === 'play') { Pop.el.hidden = false; Input.reset(); requestAnimationFrame(popPlace); } return r; };
-    for (const k of ['toMenu', 'gameOver', 'win', 'startRun']) {
+    for (const k of ['toMenu', 'gameOver', 'win']) {
       const f0 = Game[k];
       if (typeof f0 === 'function') Game[k] = function () { Pop.q.length = 0; popClose(); capHide(); return f0.apply(this, arguments); };
     }
+    Hooks.layer('Game.startRun', 'v12.4 Pop close', function (next) { Pop.q.length = 0; popClose(); capHide(); return next.apply(this, [].slice.call(arguments, 1)); });
   });
 
   /* ---- the caption: a line of text at the top of the room, for room texts */
@@ -3719,16 +3716,17 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     Cap.hideAt = performance.now() + 2600 + text.length * 55;
   }
   function capHide() { if (Cap.el) Cap.el.classList.remove('show'); Cap.hideAt = 0; }
-  (function capTick() {
+  /* T3, T4: typed by time, 84 characters a second; while the game waits the hide clock waits by real time */
+  function capTick(now, dt) {
     if (Cap.el && Cap.hideAt) {
       if (G.state === 'play' && !Pop.on) {
-        if (Cap.typed < Cap.full.length) { Cap.typed = Math.min(Cap.full.length, Cap.typed + 1.4); Cap.el.lastChild.textContent = Cap.full.slice(0, Math.floor(Cap.typed)); }
+        if (Cap.typed < Cap.full.length) { Cap.typed = Math.min(Cap.full.length, Cap.typed + 84 * dt); Cap.el.lastChild.textContent = Cap.full.slice(0, Math.floor(Cap.typed)); }
         else if (performance.now() > Cap.hideAt) capHide();
       } else if (G.state !== 'play' && G.state !== 'pause') capHide();
-      else Cap.hideAt += 16;
+      else Cap.hideAt += dt * 1000;
     }
-    requestAnimationFrame(capTick);
-  })();
+  }
+  Sched.every('ui', 'v12.4 captions', capTick, () => !!(Cap.el && Cap.hideAt));
 
   /* ---- what the answers at a Choice do */
   const FX_SUB = {
@@ -3895,9 +3893,8 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
 
   /* ---- intros, room lines and the last word */
   safe(() => {
-    const ll8 = Game.loadLevel;
-    Game.loadLevel = function (i) {
-      const r = ll8.apply(this, arguments);
+    Hooks.layer('Game.loadLevel', 'v12.4 floor text', function (next, i) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (inMap()) safe(() => {
         const M = RTM.cur, F = M.floors[G.levelIdx] || M.floors[0];
         const q = [];
@@ -3906,23 +3903,21 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
         if (q.length) { const run = G.run; setTimeout(() => { if (G.run === run && G.state === 'play') for (const o of q) popShow(o); }, 1300); }
       });
       return r;
-    };
-    const er8 = Game.enterRoom;
-    Game.enterRoom = function (room) {
-      const r = er8.apply(this, arguments);
+    });
+    Hooks.layer('Game.enterRoom', 'v12.4 room words', function (next, room) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (inMap()) safe(() => {
         if (room && room.mkR && room.mkR.ie && !room.mkIeDone) { room.mkIeDone = true; setTimeout(() => { if (G.room === room && G.state === 'play') capShow(room.mkR.ie); }, 450); }
         else if (room && G.room === room) capHide();
       });
       return r;
-    };
-    const cr8 = Game.clearRoom;
-    Game.clearRoom = function (room) {
+    });
+    Hooks.layer('Game.clearRoom', 'v12.4 room words', function (next, room) {
       const was = room && room.cleared;
-      const r = cr8.apply(this, arguments);
+      const r = next.apply(this, [].slice.call(arguments, 1));
       if (inMap()) safe(() => { if (room && !was && room.cleared && room.mkR && room.mkR.ic && !room.mkIcDone) { room.mkIcDone = true; setTimeout(() => { if (G.room === room && G.state === 'play') capShow(room.mkR.ic); }, 700); } });
       return r;
-    };
+    });
     const w8 = Game.win;
     Game.win = function () {
       const r = w8.apply(this, arguments);
@@ -4507,12 +4502,11 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     });
   }
   safe(() => {
-    const cr9 = Game.clearRoom;
-    Game.clearRoom = function (room) {
-      if (!inMap() || !room || !room.mkR) return cr9.apply(this, arguments);
+    Hooks.layer('Game.clearRoom', 'v12.5 room rewards', function (next, room) {
+      if (!inMap() || !room || !room.mkR) return next.apply(this, [].slice.call(arguments, 1));
       const R = room.mkR, keep = R.rg !== 0, first = !room.mkRwDone;
       const before = new Set(room.pickups);
-      const r = cr9.apply(this, arguments);
+      const r = next.apply(this, [].slice.call(arguments, 1));
       safe(() => {
         // a mimic outside a treasure room still pays out once it is dead
         const ch = room.chest;
@@ -4523,7 +4517,7 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
         } else if (first && !keep) { for (const p of room.pickups.slice()) if (!before.has(p) && (p.kind === 'item' || p.kind === 'heart' || p.kind === 'coin')) { room.pickups.splice(room.pickups.indexOf(p), 1); if (p.kind === 'item') G.run.pending.delete(p.id); } room.mkRwDone = true; }
       });
       return r;
-    };
+    });
   });
 
   /* ---- the powerup pool: which powerups the map can roll */

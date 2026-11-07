@@ -264,12 +264,11 @@ function jaudeBite10(P, lost) {
 
 /* ------------------------------------------------------------------ rooms clearing */
 {
-  const cr0 = Game.clearRoom;
-  Game.clearRoom = function (room) {
+  Hooks.layer('Game.clearRoom', 'v10 rooms', function (next, room) {
     const J = room.jaude10;
     if (J && J.phase !== 'done') { if (J.phase === 'fight') jaudeWon10(room); return; }
-    return cr0.call(this, room);
-  };
+    return next.call(this, room);
+  });
   const c9 = clearRoom9;
   clearRoom9 = function (room) {
     c9(room);
@@ -516,10 +515,9 @@ function updatePick10(dt, room) {
 }
 // leaving a room: what was flying around stays behind
 {
-  const en0 = Game.enterRoom;
-  Game.enterRoom = function (room, entry) {
+  Hooks.layer('Game.enterRoom', 'v10 rooms', function (next, room, entry) {
     const prev = G.room;
-    en0.call(this, room, entry);
+    next.call(this, room, entry);
     if (prev && prev !== room) {
       const F = prev.fx10;
       if (F) { F.balloons.length = 0; F.pballs.length = 0; F.lobs.length = 0; F.warns.length = 0; F.zones.length = 0; F.ads.length = 0; F.carts.length = 0; }
@@ -527,7 +525,7 @@ function updatePick10(dt, room) {
       if (prev.jaude10 && prev.jaude10.phase !== 'done') prev.jaude10.phase = 'done';
     }
     G.scare10 = null;
-  };
+  });
 }
 // a flying apple does not fall when the floor goes
 {

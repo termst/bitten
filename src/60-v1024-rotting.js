@@ -2,7 +2,7 @@
 /* ===== v10.24: Rotting. Seeds rot what they hit. Rot ticks, softens the snake, and spreads when it dies. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe60'); console.error(e); return fb; } };
   const bossK = (sn) => (sn.isBoss ? 0.5 : 1);
   const MAXR = 4, ROT_T = 6;
 

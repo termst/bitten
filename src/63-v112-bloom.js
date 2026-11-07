@@ -4,7 +4,7 @@
    film grain. Settings switch "Fancy graphics"; slow devices drop to a lighter mode on their own. ===== */
 (function () {
   'use strict';
-  const safe = (fn, fb) => { try { return fn(); } catch (e) { console.error(e); return fb; } };
+  const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe63'); console.error(e); return fb; } };
   const on = () => !!(Save.data && Save.data.settings && Save.data.settings.fx !== false);
   // per floor: light tint for torches, a soft-light grade, how strong the bloom is
   const GRADE = {

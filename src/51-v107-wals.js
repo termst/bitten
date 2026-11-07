@@ -2,7 +2,7 @@
 /* ===== v10.7: noodles, De Wals, big-screen HUD, more settings and run tweaks ===== */
 (function () {
   'use strict';
-  const safe = (f) => { try { return f(); } catch (e) { console.error(e); } };
+  const safe = (f) => { try { return f(); } catch (e) { errNote14(e, 'safe51'); console.error(e); } };
 
   /* ---------------- settings that live next to the save (the save only keeps on/off switches) */
   const OPT_KEY = 'bitten-v107-opts';
@@ -199,9 +199,8 @@
   if (typeof bossHpK === 'function') { const bh0 = bossHpK; bossHpK = function () { return bh0() * RP('bossHp'); }; }
 
   /* ---------------- every frame */
-  const up0 = Game.update;
-  Game.update = function (dt) {
-    up0.call(this, dt);
+  Hooks.layer('Game.update', 'v10.7 noodles', function (next, dt) {
+    next.call(this, dt);
     safe(() => {
       const room = G.room, P = G.player;
       if (G.state !== 'play' || !room || !P || !G.run) return;
@@ -214,7 +213,7 @@
       G.run.noodleT = rnd(14, 22);
       if (Math.random() < (lvl === 2 ? 0.7 : 0.3) && room.snakes.length < 14) spawnNoodles(room, lvl === 2 ? rndi(1, 3) : rndi(1, 2));
     });
-  };
+  });
 
   /* ================================================================ big screens: a bigger HUD and room for it */
   function hudK() {
@@ -388,9 +387,8 @@
   };
 
   /* custom run tweaks at the start of the run */
-  const sr0 = Game.startRun;
-  Game.startRun = function () {
-    const r = sr0.apply(this, arguments);
+  Hooks.layer('Game.startRun', 'v10.7 run tweaks', function (next) {
+    const r = next.apply(this, [].slice.call(arguments, 1));
     safe(() => {
       if (!G.run) return;
       G.run.noodleT = rnd(10, 16);
@@ -410,7 +408,7 @@
       });
     });
     return r;
-  };
+  });
 
   /* ================================================================ Play menu: the builder (v10.18: tighter) */
   safe(() => {
@@ -700,7 +698,7 @@
   });
 
   /* music runs on its own clock so it also stops on the menu */
-  (function mt() { requestAnimationFrame(mt); safe(musicTick); })();
+  Sched.every('audio', 'v10.7 wals track', () => safe(musicTick));   /* T3 */
   Object.assign(window.__bitten || (window.__bitten = {}), { spawnNoodles, OPTS7: OPTS, cust10: { norm, ensureCust, floorList, bossList, floorOpen, bossOpen, itemOpen, floorBase, NO_PICK, RP }, walsTrack: M, walsLoad: () => { if (!Sfx.ctx) Sfx.init(); loadTrack(); }, walsFetch: fetchTrack });
 })();
 
