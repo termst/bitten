@@ -158,7 +158,7 @@ AI.kampioen = function (sn, room, dt) {
     sn.air9 = Math.sin(u * Math.PI); sn.moveTo(lerp(L.x0, L.x1, u), lerp(L.y0, L.y1, u));
     if (u >= 1) {
       sn.air9 = 0; sn.superM = 0; sn.mode = 'move'; sn.mt = 0;
-      if (P.dying <= 0 && dist(P.x, P.y, sn.x, sn.y) < 70) P.hurt(2, sn.x, sn.y, sn);
+      if (P.dying <= 0 && dist(P.x, P.y, sn.x, sn.y) < 70) P.hurt(2, sn.x, sn.y, sn); mpRest14((Q) => { if (Q.dying <= 0 && dist(Q.x, Q.y, sn.x, sn.y) < 70) Q.hurt(2, sn.x, sn.y, sn); });   /* M3: every apple in reach */
       const n = sn.hyper ? 20 : 16, off = rnd(TAU);
       for (let i = 0; i < n; i++) { const v = spawnVenom(sn.x, sn.y, off + (i / n) * TAU, vs * 0.85, '#ffd23a'); v.kind = 'rocket10'; v.r = 5.5; }
       G.shake = Math.max(G.shake, 11); Sfx.boom(true); flashLight(sn.x, sn.y, 180, 1, 0.5);
@@ -443,7 +443,7 @@ AI.jaude = function (sn, room, dt) {
     sn.air9 = Math.sin(u * Math.PI); sn.moveTo(lerp(L.x0, L.x1, u), lerp(L.y0, L.y1, u));
     if (u >= 1) {
       sn.air9 = 0; sn.mode = 'move'; sn.mt = 0;
-      if (P.dying <= 0 && dist(P.x, P.y, sn.x, sn.y) < 52) P.hurt(1, sn.x, sn.y, sn);
+      if (P.dying <= 0 && dist(P.x, P.y, sn.x, sn.y) < 52) P.hurt(1, sn.x, sn.y, sn); mpRest14((Q) => { if (Q.dying <= 0 && dist(Q.x, Q.y, sn.x, sn.y) < 52) Q.hurt(1, sn.x, sn.y, sn); });   /* M3: every apple in reach */
       const off = rnd(TAU);
       for (let i = 0; i < 8; i++) { const v = spawnVenom(sn.x, sn.y, off + (i / 8) * TAU, vs * 0.7, '#f2f0ea'); v.kind = 'feather10'; v.r = 5; v.spin = rnd(TAU); }
       G.shake = Math.max(G.shake, 8); Sfx.thud();

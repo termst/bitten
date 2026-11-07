@@ -54,6 +54,7 @@ function slamPiece(room, sn, g) {
     const f = nearestFreeCell(room, P.x, P.y);
     P.x = f.x; P.y = f.y;
   }
+  mpRest14((Q) => { if (!freeAt(room, Q.x, Q.y, Q.r * 0.6)) { Q.hurt(1, Q.x, Q.y - 20); const f = nearestFreeCell(room, Q.x, Q.y); Q.x = f.x; Q.y = f.y; } });   /* M3: the others too */
   // a full row of blocks clears like the old game and hurts the worm
   for (let r = 0; r < ROWS; r++) {
     let full = true;

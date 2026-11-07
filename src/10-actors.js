@@ -174,7 +174,8 @@ class Player {
     if (this.dying > 0) { this.dying += dt; return; }
     if (this.escaping > 0) { this.escaping += dt; this.vx = this.vy = 0; return; }
 
-    let mv = Input.moveVec();
+    const IN14 = this.input14 || Input;                         /* M4: this apple's own input source */
+    let mv = IN14.moveVec();
     // roots hold the apple in place for a moment
     if (this.rootT > 0) { this.rootT -= dt; mv = { x: 0, y: 0 }; }
     const spd = this.speed * this.mods.speed * speedK9(this, room);
@@ -220,7 +221,7 @@ class Player {
 
     this.cool -= dt;
     const scr = View.toScreen(this.x, this.y);
-    const aim = Input.aimVec(scr[0], scr[1]);
+    const aim = this.noShoot14 ? null : IN14.aimVec(scr[0], scr[1]);   /* M9: no shooting while a personal panel is open */
     if (aim) {
       let ax = aim.x, ay = aim.y;
       if (aim.touch && Save.data.assist) [ax, ay] = assistAim(room, this, ax, ay);
@@ -229,7 +230,7 @@ class Player {
     }
 
     // standing still: Chill Vibes, and the Chill Guy achievement
-    if (sp < 12 && Input.moveVec().x === 0 && Input.moveVec().y === 0) this.stillT += dt; else this.stillT = 0;
+    if (sp < 12 && IN14.moveVec().x === 0 && IN14.moveVec().y === 0) this.stillT += dt; else this.stillT = 0;
     this.chillOn = this.chill && this.stillT > 0.6;
     if (this.stillT >= 8 && !G.run.chilled && room.locked && room.snakes.some((s) => s.alive && s.state === 'active')) { G.run.chilled = true; Meta.add('chill'); }
     if (this.capy) {
@@ -402,6 +403,7 @@ function makeSeed(P, x, y, a, o = {}) {
   if (P.coaster) s.life += 0.34;
   seed9(P, s, o);
   if (P.pump && !o.noCan && ++P.pumpN % 4 === 0) s.can = true;
+  if (MP14.on) s.owner14 = P;                                /* M3: the seed knows whose it is */
   G.seeds.push(s);
   return s;
 }
@@ -805,6 +807,7 @@ function updatePickups(dt, room) {
       p.deny = Math.max(0, (p.deny || 0) - dt);
       if (p.t > 0.7 && P.dying <= 0 && dist2(p.x, p.y - 10, P.x, P.y) < (P.r + 14) * (P.r + 14)) {
         if (clashHold10(p, P, room, dt)) continue;
+        if (p.boss14 && bossLootHeld14(p, P)) continue;          /* B3: one boss powerup per apple */
         if (p.cost) {
           if (curateleBlock9(p)) continue;
           const cost = priceOf(p);

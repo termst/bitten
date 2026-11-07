@@ -265,7 +265,7 @@ function updateVaultDoors(room) {
 
 /* ------------------------------------------------------------------ the newest powerups */
 function updateDash(P, dt, room, mv) {
-  const want = Input.dashReq; Input.dashReq = false;
+  const IS = P.input14, want = IS ? IS.dash() : Input.dashReq; if (!IS) Input.dashReq = false;   /* M4 */
   if (P.dashCd > 0) P.dashCd = Math.max(0, P.dashCd - dt);
   if (P.dashT > 0) {
     P.dashT -= dt;
@@ -716,11 +716,17 @@ function itemThreat(id) {
   const it = (typeof ITEMS !== 'undefined' && ITEMS[id]) || null;
   return it && it.w != null && it.w < 1 ? 6 : 2; // a powerup that is not in the table: 2 normal, 6 rare
 }
-function enemyPowerPct(P) {
-  P = P || G.player; if (!P || !P.items) return 0;
+function threatSum14(P) {
   const start = (CHARS[P.char] && CHARS[P.char].start) || [];
   let sum = 0;
   for (const id of P.items) { if (start.indexOf(id) >= 0) continue; sum += itemThreat(id); }
+  return sum;
+}
+function enemyPowerPct(P) {
+  P = P || G.player; if (!P || !P.items) return 0;
+  let sum = 0;
+  if (MP14.on) { const L = livePlayers14().filter((Q) => Q.items); for (const Q of L) sum += threatSum14(Q); sum = L.length ? sum / L.length : threatSum14(P); }   /* B2: the living apples' average */
+  else sum = threatSum14(P);
   if (sum > THREAT_SOFT) sum = THREAT_SOFT + (sum - THREAT_SOFT) * 0.5;
   return Math.min(sum, THREAT_HARD);
 }
@@ -729,7 +735,7 @@ function enemyPowerK(P) { return 1 + enemyPowerPct(P) / 100; }
 /* ------------------------------------------------------------------ bosses scale a little with what you carry */
 function bossHpK() {
   const L = G.levelDef, P = G.player;
-  return (L.bossMult || 1) * enemyPowerK(P);
+  return (L.bossMult || 1) * enemyPowerK(P) * mpBossHpK14();      /* B1: boss and mini boss HP for n apples */
 }
 
 /* ------------------------------------------------------------------ what the info card shows */

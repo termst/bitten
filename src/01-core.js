@@ -301,3 +301,49 @@ const SPR14 = {
   },
   bucket(r) { return r <= 4 ? 4 : r <= 8 ? 8 : r <= 16 ? 16 : r <= 32 ? 32 : r <= 64 ? 64 : r <= 128 ? 128 : 256; },
 };
+
+/* M3 (v14.0): more than one apple. G.players holds every apple in the run (max 4); G.player stays the
+   context pointer: withPlayer(P, fn) points it at P while fn runs. With one apple nothing changes. */
+const MP14 = { on: false, max: 4, live: [], liveT: -1 };
+function withPlayer(P, fn) {
+  if (!P || G.player === P) return fn();
+  const keep = G.player; G.player = P;
+  try { return fn(); } finally { G.player = keep; }
+}
+function players14() { return G.players && G.players.length ? G.players : G.player ? [G.player] : []; }
+/* the apples that can still be bitten and act: not dead, not a klokhuis ghost, not frozen by a disconnect */
+function livePlayers14() {
+  const L = players14();
+  if (!MP14.on) return L;
+  const out = [];
+  for (const P of L) if (!P.ghost14 && !(P.dying > 0) && !P.away14) out.push(P);
+  return out;
+}
+function mpCount14() { return MP14.on && G.players ? G.players.length : 1; }
+/* run fn(P) for every apple that can be bitten (single player: just G.player, as before) */
+function forLive14(fn) {
+  if (!MP14.on) { if (G.player) fn(G.player); return; }
+  for (const P of livePlayers14()) withPlayer(P, () => fn(P));
+}
+/* a hazard update that moves things AND checks the apple: once with dt for the first apple, then with dt 0
+   for every other living apple, so things move once and every apple gets its hit check */
+function mpPasses14(fn, dt, room, extra) {
+  if (!MP14.on) return fn(dt, room, extra);
+  const L = livePlayers14();
+  if (!L.length) return fn(dt, room, extra);
+  let r;
+  for (let i = 0; i < L.length; i++) r = withPlayer(L[i], () => fn(i === 0 ? dt : 0, room, extra));
+  return r;
+}
+/* the living apple nearest to a point (single player: G.player) */
+function nearestLive14(x, y) {
+  if (!MP14.on) return G.player;
+  let best = null, bd = 1e18;
+  for (const P of livePlayers14()) { const d = (P.x - x) * (P.x - x) + (P.y - y) * (P.y - y); if (d < bd) { bd = d; best = P; } }
+  return best || G.player;
+}
+/* B1 (v14.0): balance for n apples. n = 1 keeps every number as it was. */
+const MPB14 = { hp: [1, 1, 1.35, 1.65, 1.9], boss: [1, 1, 1.6, 2.1, 2.6], cycle: [1, 1, 1, 1.05, 1.1], drop: [1, 1, 1.5, 2, 2.5] };
+function mpSnakeHpK14() { return MP14.on ? MPB14.hp[Math.min(4, mpCount14())] : 1; }
+function mpBossHpK14() { return MP14.on ? MPB14.boss[Math.min(4, mpCount14())] : 1; }
+function mpExtra14() { return MP14.on ? Math.min(3, mpCount14() - 1) : 0; }

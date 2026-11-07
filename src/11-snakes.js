@@ -16,7 +16,7 @@ class Snake {
     this.ang = o.ang != null ? o.ang : rnd(TAU);
     this.drawAng = this.ang; this.moveAng = this.ang;
     const mult = this.isBoss ? 1 : (G.levelDef ? G.levelDef.hpMult : 1);
-    this.maxHp = K.hp * mult * (this.isBoss ? 1 : enemyPowerK(G.player)); this.hp = this.maxHp; this.champ = !!o.champ; this.slow = 0;
+    this.maxHp = K.hp * mult * (this.isBoss ? 1 : enemyPowerK(G.player) * mpSnakeHpK14());   /* B1 */ this.hp = this.maxHp; this.champ = !!o.champ; this.slow = 0;
     this.headR = K.headR; this.spacing = K.spacing; this.maxLen = K.maxLen; this.minLen = K.minLen;
     this.len = this.maxLen;
     this.trail = [{ x, y, s: 0 }]; this.odo = 0;
@@ -175,7 +175,7 @@ class Snake {
     burst(this.x, this.y, this.isBoss ? 22 : 14, G.levelDef.dirt, { min: 50, max: 180, rmin: 1.5, rmax: 3.5, lmin: 0.4, lmax: 0.8, drag: 4 });
     addDecal(room, 'crack', this.x, this.y, this.headR * 1.8, '#000000');
     flashLight(this.x, this.y, 70, 0.5, 0.4);
-    if (P.dying <= 0 && dist(P.x, P.y, this.x, this.y) < this.headR + P.r + 12) P.hurt(this.K.eruptDmg || 2, this.x, this.y, this);
+    if (P.dying <= 0 && dist(P.x, P.y, this.x, this.y) < this.headR + P.r + 12) P.hurt(this.K.eruptDmg || 2, this.x, this.y, this); mpRest14((Q) => { if (Q.dying <= 0 && dist(Q.x, Q.y, this.x, this.y) < this.headR + Q.r + 12) Q.hurt(this.K.eruptDmg || 2, this.x, this.y, this); });   /* M3: every apple in reach */
     const tier = G.levelDef.tier || 0;
     let ring = 0, col = this.isBoss ? '#e2604e' : '#d8c454';
     if (this.kind === 'lamprey') ring = tier === 0 ? 0 : tier === 1 ? 6 : 8;

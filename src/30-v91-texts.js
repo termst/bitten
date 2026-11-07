@@ -642,7 +642,7 @@ const Game = {
     // harder difficulties and deeper laps bring company
     const tw = G.run.twist && G.run.twist.id;
     const wormy = G.player.flags.wormy ? 1 : 0;
-    const extra = (L.extra || 0) + (tw === 'swarm' ? 2 : 0) + wormy;
+    const extra = (L.extra || 0) + (tw === 'swarm' ? 2 : 0) + wormy + mpExtra14();   /* B1: +1 snake per extra apple */
     const pool = EXTRA_POOL[L.set] || EXTRA_POOL.cellar;
     for (let i = 0; i < extra; i++) {
       const kind = (tw === 'swarm' && i >= extra - 2 - wormy) || (wormy && i === extra - 1) ? 'grub' : pick(pool);
@@ -768,7 +768,7 @@ const Game = {
     room.locked = true; room.doorCl = 0;
     Sfx.roar(); Sfx.doorShut(); G.shake = Math.max(G.shake, 8);
     const P = G.player, L = G.levelDef, tier = L.tier || 0;
-    if (dist(P.x, P.y, ch.x, ch.y) < P.r + 30) P.hurt(1, ch.x, ch.y);
+    if (dist(P.x, P.y, ch.x, ch.y) < P.r + 30) P.hurt(1, ch.x, ch.y); mpRest14((Q) => { if (dist(Q.x, Q.y, ch.x, ch.y) < Q.r + 30) Q.hurt(1, ch.x, ch.y); });   /* M3: every apple in reach */
     const pool = WAVE_POOL[L.set] || WAVE_POOL.cellar;
     const n = 3 + Math.min(2, tier);
     for (let i = 0; i < n; i++) {
@@ -1088,21 +1088,23 @@ const Game = {
     // Mikappols stops time: nothing hungry moves while the room is frozen
     const frozen = G.freeze > 0;
     if (frozen) G.freeze = Math.max(0, G.freeze - dt);
-    P.update(dt, room);
+    /* M3: every apple updates in its own context; every snake runs in the context of its target (B9) */
+    if (MP14.on) { for (const Q of G.players) withPlayer(Q, () => (Q.ghost14 ? ghostStep14(Q, dt, room) : Q.update(dt, room))); } else P.update(dt, room);
     DJ.update(dt);
-    if (!frozen) for (let i = 0; i < room.snakes.length; i++) { const sn = room.snakes[i]; if (sn.alive) sn.update(dt, room); }
+    if (!frozen) for (let i = 0; i < room.snakes.length; i++) { const sn = room.snakes[i]; if (sn.alive) { if (MP14.on) snakeStep14(sn, dt, room); else sn.update(dt, room); } }
     if (room.snakes.some((s) => !s.alive)) room.snakes = room.snakes.filter((s) => s.alive);
     Save.data.stats.time = (Save.data.stats.time || 0) + dt;
-    updateSeeds(dt, room);
+    /* M3: seeds run their hits and procs in their owner's context; hazards check every living apple */
+    if (MP14.on) seedsByOwner14(dt, room); else updateSeeds(dt, room);
     updateStrikes(dt, room);
-    if (!frozen) { updateLobs(dt, room); updateBlocks(dt, room); updateVenom(dt, room); }
-    updateFires(dt, room);
-    if (room.balls.length) updateBalls(dt, room);
-    updatePickups(dt, room);
-    if (room.carts.length) updateCarts(dt, room);
-    if (room.beltMap && !frozen) updateBelts(dt, room);
-    if (room.spikes.length && !frozen) updateSpikes(dt, room);
-    updateRoomExtras(dt, room, frozen);
+    if (!frozen) { mpPasses14(updateLobs, dt, room); mpPasses14(updateBlocks, dt, room); mpPasses14(updateVenom, dt, room); }
+    mpPasses14(updateFires, dt, room);
+    if (room.balls.length) mpPasses14(updateBalls, dt, room);
+    mpPasses14(updatePickups, dt, room);
+    if (room.carts.length) mpPasses14(updateCarts, dt, room);
+    if (room.beltMap && !frozen) mpPasses14(updateBelts, dt, room);
+    if (room.spikes.length && !frozen) mpPasses14(updateSpikes, dt, room);
+    mpPasses14(updateRoomExtras, dt, room, frozen);
     updateParticles(dt);
     if (G.run.rewardQ.length) this.flushRewards();
     for (const o of room.obs) {
@@ -1119,29 +1121,31 @@ const Game = {
       if (ch.open) {
         ch.t += dt;
         if (ch.pending && ch.t > 0.35) { ch.pending = false; this.chestItems(room, ch); }
-      } else if (P.dying <= 0 && !ch.woke && dist(P.x, P.y, ch.x, ch.y) < P.r + 24) {
+      } else if (!ch.woke && (MP14.on ? livePlayers14().some((Q) => dist(Q.x, Q.y, ch.x, ch.y) < Q.r + 24) : P.dying <= 0 && dist(P.x, P.y, ch.x, ch.y) < P.r + 24)) {
         if (ch.mimic) this.wakeMimic(room, ch);
         else { ch.open = true; ch.t = 0; ch.pending = true; Sfx.chest(); flashLight(ch.x, ch.y, 130, 0.8, 1.1); G.shake = Math.max(G.shake, 2); }
       }
     }
     if (room.type === 'challenge' && !room.cleared) {
       if (!room.wave) {
-        if (room.altar && P.dying <= 0 && dist(P.x, P.y, room.altar.x, room.altar.y) < P.r + 26) this.spawnWave(room);
+        if (room.altar && (MP14.on ? livePlayers14().some((Q) => dist(Q.x, Q.y, room.altar.x, room.altar.y) < Q.r + 26) : P.dying <= 0 && dist(P.x, P.y, room.altar.x, room.altar.y) < P.r + 26)) this.spawnWave(room);
       } else if (!room.snakes.some((s) => s.alive && s.locks)) {
         if (room.wave < 3) { room.waveT = (room.waveT || 0) + dt; if (room.waveT > 1.1) { room.waveT = 0; this.spawnWave(room); } }
         else this.clearRoom(room);
       }
-    } else if (room.type === 'survival' && !room.cleared) updateSurvival(dt, room);
+    } else if (room.type === 'survival' && !room.cleared) mpPasses14(updateSurvival, dt, room);
     else if (room.locked && !room.snakes.some((s) => s.alive && s.locks)) this.clearRoom(room);
     if (room.exit) {
       room.exit.t += dt;
-      if (room.exit.t > 1 && P.dying <= 0 && P.escaping <= 0 && dist(P.x, P.y, room.exit.x, room.exit.y) < 20) {
-        if (room.exit.kind === 'hole') this.descend(); else this.escape();
+      const atExit = MP14.on ? livePlayers14().find((Q) => Q.escaping <= 0 && dist(Q.x, Q.y, room.exit.x, room.exit.y) < 20) : P.dying <= 0 && P.escaping <= 0 && dist(P.x, P.y, room.exit.x, room.exit.y) < 20;
+      if (room.exit.t > 1 && atExit) {
+        if (room.exit.kind === 'hole') this.descend(); else if (MP14.on) { for (const Q of G.players) withPlayer(Q, () => this.escape()); } else this.escape();
       }
     }
     if (P.hp <= 2 && P.hp > 0 && P.dying <= 0 && P.escaping <= 0) { G.hbT -= dt; if (G.hbT <= 0) { G.hbT = 0.95; Sfx.heartbeat(); } }
     if (G.mode === 'story' && P.hp <= 2 && P.hp > 0 && P.dying <= 0 && !Story.lowSaid) { Story.lowSaid = true; Story.chat('low', true); }
-    if (P.dying > 2.4 && G.state === 'play') this.gameOver();
+    if (MP14.on) mpDeaths14(this);                               /* M8: a dead apple becomes a klokhuis; all dead ends the run */
+    else if (P.dying > 2.4 && G.state === 'play') this.gameOver();
     if (P.escaping > 0) {
       G.whiteout = clamp((P.escaping - 0.7) / 1.3, 0, 1);
       if (P.escaping > 2.2 && G.state === 'play') this.win();

@@ -233,7 +233,7 @@ AI.killerclown = function (sn, room, dt) {
     if (!sn.hitDone && u > 0.45) {
       sn.hitDone = true;
       const reach = sn.headR + 38;
-      if (P.dying <= 0 && d < reach + P.r && Math.abs(angDiff(sn.swingA, toP)) < 1.25 && P.hurt(1, sn.x, sn.y, sn)) { P.kbx += Math.cos(toP) * 260; P.kby += Math.sin(toP) * 260; floatText(P.x, P.y - 28, 'BONK', '#ffe14a', true); }
+      if (P.dying <= 0 && d < reach + P.r && Math.abs(angDiff(sn.swingA, toP)) < 1.25 && P.hurt(1, sn.x, sn.y, sn)) { P.kbx += Math.cos(toP) * 260; P.kby += Math.sin(toP) * 260; floatText(P.x, P.y - 28, 'BONK', '#ffe14a', true); } mpRest14((Q) => { const tq = Math.atan2(Q.y - sn.y, Q.x - sn.x); if (Q.dying <= 0 && Math.hypot(Q.x - sn.x, Q.y - sn.y) < reach + Q.r && Math.abs(angDiff(sn.swingA, tq)) < 1.25 && Q.hurt(1, sn.x, sn.y, sn)) { Q.kbx += Math.cos(tq) * 260; Q.kby += Math.sin(tq) * 260; } });
       const fx = sn.x + Math.cos(sn.swingA) * (sn.headR + 18), fy = sn.y + Math.sin(sn.swingA) * (sn.headR + 18);
       smash10(room, fx, fy, 30, 1);
       G.shake = Math.max(G.shake, 4); Sfx.thud();
@@ -298,7 +298,7 @@ function rageAI10(sn, room, dt, lvl) {
       sn.lift = 0; sn.mode = 'move'; sn.mt = 0;
       const R = 40 + lvl * 12;
       G.shake = Math.max(G.shake, 5 + lvl * 2); Sfx.thud(); Sfx.collapse();
-      if (P.dying <= 0 && dist(P.x, P.y, sn.x, sn.y) < sn.headR + R) P.hurt(lvl >= 3 ? 2 : 1, sn.x, sn.y, sn);
+      if (P.dying <= 0 && dist(P.x, P.y, sn.x, sn.y) < sn.headR + R) P.hurt(lvl >= 3 ? 2 : 1, sn.x, sn.y, sn); mpRest14((Q) => { if (Q.dying <= 0 && dist(Q.x, Q.y, sn.x, sn.y) < sn.headR + R) Q.hurt(lvl >= 3 ? 2 : 1, sn.x, sn.y, sn); });   /* M3: every apple in reach */
       const n = 6 + lvl * 2, off = rnd(TAU);
       for (let i = 0; i < n; i++) { const v = spawnVenom(sn.x, sn.y, off + (i / n) * TAU, G.levelDef.venomSpeed * 0.75, '#c8643a'); v.kind = 'debris'; v.spin = rnd(TAU); v.r = 6.5; }
       ring10(sn.x, sn.y, 16, '#ff8a4a', 0.45, false);
@@ -314,7 +314,7 @@ function rageAI10(sn, room, dt, lvl) {
       sn.lift = 0; sn.mode = 'move'; sn.mt = 0;
       const tx = clamp(P.x + P.vx * 0.6, 20, RW - 20), ty = clamp(P.y + P.vy * 0.6, 20, RH - 20);
       lob10(room, sn.x, sn.y, tx, ty, 0.95, 'boulder', (l) => {
-        if (P.dying <= 0 && dist(P.x, P.y, l.x1, l.y1) < 34 + P.r * 0.4) P.hurt(1, l.x1, l.y1);
+        if (P.dying <= 0 && dist(P.x, P.y, l.x1, l.y1) < 34 + P.r * 0.4) P.hurt(1, l.x1, l.y1); mpRest14((Q) => { if (Q.dying <= 0 && dist(Q.x, Q.y, l.x1, l.y1) < 34 + Q.r * 0.4) Q.hurt(1, l.x1, l.y1); });   /* M3: every apple in reach */
         for (const s of room.snakes) if (s !== sn && s.canBeHit() && s.hitTest(l.x1, l.y1, 24)) s.hurt(4, l.x1, l.y1);
         crater10(room, l.x1, l.y1, 7);
         G.shake = Math.max(G.shake, 7); Sfx.thud(); Sfx.collapse();
@@ -381,7 +381,7 @@ AI.stekker = function (sn, room, dt) {
       const hx = sn.x + Math.cos(sn.ang) * sn.headR, hy = sn.y + Math.sin(sn.ang) * sn.headR;
       const far = { x: hx + (sn.zx - hx) * 2.2, y: hy + (sn.zy - hy) * 2.2 };
       const [ex, ey] = lineEnd10(room, hx, hy, far.x, far.y);
-      if (P.dying <= 0 && segDist10(P.x, P.y, hx, hy, ex, ey) < P.r + 3) P.hurt(1, ex, ey, sn);
+      if (P.dying <= 0 && segDist10(P.x, P.y, hx, hy, ex, ey) < P.r + 3) P.hurt(1, ex, ey, sn); mpRest14((Q) => { if (Q.dying <= 0 && segDist10(Q.x, Q.y, hx, hy, ex, ey) < Q.r + 3) Q.hurt(1, ex, ey, sn); });   /* M3: every apple in reach */
       addP({ kind: 'zap', x: hx, y: hy, x2: ex, y2: ey, vx: 0, vy: 0, r: 1, life: 0.25, col: '#7ad0ff', glow: true, drag: 0, seed: rnd(100) });
       flashLight(ex, ey, 60, 0.6, 0.2); Sfx.zap();
       sn.mode = 'move'; sn.mt = 0; sn.cd = rnd(2.4, 3.2);

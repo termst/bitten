@@ -237,7 +237,7 @@ AI.sloper = function (sn, room, dt) {
       const off = rnd(TAU);
       for (let i = 0; i < 10; i++) { const v = spawnVenom(sn.x, sn.y, off + (i / 10) * TAU, G.levelDef.venomSpeed * 0.8, '#d8b030'); v.kind = 'debris'; v.spin = rnd(TAU); v.r = 6.5; }
       addP({ kind: 'ring', x: sn.x, y: sn.y, vx: 0, vy: 0, r: 16, life: 0.45, col: '#e8b820', drag: 0 });
-      if (P.dying <= 0 && dist(P.x, P.y, sn.x, sn.y) < sn.headR + 46) P.hurt(1, sn.x, sn.y, sn);
+      if (P.dying <= 0 && dist(P.x, P.y, sn.x, sn.y) < sn.headR + 46) P.hurt(1, sn.x, sn.y, sn); mpRest14((Q) => { if (Q.dying <= 0 && dist(Q.x, Q.y, sn.x, sn.y) < sn.headR + 46) Q.hurt(1, sn.x, sn.y, sn); });   /* M3: every apple in reach */
       burst(sn.x, sn.y, 16, G.levelDef.dirt, { min: 50, max: 160, rmin: 1.5, rmax: 3.4, lmin: 0.4, lmax: 0.8 });
     }
     return;

@@ -243,6 +243,7 @@ function renderDarkness(c, room, L, ox, oy) {
   if (P.bril) pr *= 1.2;
   if (P.mods) pr *= P.mods.light;
   light(P.x, P.y, pr, 1);
+  if (MP14.on) for (const Q of G.players) if (Q !== P) light(Q.x, Q.y, pr * (Q.ghost14 ? 0.55 : 1), Q.ghost14 ? 0.6 : 1);   /* M3: every apple carries its light */
   for (const s of room.sconces) light(s.lx, s.ly, 92 + Math.sin(t * 9 + s.ph) * 4, 0.75);
   for (const o of room.obs) if (o.type === 'candle' && !o.sign) light(o.x, o.y - 6, 96 + Math.sin(t * 8 + o.seed * 9) * 5, 0.85);
   if (room.tubes) for (const s of room.tubes) { const lv = tubeLevel(s, t); for (const dx of [-0.25, 0.25]) light(s.x + dx * s.w, s.y, 135, 0.66 * lv); }
