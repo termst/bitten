@@ -144,7 +144,7 @@ function stock9(map) {
     if ((SPECIAL9[r.type] || r.type === 'chaosboss') && r.store) { r.store = null; r.dirty = true; }
     if (r.type !== 'tank') continue;
     const offers = shuffle(PUMPS.slice());
-    r.pumps9.forEach((o, i) => { const p = offers[i % offers.length]; o.offer = p.id; o.cost = clamp(p.cost + rndi(-2, 2), 20, 40); o.used = false; o.armed = true; });
+    r.pumps9.forEach((o, i) => { const p = offers[i % offers.length]; o.offer = p.id; o.cost = clamp(p.cost + rndi(-2, 2), 20, 40); o.used = false; o.armed = true; o.arm14 = null; });
     for (const s of r.shopSpots) if (s.ch === 's') r.pickups.push({ kind: 'heart', amount: 2, x: s.x, y: s.y, vx: 0, vy: 0, t: 0.5, ph: rnd(10), cost: 5, snack: true });
   }
 }
@@ -209,9 +209,9 @@ function updateTank9(dt, room) {
     if (o.fillT > 0) o.fillT = Math.max(0, o.fillT - dt);
     if (!o.offer) continue;
     const near = P.dying <= 0 && dist(P.x, P.y, o.x, o.y) < P.r + 24;
-    if (!near) { o.armed = true; continue; }
-    if (!o.armed) continue;
-    o.armed = false;
+    if (!near) { setArmed14(o, true); continue; }
+    if (!armed14(o)) continue;
+    setArmed14(o, false);
     if (o.used) { UI.banner('Leeg', 'This pump is empty. Try another one.'); continue; }
     if (curateleBlock9(null)) continue;
     const pmp = PUMP_BY_ID[o.offer], cost = pumpCost9(o);
@@ -231,17 +231,17 @@ function updateTank9(dt, room) {
   const till = room.till9;
   if (till) {
     const near = P.dying <= 0 && dist(P.x, P.y, till.x + T * 0.5, till.y + 4) < P.r + 34;
-    if (!near) till.armed = true;
-    else if (till.armed && !G.trans) { till.armed = false; UI.openSell(); }
+    if (!near) setArmed14(till, true);
+    else if (armed14(till) && !G.trans) { setArmed14(till, false); UI.openSell(); }
   }
 }
 function updateKapper9(dt, room) {
   const o = room.chair9, P = G.player;
   if (!o) return;
   const near = P.dying <= 0 && dist(P.x, P.y, o.x, o.y) < P.r + 22;
-  if (!near) { o.armed = true; return; }
-  if (!o.armed) return;
-  o.armed = false;
+  if (!near) { setArmed14(o, true); return; }
+  if (!armed14(o)) return;
+  setArmed14(o, false);
   if (o.done) { UI.banner('Klaar', 'One cut per visit. It looks great. Really.'); return; }
   if (curateleBlock9(null)) return;
   const cost = cutCost9();

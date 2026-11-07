@@ -215,9 +215,9 @@ function updateRotPickup(p, i, dt, room, P) {
     return;
   }
   // the reroll machine: step off it before you pull it again
-  if (!near) { p.armed = true; return; }
-  if (!p.armed || p.deny) return;
-  p.armed = false;
+  if (!near) { setArmed14(p, true); return; }
+  if (!armed14(p) || p.deny) return;
+  setArmed14(p, false);
   const cost = priceOf(p);
   if (!room.pickups.some((q) => q.goods)) { p.deny = 1.5; UI.banner('Sold out', 'Nothing left on the shelves to swap.'); return; }
   if (curateleBlock9(p)) return;
@@ -382,9 +382,9 @@ function updateSlot(dt, room) {
     return;
   }
   const near = P.dying <= 0 && dist(P.x, P.y, o.x, o.y) < 37;
-  if (!near) { o.armed = true; return; }
-  if (!o.armed || o.cd > 0) return;
-  o.armed = false;
+  if (!near) { setArmed14(o, true); return; }
+  if (!armed14(o) || o.cd > 0) return;
+  setArmed14(o, false);
   if (room.locked) return;
   if (o.broken) { UI.banner('Out of order', 'It already paid out everything it had.'); o.cd = 1; return; }
   if (curateleBlock9(null)) { o.cd = 1; return; }

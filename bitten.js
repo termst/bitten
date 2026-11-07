@@ -714,6 +714,8 @@ const SPR14 = {
 /* M3 (v14.0): more than one apple. G.players holds every apple in the run (max 4); G.player stays the
    context pointer: withPlayer(P, fn) points it at P while fn runs. With one apple nothing changes. */
 const MP14 = { on: false, max: 4, live: [], liveT: -1 };
+/* phase 3: online play lives in net.js; NET14.live is true while an online run runs (frame() hands it the ticks) */
+const NET14 = { live: false, pump() {} };
 function withPlayer(P, fn) {
   if (!P || G.player === P) return fn();
   const keep = G.player; G.player = P;
@@ -728,6 +730,10 @@ function livePlayers14() {
   for (const P of L) if (!P.ghost14 && !(P.dying > 0) && !P.away14) out.push(P);
   return out;
 }
+/* a pad, till or plate that waits until you step off it: one flag per apple, or a second apple standing
+   elsewhere re-arms it every tick (single player: the plain field, as before) */
+function armed14(o) { if (!MP14.on || !G.player) return o.armed; const m = o.arm14; return m && m.has(G.player) ? m.get(G.player) : o.armed; }
+function setArmed14(o, v) { if (!MP14.on || !G.player) { o.armed = v; return; } (o.arm14 || (o.arm14 = new Map())).set(G.player, v); }
 function mpCount14() { return MP14.on && G.players ? G.players.length : 1; }
 /* run fn(P) for every apple that can be bitten (single player: just G.player, as before) */
 function forLive14(fn) {
@@ -8704,9 +8710,9 @@ function updateRotPickup(p, i, dt, room, P) {
     return;
   }
   // the reroll machine: step off it before you pull it again
-  if (!near) { p.armed = true; return; }
-  if (!p.armed || p.deny) return;
-  p.armed = false;
+  if (!near) { setArmed14(p, true); return; }
+  if (!armed14(p) || p.deny) return;
+  setArmed14(p, false);
   const cost = priceOf(p);
   if (!room.pickups.some((q) => q.goods)) { p.deny = 1.5; UI.banner('Sold out', 'Nothing left on the shelves to swap.'); return; }
   if (curateleBlock9(p)) return;
@@ -8871,9 +8877,9 @@ function updateSlot(dt, room) {
     return;
   }
   const near = P.dying <= 0 && dist(P.x, P.y, o.x, o.y) < 37;
-  if (!near) { o.armed = true; return; }
-  if (!o.armed || o.cd > 0) return;
-  o.armed = false;
+  if (!near) { setArmed14(o, true); return; }
+  if (!armed14(o) || o.cd > 0) return;
+  setArmed14(o, false);
   if (room.locked) return;
   if (o.broken) { UI.banner('Out of order', 'It already paid out everything it had.'); o.cd = 1; return; }
   if (curateleBlock9(null)) { o.cd = 1; return; }
@@ -14331,7 +14337,7 @@ function stock9(map) {
     if ((SPECIAL9[r.type] || r.type === 'chaosboss') && r.store) { r.store = null; r.dirty = true; }
     if (r.type !== 'tank') continue;
     const offers = shuffle(PUMPS.slice());
-    r.pumps9.forEach((o, i) => { const p = offers[i % offers.length]; o.offer = p.id; o.cost = clamp(p.cost + rndi(-2, 2), 20, 40); o.used = false; o.armed = true; });
+    r.pumps9.forEach((o, i) => { const p = offers[i % offers.length]; o.offer = p.id; o.cost = clamp(p.cost + rndi(-2, 2), 20, 40); o.used = false; o.armed = true; o.arm14 = null; });
     for (const s of r.shopSpots) if (s.ch === 's') r.pickups.push({ kind: 'heart', amount: 2, x: s.x, y: s.y, vx: 0, vy: 0, t: 0.5, ph: rnd(10), cost: 5, snack: true });
   }
 }
@@ -14396,9 +14402,9 @@ function updateTank9(dt, room) {
     if (o.fillT > 0) o.fillT = Math.max(0, o.fillT - dt);
     if (!o.offer) continue;
     const near = P.dying <= 0 && dist(P.x, P.y, o.x, o.y) < P.r + 24;
-    if (!near) { o.armed = true; continue; }
-    if (!o.armed) continue;
-    o.armed = false;
+    if (!near) { setArmed14(o, true); continue; }
+    if (!armed14(o)) continue;
+    setArmed14(o, false);
     if (o.used) { UI.banner('Leeg', 'This pump is empty. Try another one.'); continue; }
     if (curateleBlock9(null)) continue;
     const pmp = PUMP_BY_ID[o.offer], cost = pumpCost9(o);
@@ -14418,17 +14424,17 @@ function updateTank9(dt, room) {
   const till = room.till9;
   if (till) {
     const near = P.dying <= 0 && dist(P.x, P.y, till.x + T * 0.5, till.y + 4) < P.r + 34;
-    if (!near) till.armed = true;
-    else if (till.armed && !G.trans) { till.armed = false; UI.openSell(); }
+    if (!near) setArmed14(till, true);
+    else if (armed14(till) && !G.trans) { setArmed14(till, false); UI.openSell(); }
   }
 }
 function updateKapper9(dt, room) {
   const o = room.chair9, P = G.player;
   if (!o) return;
   const near = P.dying <= 0 && dist(P.x, P.y, o.x, o.y) < P.r + 22;
-  if (!near) { o.armed = true; return; }
-  if (!o.armed) return;
-  o.armed = false;
+  if (!near) { setArmed14(o, true); return; }
+  if (!armed14(o)) return;
+  setArmed14(o, false);
   if (o.done) { UI.banner('Klaar', 'One cut per visit. It looks great. Really.'); return; }
   if (curateleBlock9(null)) return;
   const cost = cutCost9();
@@ -20280,7 +20286,7 @@ function updateJaude10(dt, room) {
       const away = (x, y, o) => (c, r) => { const cx = (c + 0.5) * T, cy = (r + 0.5) * T; return dist(cx, cy, J.x, J.y) < 44 || dist(cx, cy, P.x, P.y) < 30 || (o && dist(cx, cy, o.x, o.y) < 60); };
       const a = nearestFreeCell(room, RW / 2 - 80, RH / 2 + 60, away()), b = nearestFreeCell(room, RW / 2 + 80, RH / 2 + 60, away(0, 0, a));
       J.plates = [{ x: a.x, y: a.y, kind: 'fight' }, { x: b.x, y: b.y, kind: 'sorry' }];
-      J.armed = !J.plates.some((p) => dist(P.x, P.y, p.x, p.y) < 20);
+      setArmed14(J, !J.plates.some((p) => dist(P.x, P.y, p.x, p.y) < 20));
       setTimeout(() => { if (G.room === room && J.phase === 'talk') UI.banner('Jaude is awake', 'Fight her: every bite stays for good. Say sorry: she yells, you lose a bite or two.'); }, 1200);
     }
     return;
@@ -20288,8 +20294,8 @@ function updateJaude10(dt, room) {
   if (J.phase === 'talk') {
     if (!J.plates || P.dying > 0) return;
     const on = J.plates.find((p) => dist(P.x, P.y, p.x, p.y) < 17);
-    if (!on) { J.armed = true; return; }
-    if (!J.armed || J.t < 0.8) return;
+    if (!on) { setArmed14(J, true); return; }
+    if (!armed14(J) || J.t < 0.8) return;
     J.plates = null;
     if (on.kind === 'fight') {
       J.phase = 'fight'; jaudeSay10(J, 'OKAY. You asked for it.', 2.4);
@@ -21922,7 +21928,8 @@ function frame(now) {
   dt = Math.min(dt, 0.05);
   Sched.run('input', now, dt);
   try {
-    if (G.state === 'play') {
+    if (NET14.live) NET14.pump(dt, now);                        /* v14 online: the net loop runs the fixed ticks */
+    else if (G.state === 'play') {
       const steps = Math.max(1, Math.ceil(dt / (1 / 60) - 1e-6));
       const h = dt / steps;
       gameRandOn();                                            /* T8 */
@@ -32227,10 +32234,10 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     if (g.sayCd <= 0 && P.dying <= 0 && dist(P.x, P.y, g.coach.x, g.coach.y) < 150) say(room, g.used ? 'after' : 'idle');
     for (const s of g.stations) {
       const on = P.dying <= 0 && dist(P.x, P.y, s.x, s.y) < 17;
-      if (!on) { s.armed = true; s.prog = Math.max(0, s.prog - dt * 2.5); s.said = false; continue; }
-      if (!s.open) { if (s.armed) { s.armed = false; say(room, 'broken', true); Sfx.thud(); } continue; }
-      if (g.used) { if (s.armed) { s.armed = false; say(room, 'again', true); } continue; }
-      if (capped(P, s.k)) { if (s.armed) { s.armed = false; say(room, 'max', true); } continue; }
+      if (!on) { setArmed14(s, true); s.prog = Math.max(0, s.prog - dt * 2.5); s.said = false; continue; }
+      if (!s.open) { if (armed14(s)) { setArmed14(s, false); say(room, 'broken', true); Sfx.thud(); } continue; }
+      if (g.used) { if (armed14(s)) { setArmed14(s, false); say(room, 'again', true); } continue; }
+      if (capped(P, s.k)) { if (armed14(s)) { setArmed14(s, false); say(room, 'max', true); } continue; }
       const before = s.prog;
       s.prog += dt;
       if (!s.said) { s.said = true; say(room, s.k, true); if (s.k === 'eiwit') { Sfx.vend(); g.pop = 1; } }

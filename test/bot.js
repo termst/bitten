@@ -18,7 +18,7 @@ const BUILDS = [arg('a', 'ref/Bitten_v13.7.html'), arg('b', 'index.html')].filte
 // in-page bot. Only uses names that exist in v13.7 and v14 alike.
 function botInstall(seed, opt = {}) {
   const mul = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  Math.random = mul(seed);
+  if (!opt.net) Math.random = mul(seed);
   if (!opt.render) window.render = function () {};
   const B = window.__bitten, St = { dmg: 0, lastHp: null, goal: null, goalT: 0, bestD: 1e9, black: new Set(), lastRoom: null, roomT: 0, strafe: 1, mv: { x: 0, y: 0 }, aim: null, tick: -1, modalT: 0, modals: 0 };
   window.__bot = St;
@@ -129,7 +129,7 @@ function botInstall(seed, opt = {}) {
     St.modalT++; St.modals++;
     try {
       if (G.state === 'pause') { B.Game.resume(); return; }
-      if (G.state === 'sell') { B.UI.closeSell(); return; }
+      if (G.state === 'sell') { if (opt.net) { const d = document.getElementById('btnSellDone'); if (d) d.click(); } else B.UI.closeSell(); return; }
       const vis = [...document.querySelectorAll('button')].filter((b) => b.offsetParent && !b.disabled);
       const skip = vis.find((b) => /skip|walk away|no thanks|leave|not now|later|decline|close|done|continue|back|nee/i.test(b.textContent));
       if (skip) { skip.click(); return; }

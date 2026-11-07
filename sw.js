@@ -1,6 +1,6 @@
 /* Bitten service worker (T11). Cache first for every game file. The cache name carries the version:
    a new version gets a new cache and the old ones are deleted on activate. */
-const CACHE = 'bitten-v14.0';
+const CACHE = 'bitten-v14.0-net1';
 const CORE = [
   './', 'index.html', 'bitten.js', 'net.js', 'vendor/peerjs.min.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png',

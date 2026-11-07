@@ -305,6 +305,8 @@ const SPR14 = {
 /* M3 (v14.0): more than one apple. G.players holds every apple in the run (max 4); G.player stays the
    context pointer: withPlayer(P, fn) points it at P while fn runs. With one apple nothing changes. */
 const MP14 = { on: false, max: 4, live: [], liveT: -1 };
+/* phase 3: online play lives in net.js; NET14.live is true while an online run runs (frame() hands it the ticks) */
+const NET14 = { live: false, pump() {} };
 function withPlayer(P, fn) {
   if (!P || G.player === P) return fn();
   const keep = G.player; G.player = P;
@@ -319,6 +321,10 @@ function livePlayers14() {
   for (const P of L) if (!P.ghost14 && !(P.dying > 0) && !P.away14) out.push(P);
   return out;
 }
+/* a pad, till or plate that waits until you step off it: one flag per apple, or a second apple standing
+   elsewhere re-arms it every tick (single player: the plain field, as before) */
+function armed14(o) { if (!MP14.on || !G.player) return o.armed; const m = o.arm14; return m && m.has(G.player) ? m.get(G.player) : o.armed; }
+function setArmed14(o, v) { if (!MP14.on || !G.player) { o.armed = v; return; } (o.arm14 || (o.arm14 = new Map())).set(G.player, v); }
 function mpCount14() { return MP14.on && G.players ? G.players.length : 1; }
 /* run fn(P) for every apple that can be bitten (single player: just G.player, as before) */
 function forLive14(fn) {
