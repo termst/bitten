@@ -2334,9 +2334,11 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     const bufs = {};
     const buf = (k, w, h) => {
       let b = bufs[k];
-      if (!b) { b = bufs[k] = document.createElement('canvas'); b.ctx = b.getContext('2d', { willReadFrequently: k === 'small' }); }
-      if (b.width !== w || b.height !== h) { b.width = w; b.height = h; } else b.ctx.clearRect(0, 0, w, h);
+      if (!b) { b = bufs[k] = document.createElement('canvas'); b.ctx = b.getContext('2d', { willReadFrequently: true }); }   /* P1 */
+      /* S1 (v14.0): reset the transform BEFORE clearing. The old order cleared a quarter of the buffer only,
+         so the previous apple (often another character) stayed behind as a round ghost. */
       b.ctx.setTransform(1, 0, 0, 1, 0, 0); b.ctx.globalCompositeOperation = 'source-over'; b.ctx.globalAlpha = 1; b.ctx.imageSmoothingEnabled = true;
+      if (b.width !== w || b.height !== h) { b.width = w; b.height = h; } else b.ctx.clearRect(0, 0, w, h);
       return b;
     };
     // the original apple, rendered into a square buffer that covers -box/2 .. box/2
@@ -2345,8 +2347,48 @@ function drawGullWingsOranje24(c, R, flap, behind) {
       const s = clamp(Math.hypot(m.a, m.b) || 1, 0.5, 8), box = R * 5.2, px = clamp(Math.ceil(box * s), 24, 520);
       const b = buf('base', px, px), k = px / box;
       b.ctx.setTransform(k, 0, 0, k, px / 2, px / 2);
-      drawApple(b.ctx, R, Object.assign({}, st, { skin: 0 }));
-      return { cv: b, box, px };
+      GLOW14.cap = [];
+      try { drawApple(b.ctx, R, Object.assign({}, st, { skin: 0 })); } finally { lastB = { cv: b, box, px, glows: GLOW14.cap }; GLOW14.cap = null; }
+      return lastB;
+    }
+    /* P1 (v14.0): the filtered apple is cached. Key: character, look, scale (quarter steps) and R; inside it a
+       pose bucket: blink, hurt, facing in 8 directions, the animation clock in 12 steps a second, bites and the
+       powerup flags that change the drawing. A cache refreshes at most 15 times a second. */
+    const CACHE14 = new Map();
+    function cached14(th, c, R, st) {
+      const m = c.getTransform(), s = Math.hypot(m.a, m.b) || 1, sq = Math.max(0.5, Math.round(s * 4) / 4);
+      const lx = st.lookX || 0, ly = st.lookY || 0, face = Math.hypot(lx, ly) < 0.3 ? 8 : (Math.round(Math.atan2(ly, lx) / (TAU / 8)) + 8) % 8;
+      const pose = `${st.blink != null && st.blink < 0.5 ? 1 : 0}${st.hurt > 0 ? 1 : 0}${face}${Math.floor((st.t || 0) * 12)}|${st.bites ? st.bites.length : 0}${st.mouthOpen ? 1 : 0}${st.chewing ? 1 : 0}${st.horns ? 1 : 0}${st.shellUp ? 1 : 0}${st.toffee ? 1 : 0}${st.cyanide ? 1 : 0}${st.twin ? 1 : 0}${st.leaf != null ? Math.round(st.leaf * 4) : 0}`;
+      const key = `${st.char || 'apple'}|${th.name}|${sq}|${R}`;
+      let e = CACHE14.get(key);
+      if (!e) {
+        if (CACHE14.size > 64) CACHE14.clear();
+        e = { cv: document.createElement('canvas'), pose: null, at: -1e9 }; e.ctx = e.cv.getContext('2d', { willReadFrequently: true }); CACHE14.set(key, e);
+      }
+      const now = performance.now();
+      if (e.pose !== pose && (e.pose === null || now - e.at >= 1000 / 15 || now < e.at)) {
+        const half = R * 3.2, px = Math.max(8, Math.ceil(half * 2 * sq));
+        e.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (e.cv.width !== px) { e.cv.width = px; e.cv.height = px; } else e.ctx.clearRect(0, 0, px, px);
+        e.ctx.setTransform(sq, 0, 0, sq, px / 2, px / 2); e.ctx.lineJoin = 'round'; e.ctx.lineCap = 'round';
+        lastB = null; th.draw(e.ctx, R, st); glowsOver(e.ctx, lastB);
+        e.pose = pose; e.at = now;
+      }
+      const h = R * 3.2;
+      c.drawImage(e.cv, -h, -h, h * 2, h * 2);
+    }
+    /* S1: glows (Lucifappel's flame) go on top of the filtered apple, unfiltered */
+    let lastB = null;
+    function glowsOver(c, B) {
+      if (!B || !B.glows || !B.glows.length) return;
+      const k = B.px / B.box;
+      c.save();
+      for (const g of B.glows) {
+        const x = (g.x - B.px / 2) / k, y = (g.y - B.px / 2) / k, r = g.r / k;
+        const gr = c.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, g.c0); gr.addColorStop(1, g.c1);
+        c.fillStyle = gr; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+      }
+      c.restore();
     }
     // a solid colour copy of the silhouette
     function tint(src, col, key) {
@@ -2517,7 +2559,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     ];
     for (const id in SKINS) {
       if (!CHARS[id]) continue;
-      for (const th of THEMES) SKINS[id].push({ name: th.name, tier: 'Arcade', line: th.line, draw: th.draw, bg: th.bg, motif: th.motif, acc: th.acc, light: th.light, gn135: th });
+      for (const th of THEMES) SKINS[id].push({ name: th.name, tier: 'Arcade', line: th.line, draw: th.glow14 || (th.glow14 = function (c, R, st) { cached14(th, c, R, st); }), bg: th.bg, motif: th.motif, acc: th.acc, light: th.light, gn135: th });
     }
     for (const th of THEMES) FX122[th.name] = th.fx;
 

@@ -15,7 +15,7 @@ const View = {
   layout() {
     const app = document.getElementById('app');
     const W = Math.max(1, app.clientWidth), H = Math.max(1, app.clientHeight);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * renderQ14();     /* P4: Render quality */
     this.W = W; this.H = H; this.dpr = dpr;
     this.cv.width = Math.round(W * dpr); this.cv.height = Math.round(H * dpr);
     const portrait = H > W * 1.05;

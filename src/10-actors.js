@@ -2,29 +2,46 @@
 /* =====================================================================
    Actors: the apple, seeds, venom, pickups, particles, decals
    ===================================================================== */
+/* P3 (v14.0): particles live in a ring of at most 480. When it is full the oldest slot is overwritten
+   (no splice, no shift). In multiplayer every player's own effects get at most 480 / n slots (PART14.share). */
+const PART14 = { cap: 480, head: 0, pool: [], share: 0, own: null, count: new Map() };
 function addP(o) {
-  if (G.particles.length > 480) G.particles.splice(0, 60);
+  const ps = G.particles;
   o.t = 0;
   if (o.drag == null) o.drag = 4;
   if (o.rot == null) o.rot = 0;
-  G.particles.push(o);
+  if (PART14.share && PART14.own) {
+    o.own14 = PART14.own;
+    const n = PART14.count.get(o.own14) || 0;
+    if (n >= PART14.share) {                                 /* this player is over its share: replace its oldest */
+      for (let i = 0; i < ps.length; i++) if (ps[i].own14 === o.own14) { recycleP(ps[i]); ps[i] = o; return; }
+    }
+    PART14.count.set(o.own14, n + 1);
+  }
+  if (ps.length < PART14.cap) { ps.push(o); return; }
+  const i = PART14.head % ps.length; PART14.head = i + 1;
+  if (ps[i].own14) PART14.count.set(ps[i].own14, Math.max(0, (PART14.count.get(ps[i].own14) || 1) - 1));
+  recycleP(ps[i]); ps[i] = o;
 }
+function recycleP(p) { if (p && p.pool14 && PART14.pool.length < 600) PART14.pool.push(p); }
+function poolP() { return PART14.pool.pop() || { pool14: 1 }; }
 function burst(x, y, n, col, o = {}) {
   for (let i = 0; i < n; i++) {
-    const a = o.ang != null ? o.ang + rnd(-(o.spread || 0.6), o.spread || 0.6) : rnd(TAU);
-    const sp = rnd(o.min != null ? o.min : 30, o.max != null ? o.max : 120);
-    addP({
-      kind: o.kind || 'dot', x: x + rnd(-1, 1), y: y + rnd(-1, 1), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-      r: rnd(o.rmin != null ? o.rmin : 1.2, o.rmax != null ? o.rmax : 2.8), life: rnd(o.lmin != null ? o.lmin : 0.25, o.lmax != null ? o.lmax : 0.6),
-      drag: o.drag != null ? o.drag : 4, g: o.g || 0, col, col2: o.col2, rot: rnd(TAU), vr: rnd(-9, 9), glow: !!o.glow,
-    });
+    const a = o.ang != null ? o.ang + vrnd(-(o.spread || 0.6), o.spread || 0.6) : vrnd(TAU);   /* T8: particles use the visual random */
+    const sp = vrnd(o.min != null ? o.min : 30, o.max != null ? o.max : 120);
+    const p = poolP();                                         /* P3: burst particles come from a pool, all fields set */
+    p.kind = o.kind || 'dot'; p.x = x + vrnd(-1, 1); p.y = y + vrnd(-1, 1); p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp;
+    p.r = vrnd(o.rmin != null ? o.rmin : 1.2, o.rmax != null ? o.rmax : 2.8); p.life = vrnd(o.lmin != null ? o.lmin : 0.25, o.lmax != null ? o.lmax : 0.6);
+    p.drag = o.drag != null ? o.drag : 4; p.g = o.g || 0; p.col = col; p.col2 = o.col2; p.rot = vrnd(TAU); p.vr = vrnd(-9, 9); p.glow = !!o.glow; p.own14 = null;
+    addP(p);
   }
 }
 function flashLight(x, y, r, i, life) { G.flashes.push({ x, y, r, i, life, t: 0 }); }
 function addDecal(room, type, x, y, r, col) {
-  const d = { type, x, y, r, col, seed: Math.random() };
-  room.decals.push(d);
-  if (room.decals.length > 150) room.decals.shift();
+  const d = { type, x, y, r, col, seed: RAND14.real() };
+  /* P3: a ring of 150, the oldest decal is overwritten */
+  if (room.decals.length < 150) room.decals.push(d);
+  else { const i = (room.decalHead14 || 0) % room.decals.length; room.decals[i] = d; room.decalHead14 = i + 1; }
   if (room.cacheCtx && !room.dirty) drawDecal(room.cacheCtx, d);
 }
 
@@ -845,7 +862,7 @@ function updateParticles(dt) {
   for (let i = 0; i < ps.length; i++) {
     const p = ps[i];
     p.t += dt;
-    if (p.t >= p.life) continue;
+    if (p.t >= p.life) { if (p.own14) PART14.count.set(p.own14, Math.max(0, (PART14.count.get(p.own14) || 1) - 1)); recycleP(p); continue; }
     const dr = Math.max(0, 1 - p.drag * dt);
     p.vx *= dr; p.vy *= dr; p.vy += (p.g || 0) * dt;
     p.x += p.vx * dt; p.y += p.vy * dt;

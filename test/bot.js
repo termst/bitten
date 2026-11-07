@@ -10,15 +10,16 @@ const path = require('path');
 const fs = require('fs');
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
+const RENDER = arg('render', '0') === '1', HZ = +arg('hz', 60);
 const RUNS = +arg('runs', 20), CAP = +arg('cap', 600), PAR = +arg('par', 3), MODE = arg('mode', 'arcade');
 const CHARS = arg('chars', 'apple,appel,rot,krul,mika,pean,apploa,lucif,lucky').split(',');
 const BUILDS = [arg('a', 'ref/Bitten_v13.7.html'), arg('b', 'index.html')].filter((x) => x !== 'none');
 
 // in-page bot. Only uses names that exist in v13.7 and v14 alike.
-function botInstall(seed) {
+function botInstall(seed, opt = {}) {
   const mul = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   Math.random = mul(seed);
-  window.render = function () {};
+  if (!opt.render) window.render = function () {};
   const B = window.__bitten, St = { dmg: 0, lastHp: null, goal: null, goalT: 0, bestD: 1e9, black: new Set(), lastRoom: null, roomT: 0, strafe: 1, mv: { x: 0, y: 0 }, aim: null, tick: -1, modalT: 0, modals: 0 };
   window.__bot = St;
   const blocked = (room, c, r) => c < 0 || r < 0 || c >= COLS || r >= ROWS || !!room.tiles[r][c];
@@ -151,19 +152,19 @@ async function oneRun(browser, file, char, seed) {
   await page.goto('file://' + path.resolve(ROOT, file));
   await page.evaluate(() => window.__advance(300));
   if (!(await page.evaluate(() => !!(window.__bitten && window.__bitten.Game)))) throw new Error('game did not boot');
-  await page.evaluate(([fn, seed, id, mode]) => {
-    eval('(' + fn + ')')(seed);
+  await page.evaluate(([fn, seed, id, mode, opt]) => {
+    eval('(' + fn + ')')(seed, opt);
     const B = window.__bitten; const { Save, Game } = B;
     Save.data.unlocks[id] = true; Save.data.char = id; Save.data.diff = 'normal';
     if (B.SKINS24) B.SKINS24.setSkin(id, 0);
     Game.toMenu();
     Math.random = ((a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; })(seed * 7 + 1);
     Game.startRun(false, mode);
-  }, [botInstall.toString(), seed, char, MODE]).catch((e) => errors.push('start: ' + e.message));
+  }, [botInstall.toString(), seed, char, MODE, { render: RENDER }]).catch((e) => errors.push('start: ' + e.message));
   let res = null;
   const t0 = Date.now();
   for (let k = 0; k < CAP / 10 + 5; k++) {
-    await page.evaluate(() => window.__advance(10000));
+    await page.evaluate((hz) => window.__advance(10000, hz), HZ);
     res = await page.evaluate(() => { const G = window.__bitten.G, S = window.__bot; return { state: G.state, floor: G.levelIdx, kills: G.run ? G.run.kills : 0, rooms: G.run ? G.run.rooms : 0, time: G.run ? +G.run.time.toFixed(2) : 0, dmg: S.dmg, hp: G.player ? G.player.hp : 0, items: G.player ? G.player.items.length : 0, coins: G.run ? G.run.coins : 0, modals: S.modals, err: S.err || null }; });
     if (res.state === 'over' || res.state === 'win' || res.state === 'menu' || res.time >= CAP) break;
   }

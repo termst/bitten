@@ -8,7 +8,9 @@ const G = {
   shake: 0, darkA: 0.8, hurtFlash: 0, fade: 0, whiteout: 0,
   trans: null, run: null, boss: null, hbT: 0, mode: 'arcade',
   diff: 'normal', D: DIFFS.normal, bossGroup: null, freeze: 0, flood: null, speedK: 1, bossSpeedK: 1,
+  rng: null, errors: 0, errorLog: ERR14.log,                    /* T8 gameplay stream, T2 error count */
 };
+ERR14.g = G;
 
 const MODE_ICONS = {
   arcade: '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="18" rx="9" ry="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v10m-4-4 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',

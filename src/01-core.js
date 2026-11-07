@@ -261,3 +261,26 @@ const Sched = {
     for (const o of q) { try { o.fn(now); } catch (e) { errNote14(e, 'raf'); } }
   },
 };
+
+/* T8 (v14.0): gameplay randomness. G.rng is a mulberry32 stream seeded from the run seed (Game.startRun).
+   While the simulation runs (the substeps in frame()), Math.random IS G.rng, so every drop, crit, roll,
+   spawn, AI choice, Lucky's die and contract roll in the game code draws from it without touching the
+   ~1000 call sites. Render, audio, UI and the particle internals (burst, decal seeds) use the browser's
+   random (RAND14.real / vrnd). Same seed and same inputs at a fixed step give the same run. */
+const RAND14 = { real: Math.random, out: null, on: false };
+function gameRandOn() {
+  if (RAND14.on || typeof G === 'undefined' || !G.rng) return;
+  RAND14.on = true; RAND14.out = Math.random; Math.random = G.rng;
+}
+function gameRandOff() { if (!RAND14.on) return; RAND14.on = false; Math.random = RAND14.out; }
+const vrnd = (a = 1, b) => (b === undefined ? RAND14.real() * a : a + RAND14.real() * (b - a));
+
+/* P4 (v14.0): Render quality scales the canvas backing store (1, 0.75 or 0.5 of the screen pixels) */
+function renderQ14() {
+  const v = typeof Save === 'object' && Save.data && Save.data.settings ? +Save.data.settings.rq14 : 1;
+  return v === 0.75 || v === 0.5 ? v : 1;
+}
+
+/* S1 (v14.0): while an Arcade look renders the apple into its buffer, soft glows are captured here instead of
+   drawn, so the filter does not turn them into solid discs. The look draws them on top afterwards. */
+const GLOW14 = { cap: null };

@@ -349,6 +349,7 @@ const Game = {
     Sfx.init(); Sfx.setOn(Save.data.sound); Sfx.resume(); Sfx.stopMusic(); DJ.stop(0.2, true);
     const day = todayKey();
     const seed = G.mode === 'daily' ? hashStr('bitten-daily-' + day) : (Math.random() * 1e9) >>> 0;
+    G.rng = mulberry32((seed ^ 0x5bd1e995) >>> 0);          /* T8: the gameplay stream */
     G.run = { seed, kills: 0, rooms: 0, time: 0, pending: new Set(), coins: 0, coinsGot: 0, day, twist: G.mode === 'daily' ? dailyTwist(day) : null, rewardQ: [], rewardRoom: null, keys: 0, bought: 0, roomHits: 0, lastKill: null };
     const tw = G.run.twist ? G.run.twist.id : null;
     G.speedK = G.D.speed * (tw === 'fast' ? 1.15 : 1);
@@ -361,7 +362,7 @@ const Game = {
     if (tw === 'rich') G.run.coins = 40;
     if (tw === 'cursed') { giveCurse(pickCurse()); G.run.keys = 1; }
     G.boss = null; G.bossGroup = null; G.freeze = 0; G.flood = null; G.t = 0; G.whiteout = 0; G.hurtFlash = 0; G.shake = 0; G.hbT = 0;
-    G.seeds = []; G.venom = []; G.particles = []; G.flashes = []; G.strikes = []; G.lobs = [];
+    G.seeds = []; G.venom = []; G.particles = []; PART14.count.clear(); G.flashes = []; G.strikes = []; G.lobs = [];
     G.run.hits = 0;
     Meta.add('runs');
     if (G.mode === 'daily' && Save.data.daily.day !== day) { Save.data.daily = { day, best: 0, won: false }; Save.store(); }
@@ -529,7 +530,7 @@ const Game = {
     }
     G.room = room; room.visited = true;
     G.run.roomHits = 0;
-    G.seeds.length = 0; G.venom.length = 0; G.particles.length = 0; G.flashes.length = 0; G.strikes.length = 0; G.lobs.length = 0;
+    G.seeds.length = 0; G.venom.length = 0; G.particles.length = 0; PART14.count.clear(); G.flashes.length = 0; G.strikes.length = 0; G.lobs.length = 0;
     G.freeze = 0; G.flood = null;
     const P = G.player;
     if (entry) { const v = DOORV[entry]; P.x = RW / 2 + v[0] * (RW / 2 - P.r - 8); P.y = RH / 2 + v[1] * (RH / 2 - P.r - 8); }

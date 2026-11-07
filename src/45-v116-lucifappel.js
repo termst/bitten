@@ -120,9 +120,14 @@ function lucifMatch26(c, x0, y0, x1, y1, R, t, lit) {
   c.restore();
   if (!lit) return;
   const f = 1 + Math.sin(t * 17) * 0.1 + Math.sin(t * 29) * 0.06, hx = x1 + Math.cos(a) * R * 0.1, hy = y1 + Math.sin(a) * R * 0.1;
-  const g = c.createRadialGradient(hx, hy - R * 0.2, 0, hx, hy - R * 0.2, R * 0.7);
-  g.addColorStop(0, 'rgba(255,190,80,0.45)'); g.addColorStop(1, 'rgba(255,120,30,0)');
-  c.fillStyle = g; circle(c, hx, hy - R * 0.2, R * 0.7);
+  if (GLOW14.cap) {                                   /* S1: an Arcade look draws this glow itself, on top */
+    const m = c.getTransform(), gx = hx, gy = hy - R * 0.2;
+    GLOW14.cap.push({ x: m.a * gx + m.c * gy + m.e, y: m.b * gx + m.d * gy + m.f, r: R * 0.7 * Math.hypot(m.a, m.b), c0: 'rgba(255,190,80,0.45)', c1: 'rgba(255,120,30,0)' });
+  } else {
+    const g = c.createRadialGradient(hx, hy - R * 0.2, 0, hx, hy - R * 0.2, R * 0.7);
+    g.addColorStop(0, 'rgba(255,190,80,0.45)'); g.addColorStop(1, 'rgba(255,120,30,0)');
+    c.fillStyle = g; circle(c, hx, hy - R * 0.2, R * 0.7);
+  }
   flameShape(c, hx, hy - R * 0.28, R * 0.2 * f, R * 0.42 * f); c.fillStyle = '#ff6a1a'; c.fill();
   flameShape(c, hx, hy - R * 0.2, R * 0.11 * f, R * 0.26 * f); c.fillStyle = '#ffe08a'; c.fill();
 }

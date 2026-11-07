@@ -320,7 +320,9 @@ function frame(now) {
     if (G.state === 'play') {
       const steps = Math.max(1, Math.ceil(dt / (1 / 60) - 1e-6));
       const h = dt / steps;
-      for (let i = 0; i < steps && G.state === 'play'; i++) { Game.update(h); Sched.run('step', now, h); }
+      gameRandOn();                                            /* T8 */
+      try { for (let i = 0; i < steps && G.state === 'play'; i++) { Game.update(h); Sched.run('step', now, h); } }
+      finally { gameRandOff(); }
     } else if (G.state === 'cutscene') Story.update(dt);
     else if (G.state === 'menu') { MenuScene.step(dt); Sfx.musicTick(); }
     else if (G.state === 'win') Sfx.musicTick();

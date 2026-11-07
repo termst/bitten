@@ -155,7 +155,12 @@
     const c = View.ctx, cv = View.cv, W = cv.width, H = cv.height;
     if (!W || !H) return;
     // frame time watch: a phone that cannot keep up gets the light version
-    if (dt > 0) { FX.n++; FX.slow = FX.slow * 0.97 + (dt > 1 / 38 ? 1 : 0) * 0.03; if (FX.n > 180 && FX.slow > 0.6) FX.low = true; }
+    if (dt > 0) {
+      FX.n++; FX.slow = FX.slow * 0.97 + (dt > 1 / 38 ? 1 : 0) * 0.03;
+      if (!FX.low && FX.n > 180 && FX.slow > 0.6) { FX.low = true; FX.auto = true; FX.fastT = 0; FX.need = (FX.lastUp && performance.now() - FX.lastUp < 30000) ? Math.min(80, (FX.need || 10) * 2) : 10; }
+      /* P4 (v14.0): the light version switches itself back after 10 s of fast frames (twice as long each time it falls back within 30 s) */
+      else if (FX.low && FX.auto) { FX.fastT = dt < 1 / 50 ? (FX.fastT || 0) + dt : 0; if (FX.fastT > (FX.need || 10)) { FX.low = false; FX.auto = false; FX.slow = 0; FX.n = 0; FX.lastUp = performance.now(); } }
+    }
     const inGame = G.state !== 'menu' && !!G.room && G.state !== 'win' && G.state !== 'cutscene';
     const gr = gradeOf();
     c.save();
