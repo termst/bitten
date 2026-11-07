@@ -9,7 +9,7 @@ Work follows the phase order of the v14 prompt. Item codes are used in commits a
 | 0 web release (T6 T7 T10 T11 M16) | done, tested (test/phase0.js) |
 | 1 cleanup (T1 T2 T3 T4 T8 P1 P2 P3 P4 S1) | done, tested (bot.js, stats.js, hz.js, perf.js, contact.js, gradprof.js) |
 | 2 local multiplayer | core done, partly tested (test/coop.js smoke: 3 apples, 20 s, 0 errors). Gaps listed below |
-| 3 online | see below |
+| 3 online | done: net.js, tested (test/net.js, bot driven, 1 and 3 guests, lockstep hashes match) |
 | 4 polish | see below |
 
 ## Where things are
@@ -44,6 +44,18 @@ B2 threat average, B3 chests 1+(n-1), treasure +n-1, boss/mini/portal one pedest
 B4 natural (picker heals), B5 player blasts never hit others, B7 10 s team freeze cooldown.
 F9 data only: per player damage by source, kills, damage taken, killer (B.coop14.stats()).
 
+## Phase 3: done (net.js)
+
+Lockstep, host owns the clock. `NET14` (01-core.js) is the hook: frame() calls `NET14.pump` while an online run
+is live. Bundles `[tick, inputs per slot, events, repair]`, inputs `[mx, my, ax, ay, touch, dashes, pings, mouseX, mouseY]`.
+Determinism rules learned the hard way, keep them when adding code:
+* gameplay timers: `setTimeout` inside a tick becomes a tick timer (net.js `inSim`); real timers would land on
+  different ticks per peer (the contract panel closed 820 ms after signing: desync).
+* audio random: Sfx/DJ use the real random while online, so muted and loud peers draw the same G.rng.
+* shared step-off flags (till, pumps, pedestals, Jaude plates, gym): `armed14`/`setArmed14`, one per apple.
+* run start draws from a seeded Math.random on every peer; mode, save and OPTS7 come from the host.
+Tests: `node test/net.js [secs] [guests] [--bot]`.
+
 ## Not done yet (next chat)
 
 * F9 recap UI on game over and win screens (data exists; icon painters: drawItemIcon* in 06/07/08/20/43).
@@ -51,9 +63,9 @@ F9 data only: per player damage by source, kills, damage taken, killer (B.coop14
 * M9 local modals still behave as single player (shared screen pauses). Votes and personal panels only make
   sense online: build them in phase 3.
 * Multiplayer tab in How to play; achievements/guide text for coop.
-* Phase 3 entirely: net.js, vendor/peerjs.min.js (peerjs@1.5.5 from npm, `dist/peerjs.min.js`), lobby
-  (Online tab pane in #coop14 is an empty div, B.net14.paintLobby hook already called), snapshots, prediction,
-  reconnect, T13 run snapshot. sw.js already lists net.js and vendor/peerjs.min.js.
+* Phase 3 left over: reconnect into a running run and T13 run snapshot (needs a full state serializer; the
+  lockstep model only repairs drift, it cannot rebuild a run from scratch). No client prediction: a guest feels
+  its own input one round trip late (fine for coop at normal ping). Guest progress is not saved for online runs.
 * Phase 4 entirely: S2-S6, F1-F8, T14 (story 2 names, file 26/27), T15 renames (Creeper, Ender Wyrm, portal
   look, BP Tankstation and pumps, with old-name mapping like V10_OLD_NAMES).
 * Low health prefetch of the Wals MP3 skipped: the death remix is synthesized, not the MP3.

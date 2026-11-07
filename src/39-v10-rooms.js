@@ -186,7 +186,7 @@ function updateJaude10(dt, room) {
       const away = (x, y, o) => (c, r) => { const cx = (c + 0.5) * T, cy = (r + 0.5) * T; return dist(cx, cy, J.x, J.y) < 44 || dist(cx, cy, P.x, P.y) < 30 || (o && dist(cx, cy, o.x, o.y) < 60); };
       const a = nearestFreeCell(room, RW / 2 - 80, RH / 2 + 60, away()), b = nearestFreeCell(room, RW / 2 + 80, RH / 2 + 60, away(0, 0, a));
       J.plates = [{ x: a.x, y: a.y, kind: 'fight' }, { x: b.x, y: b.y, kind: 'sorry' }];
-      J.armed = !J.plates.some((p) => dist(P.x, P.y, p.x, p.y) < 20);
+      setArmed14(J, !J.plates.some((p) => dist(P.x, P.y, p.x, p.y) < 20));
       setTimeout(() => { if (G.room === room && J.phase === 'talk') UI.banner('Jaude is awake', 'Fight her: every bite stays for good. Say sorry: she yells, you lose a bite or two.'); }, 1200);
     }
     return;
@@ -194,8 +194,8 @@ function updateJaude10(dt, room) {
   if (J.phase === 'talk') {
     if (!J.plates || P.dying > 0) return;
     const on = J.plates.find((p) => dist(P.x, P.y, p.x, p.y) < 17);
-    if (!on) { J.armed = true; return; }
-    if (!J.armed || J.t < 0.8) return;
+    if (!on) { setArmed14(J, true); return; }
+    if (!armed14(J) || J.t < 0.8) return;
     J.plates = null;
     if (on.kind === 'fight') {
       J.phase = 'fight'; jaudeSay10(J, 'OKAY. You asked for it.', 2.4);

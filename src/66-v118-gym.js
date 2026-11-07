@@ -159,10 +159,10 @@
     if (g.sayCd <= 0 && P.dying <= 0 && dist(P.x, P.y, g.coach.x, g.coach.y) < 150) say(room, g.used ? 'after' : 'idle');
     for (const s of g.stations) {
       const on = P.dying <= 0 && dist(P.x, P.y, s.x, s.y) < 17;
-      if (!on) { s.armed = true; s.prog = Math.max(0, s.prog - dt * 2.5); s.said = false; continue; }
-      if (!s.open) { if (s.armed) { s.armed = false; say(room, 'broken', true); Sfx.thud(); } continue; }
-      if (g.used) { if (s.armed) { s.armed = false; say(room, 'again', true); } continue; }
-      if (capped(P, s.k)) { if (s.armed) { s.armed = false; say(room, 'max', true); } continue; }
+      if (!on) { setArmed14(s, true); s.prog = Math.max(0, s.prog - dt * 2.5); s.said = false; continue; }
+      if (!s.open) { if (armed14(s)) { setArmed14(s, false); say(room, 'broken', true); Sfx.thud(); } continue; }
+      if (g.used) { if (armed14(s)) { setArmed14(s, false); say(room, 'again', true); } continue; }
+      if (capped(P, s.k)) { if (armed14(s)) { setArmed14(s, false); say(room, 'max', true); } continue; }
       const before = s.prog;
       s.prog += dt;
       if (!s.said) { s.said = true; say(room, s.k, true); if (s.k === 'eiwit') { Sfx.vend(); g.pop = 1; } }

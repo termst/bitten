@@ -37,9 +37,29 @@ Needs Playwright with Chromium (`npm i -g playwright` or a local install).
 
 ```
 NODE_PATH=$(npm root -g) node test/phase0.js     # web layout: http, file://, phone, fonts, downloads
+NODE_PATH=$(npm root -g) node test/net.js 60 3 --bot   # online: host + 3 guests, lockstep check
 ```
 
 Other scripts in `test/` are described at the top of each file.
+
+## Online play
+
+Coop menu, Online tab. One player hosts and gets a five letter room code plus an invite link (`?join=CODE`);
+up to three others join with the code. The host picks the mode (any mode except Story and Daily) and starts.
+
+* Model: host driven lockstep. Every peer runs the same seeded simulation at fixed 60 Hz ticks. The host
+  bundles every apple's input per tick and sends it out; nobody simulates a tick without its bundle.
+  Panel choices (sell, contract) and players leaving travel inside the bundles, so they land on the same tick.
+* Guests play on the host's save and game options for that run (same powerup pool and rules); their own
+  save is untouched and comes back after the run. Progress from an online run is not stored for guests.
+* Every 60 ticks the peers compare a state hash. A guest that drifts gets the host's state at a later
+  checkpoint (rng, apples, snakes, seeds, pickups). The Debug counter (Settings) shows repairs as errors.
+* Transport: PeerJS 1.5.5 (`vendor/peerjs.min.js`, MIT, loaded only when you host or join) over WebRTC,
+  with the public PeerJS broker (0.peerjs.com) for the handshake and Google STUN. There is no TURN server:
+  two players both behind strict (symmetric) NAT may not connect. Set `window.BITTEN_NET_CONFIG` (PeerJS
+  options, e.g. your own broker or TURN in `config.iceServers`) before net.js loads to change that.
+* Not supported: joining a run that already started (wait for the next one), Story and Daily online.
+* `?net=local` swaps the network for a BroadcastChannel: two tabs of one browser, no internet (tests).
 
 ## Deploy
 

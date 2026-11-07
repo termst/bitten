@@ -983,7 +983,10 @@ kbd { font: 600 14px/1 var(--ui); border: 1px solid var(--line); border-bottom-w
   </button>
 </div>
 
+<script>/* v14 online: net.js keeps keys away from panels that change the run (this listener has to come first) */
+window.addEventListener('keydown', function (e) { if (window.__netKey14) window.__netKey14(e); }, true);</script>
 <script src="bitten.js"></script>
+<script src="net.js"></script>
 <script>
 /* T11: offline cache, only when served over http(s) */
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {

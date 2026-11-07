@@ -317,7 +317,8 @@ function frame(now) {
   dt = Math.min(dt, 0.05);
   Sched.run('input', now, dt);
   try {
-    if (G.state === 'play') {
+    if (NET14.live) NET14.pump(dt, now);                        /* v14 online: the net loop runs the fixed ticks */
+    else if (G.state === 'play') {
       const steps = Math.max(1, Math.ceil(dt / (1 / 60) - 1e-6));
       const h = dt / steps;
       gameRandOn();                                            /* T8 */
