@@ -1,0 +1,196 @@
+/* src/01-core.js: core helpers, constants, settings, world geometry, per viewer progress. From v1 to v8. Lines 408 to 585 of the v13.7 script. */
+/* =====================================================================
+   BITTEN  ·  core helpers, constants, settings
+   ===================================================================== */
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const dist = (ax, ay, bx, by) => Math.hypot(bx - ax, by - ay);
+const dist2 = (ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay; return dx * dx + dy * dy; };
+function angDiff(a, b) { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; else if (d < -Math.PI) d += TAU; return d; }
+const turnToward = (a, b, max) => a + clamp(angDiff(a, b), -max, max);
+const approach = (v, t, d) => (v < t ? Math.min(v + d, t) : Math.max(v - d, t));
+const rnd = (a = 1, b) => (b === undefined ? Math.random() * a : a + Math.random() * (b - a));
+const rndi = (a, b) => Math.floor(a + Math.random() * (b - a + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const smooth = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+function shuffle(arr, r = Math.random) {
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; }
+  return arr;
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const _rgbCache = new Map();
+function hexRgb(h) {
+  let v = _rgbCache.get(h);
+  if (!v) { const n = parseInt(h.slice(1), 16); v = [(n >> 16) & 255, (n >> 8) & 255, n & 255]; _rgbCache.set(h, v); }
+  return v;
+}
+function mixHex(a, b, t) {
+  const A = hexRgb(a), B = hexRgb(b);
+  return `rgb(${Math.round(lerp(A[0], B[0], t))},${Math.round(lerp(A[1], B[1], t))},${Math.round(lerp(A[2], B[2], t))})`;
+}
+function rgba(h, a) { const c = hexRgb(h); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
+
+/* ---- world geometry ---- */
+const T = 40;                 // one floor tile, in world units
+const COLS = 11, ROWS = 9;    // room interior in tiles
+const RW = COLS * T, RH = ROWS * T;
+const WALL = 26;              // wall thickness
+const VIEW_W = RW + WALL * 2, VIEW_H = RH + WALL * 2;
+const DOOR_HW = 24;           // half width of a doorway
+const DIR4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const DOORV = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] };
+const OPP = { n: 's', s: 'n', w: 'e', e: 'w' };
+
+const mq = (q) => { try { return window.matchMedia(q).matches; } catch (e) { return false; } };
+const REDUCED = mq('(prefers-reduced-motion: reduce)');
+const COARSE = mq('(pointer: coarse)') || ('ontouchstart' in window);
+
+/* ---- per-viewer progress (best effort, never required) ---- */
+const GAME_VERSION = '14.0', SAVE_FORMAT = 3, SAVE_KEY = 'bitten.v1', OPTS_KEY = 'bitten-v107-opts';
+const Save = {
+  defaults() {
+    return {
+      sound: true, assist: true, char: 'apple', diff: 'normal', mode: 'arcade', settings: { music: true, shake: true, vibrate: true, numbers: true, info: true },
+      unlocked: false, unlocks: { appel: false, rot: false, krul: false, mika: false, nightmare: false }, seen: {}, stats: {}, ach: {}, found: {}, winChars: {},
+      best: { level: 0, wins: 0, kills: 0, rooms: 0, endless: 0, rush: 0 }, daily: { day: '', best: 0, won: false },
+    };
+  },
+  data: null,
+  load() {
+    this.data = this.defaults();
+    try {
+      let raw = localStorage.getItem(SAVE_KEY), ok = false;
+      if (raw) { try { this.applyData(JSON.parse(raw), true); ok = true; } catch (e) { ok = false; } }
+      // the main slot is missing or broken: fall back to the copy of the last good save
+      if (!ok) { const bak = localStorage.getItem(SAVE_KEY + '.bak'); if (bak) { try { this.applyData(JSON.parse(bak), true); } catch (e) { /* both broken */ } } }
+    } catch (e) { /* storage unavailable */ }
+  },
+  // Merges a save into the current progress. Nothing is ever lost: numbers keep the
+  // higher value, unlocks and achievements are added together. Old formats migrate here.
+  applyData(d, settings) {
+    if (!d || typeof d !== 'object') throw new Error('not a save');
+    const D = this.data;
+    const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+    if (settings) {
+      if (typeof d.sound === 'boolean') D.sound = d.sound;
+      if (typeof d.assist === 'boolean') D.assist = d.assist;
+      if (typeof d.diff === 'string' && DIFFS[d.diff]) D.diff = d.diff;
+      if (typeof d.mode === 'string' && MODES[d.mode]) D.mode = d.mode;
+      if (d.settings && typeof d.settings === 'object') for (const k in d.settings) if (typeof d.settings[k] === 'boolean' || (k.startsWith('skin_') && typeof d.settings[k] === 'number' && isFinite(d.settings[k]))) D.settings[k] = d.settings[k];
+    }
+    if (d.daily && typeof d.daily === 'object' && typeof d.daily.day === 'string') {
+      if (d.daily.day > D.daily.day) D.daily = { day: d.daily.day, best: num(d.daily.best), won: !!d.daily.won };
+      else if (d.daily.day === D.daily.day) { D.daily.best = Math.max(D.daily.best, num(d.daily.best)); D.daily.won = D.daily.won || !!d.daily.won; }
+    }
+    if (d.unlocks && typeof d.unlocks === 'object') for (const k in d.unlocks) if (d.unlocks[k] === true) D.unlocks[k] = true;
+    if (d.unlocked === true) D.unlocks.appel = true;
+    for (const k of ['seen', 'ach', 'found', 'winChars']) {
+      const m = d[k];
+      if (m && typeof m === 'object') for (const id in m) if (m[id]) D[k][id] = D[k][id] || m[id];
+    }
+    if (d.stats && typeof d.stats === 'object') for (const k in d.stats) D.stats[k] = Math.max(num(D.stats[k]), num(d.stats[k]));
+    if (d.best && typeof d.best === 'object') for (const k in d.best) D.best[k] = Math.max(num(D.best[k]), num(d.best[k]));
+    D.unlocked = !!D.unlocks.appel;
+    // a reward still waiting for the next run
+    if (typeof d.gift === 'string' && d.gift && !D.gift) D.gift = d.gift;
+    // anything this version does not know yet is kept as it is, so nothing gets dropped
+    for (const k in d) if (!(k in D) && d[k] !== undefined && typeof d[k] !== 'function') { try { D[k] = JSON.parse(JSON.stringify(d[k])); } catch (e) { /* skip */ } }
+    if (settings && typeof d.char === 'string' && (d.char === 'apple' || D.unlocks[d.char])) D.char = d.char;
+    // older saves: carry unlocks and best numbers into the lifetime stats
+    const S = D.stats, A = D.ach;
+    if (D.unlocks.appel && !A.mother) { A.mother = 1; S.boss_mother = Math.max(S.boss_mother || 0, 1); }
+    if (D.unlocks.rot && !A.rot) { A.rot = 1; S.k_rotter = Math.max(S.k_rotter || 0, 1); }
+    if (D.unlocks.krul && !A.medic) { A.medic = 1; S.heals = Math.max(S.heals || 0, 20); }
+    if (D.diff === 'nightmare' && !D.unlocks.nightmare) D.diff = 'hard';
+    S.kills = Math.max(S.kills || 0, D.best.kills || 0);
+    S.wins = Math.max(S.wins || 0, D.best.wins || 0);
+  },
+  store() {
+    if (!this.data) return false;
+    if (typeof Meta !== 'undefined' && Meta._t) { clearTimeout(Meta._t); Meta._t = null; }
+    let json;
+    try { json = JSON.stringify(this.data); } catch (e) { return false; }
+    try {
+      localStorage.setItem(SAVE_KEY, json);
+      // read it back: only a save that landed becomes the backup
+      if (localStorage.getItem(SAVE_KEY) === json) localStorage.setItem(SAVE_KEY + '.bak', json);
+      return true;
+    } catch (e) {
+      // storage full: free the backup slot and try once more
+      try { localStorage.removeItem(SAVE_KEY + '.bak'); localStorage.setItem(SAVE_KEY, json); return true; } catch (e2) { return false; }
+    }
+  },
+  // the game options next to the save (speed, damage, HUD size and so on)
+  readOpts() { try { const o = JSON.parse(localStorage.getItem(OPTS_KEY) || 'null'); return o && typeof o === 'object' ? o : null; } catch (e) { return null; } },
+  applyOpts(o) {
+    if (!o || typeof o !== 'object') return;
+    const live = window.__bitten && window.__bitten.OPTS7, cur = this.readOpts() || {};
+    for (const k in o) {
+      const v = o[k]; if (typeof v !== 'number' && typeof v !== 'string') continue;
+      if (live && k in live && typeof live[k] !== typeof v) continue;
+      cur[k] = v; if (live) live[k] = v;
+    }
+    try { localStorage.setItem(OPTS_KEY, JSON.stringify(cur)); } catch (e) { /* ignore */ }
+  },
+  // The save file: the progress plus metadata about where it came from.
+  exportObject() {
+    const D = this.data, S = D.stats;
+    return {
+      game: 'Bitten', format: SAVE_FORMAT, gameVersion: GAME_VERSION, saved: new Date().toISOString(),
+      summary: {
+        achievements: `${ACHS.filter((a) => D.ach[a.id]).length}/${ACHS.length}`,
+        characters: CHAR_IDS.filter((id) => id === 'apple' || D.unlocks[id]).map((id) => CHARS[id].name),
+        snakesKilled: S.kills || 0, escapes: S.wins || 0, powerupsFound: Object.keys(D.found).length, timePlayed: fmtTime(S.time),
+      },
+      data: D,
+      opts: this.readOpts(),
+    };
+  },
+  exportText() { return JSON.stringify(this.exportObject(), null, 1); },
+  exportCode() {
+    const json = JSON.stringify({ game: 'Bitten', format: SAVE_FORMAT, gameVersion: GAME_VERSION, data: this.data, opts: this.readOpts() });
+    return 'BITTEN-' + btoa(unescape(encodeURIComponent(json)));
+  },
+  // Accepts a save file, a save code, or a bare progress object. Throws on anything else.
+  importText(txt) {
+    txt = String(txt || '').trim();
+    if (!txt) throw new Error('empty');
+    let obj;
+    if (/^BITTEN-/i.test(txt)) obj = JSON.parse(decodeURIComponent(escape(atob(txt.slice(7).replace(/\s+/g, '')))));
+    else obj = JSON.parse(txt);
+    if (!obj || typeof obj !== 'object') throw new Error('not a save');
+    const d = obj.data && typeof obj.data === 'object' ? obj.data : obj;
+    if (obj.game && obj.game !== 'Bitten') throw new Error('not a Bitten save');
+    if (!d.stats && !d.unlocks && !d.best && !d.ach) throw new Error('no progress in it');
+    this.applyData(d, false);
+    if (obj.opts) this.applyOpts(obj.opts);
+    this.store();
+    return obj;
+  },
+};
+
+/* T10 (v14.0): a normal download: Blob, object URL, a temporary <a download>. The claude.ai artifact
+   helper (window.claude.use('downloads')) is only an optional first try. Resolves 'saved', 'declined' or 'failed'. */
+async function saveFile14(name, txt, dlP) {
+  let dl = null;
+  try { dl = dlP ? await dlP : null; } catch (e) { dl = null; }
+  if (dl && typeof dl.save === 'function') {
+    try { await dl.save({ filename: name, data: txt }); return 'saved'; }
+    catch (e) { if (e && e.code === 'declined') return 'declined'; }
+  }
+  try {
+    const url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    return 'saved';
+  } catch (e) { return 'failed'; }
+}

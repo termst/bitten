@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bitten</title>
+<meta name="description" content="Bitten. You are an apple. You shoot seeds at snakes. A roguelike with horror, Dutch humor and up to 4 players.">
+<meta name="theme-color" content="#0b0807">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bitten">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#0b0807;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<!-- T11: fonts are self hosted (SIL OFL 1.1, see fonts/OFL-*.txt) -->
+<style>
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/barlow-condensed-latin-400-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/barlow-condensed-latin-ext-400-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/barlow-condensed-latin-500-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/barlow-condensed-latin-ext-500-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-ext-600-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-latin-700-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-latin-ext-700-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Grenze Gotisch';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/grenze-gotisch-latin-600-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Grenze Gotisch';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/grenze-gotisch-latin-ext-600-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Grenze Gotisch';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/grenze-gotisch-latin-800-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Grenze Gotisch';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/grenze-gotisch-latin-ext-800-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+</style>
+<!-- Bitten v14.0: the web release. The game runs as a normal website: one page, the game script, fonts and the De Wals track as files, an app icon and an offline cache, so it installs on a phone home screen and plays without a connection. Downloads (save, texts file) work in any browser. Couch coop and online coop for up to 4 apples, see the Multiplayer tab in How to play. -->
+<title>Bitten</title>
+<!-- Bitten v13.7: Characters tab in How to play rebuilt. The wall of skin names is gone. Now: a roster strip (apples open, looks in total, kinds), the four kinds of look as colour tiles with counts and a line each (Arcade names the six console looks once), the wardrobe in five short moves, and one card per apple: the worn look as a portrait with its kind and name, stat bars for speed, fire rate, damage and apples compared across the apples, the perk, a look bar split per kind, the look names as chips (the worn one ticked, Arcade folded into one chip) and a Wardrobe button that opens it right there. Locked apples show the achievement, what to do and how far along you are. Looks only, nothing else changes. -->
+<!-- Bitten v13.6: Wardrobe sorted. Skins live in four categories (Original, Epic, Grotesque, Arcade), each with its own colour and a line on what it is. The wardrobe is a grid grouped per category with filter tabs and counts (All, each category, Favourites). Star any look as a favourite (tap the star or F). Tap a card to preview, tap again or Wear to put it on. Shuffle wears a random look (from your favourites when you starred 2 or more). New look every run: a switch per apple that picks a random look when a run starts. Arrows step through the filtered list, keys 1 to 6 jump to a tab. Only the thumbnails on screen animate. The chip on the Characters screen shows the worn skin in its category colour. -->
+<!-- Bitten v13.5: Game Night. Six Arcade skins for every apple (54 looks): 8-Bit (22 pixels across, four shades a channel, a 1UP coin), Game Boy (four greens, dot matrix), Neon Arcade (dark body, magenta and cyan tubes, a scan line), Glitch (split channels, slices that skip), Hologram (cyan, see through, scan lines, a projector pad) and Cel Shade (ink line, halftone shadows, a POW burst). Each with its own wardrobe backdrop (pixel field, LCD, synthwave sun and grid, broken signal, holo floor, comic rays) and its own kill burst in fights: pixels, green squares, neon rings, glitch shards, holo rings, comic words. Looks only, nothing else changes. -->
+<!-- Bitten v13.4: Lucifappel skins. Lucifer redrawn as the devil on the label: swept gold horns, bat wings, a spade tail, a widow's peak, glowing slit eyes, a goatee, a pentagram and a flame crown. Smeltkop redrawn as a box of red wax: one melting shape with a glossy cap, side drips that merge into the body, a pool underneath and a charred match. Three new skins: Suikerschedel (sugar skull), Koud Vuur (frozen box, blue flame) and Vulkaan (basalt, lava cracks, a cone that erupts). -->
+<!-- Bitten v13.3: Auto aim. A code (AUTOAIM, Code tab, no admin needed) or the Auto aim switch in Admin: you only walk, the apple aims and shoots by itself. It picks one target at a time: healers (Lobbyist), thieves (Haggler) and Sharpshooters first, things already lunging at you, wounded snakes and ones two seeds from dead, fuel and creepers from a distance. It leads moving snakes, shoots the sides of armored ones, skips curled up Pantserworms, and never fires into a rock or pot unless the seeds pierce. Aim stick, mouse or arrow keys take over at once. --><!-- Bitten v13.2: Grotesque II. A second grotesque skin for every apple, each one taken from something in the game: Prikmond (The Apple, a lamprey mouth with three turning rings of teeth), Kappersfail (Appelgameplay, shaved, cut and the mullet stapled back on), Staartbijter (The Rotten Apple, a small Ouroboros out of the eye socket and around), Kassabon (Krullenbol, receipt tongue, barcode cut, one eye on sale), 8 Procent (Mikappols, cracked glass, charger in the skull, battery blinking), Blokrot (Peanapple, Block Worm pieces grown in, the next one falling), Handjeklap (Apploa Vogels, lobbyist arms for wings with gold rings), Benzinekop (Lucifappel, BP nozzle jammed in, fuel from the eyes), Eenarmige Bandiet (Lucky, a bone arm for a lever, eyeballs on the reels). Each with its own particles. Looks only, nothing else changes. -->
+<!-- Bitten v13.1: Start screen as a night show. Six scenes take turns, each on its own floor, the light dies between them: the Long One circling with a grub crossing, a grub swarm the apple shoots at, a lamprey swimming under the floor that bursts up next to you, two hoods flaring and spitting, the Bonus and Discount worms in a figure eight with price tags, and a boss (Ouroboros, Grub Mother or Lamprey Queen) passing in the dark. Floor tiles, light and small decor follow the floor, the floor name fades in, the apple looks, hops, shoots and trembles. Reduced motion keeps the first scene. -->
+<!-- Bitten v13.0: Clash tags. Every powerup carries tags (fire, ice, rot, speed, sticky, goo, bell, rain gear, shield, slow heal and 60 more). Clash rules are built from them: a limit per tag, or two tags that cannot sit together. New powerups only need tags. Duplicate rules removed (Rain gear twice), missing ones added: Ouwe Bel with Fietsbel and Megafoon, Lucky Strike with frost and Rotting, Ty-Go! with every stand-still powerup, Main Character with Appelmoes and Zevende Hemel, Viral with De Nachtwacht, Schengen with Reflectie, the always-piercing seeds with every piercing shot, Watermelon with Pierced, Trampoline, Super Size and every charged shot, Mud with Kameleontong and Pindasaus. Guide: tag chips on every powerup, a tag filter with the rule under it, one clean Clashes line. The floor card says why two powerups clash. Clash names and reasons are in the texts file. -->
+<!-- Bitten v12.8: Zeldzame Vijf. Five very rare legendaries (weight 0.2): Genadeslag, Dubbelganger, Lijn 34, Grote Hap, Airbag. -->
+<!-- Bitten v12.9: Short texts. Curses, downgrades and pumps use digits and %, mechanic first, flat closer. Clash reasons in English, typos and confusing names fixed. -->
+<!-- Bitten v12.7: Wereldmachten. Ten powerups: Gummy Worms (slow and chain to the next snake), Lucky Strike (every 7th seed burns and stuns), Schengen (seeds fly through obstacles), Matroesjka (2 blocked bites per floor), Borsjtsj (heal on clear when low), Super Size, Six Shooter (every 6th shot a piercing round, then reload), Importheffing (snakes start 15% shorter, bosses 5%, shops cost more), Rijstwafel (every 5th shot a wide piercing waffle), Twaalf Sterren (legendary ring every 12 kills). Five curses: Brusselse Regels, Handelsoorlog, Made In China, Suikerspiegel, American Dream. Five downgrades: Verkeerde Stekker, Droge Rijstwafel, Jetlag, Gaatje, Plakvingers. Four BP pumps: Regular Unleaded, E10, Zonnebloemolie, Importbenzine. Six court rulings: Handelsakkoord, Europees Hof, Importheffing, Matroesjka Getuige, Gummy Schikking, Rookverbod. New clash groups: Candy seeds, Chain hits, Smoke, Lucky hits, Counted shots, Through things, Pierce, Rings, Supersize; added to Shield, Rest, Fire, Seed size, Discount. -->
+<!-- Bitten v12.3: Map Maker. A new tile on the start screen: build your own map floor by floor and room by room, paint every tile with the game's own pieces and every snake, set room types (start, fight, hall, lair, boss arena, mini boss, challenge, survival, treasure, shop, vault, pantry, offering, cursed books, vote, slot machine, spring, tankstation, kapsalon, rechtbank, gym, quiet room), doors, walls, cracks and locked rooms, per floor looks, lair boss and darkness, map rules (apples, coins, damage, fire rate, speed, snake speed, boss health, slice drops, extras, gold worms, hidden gift, downgrades, noodles, contracts), up to five start powerups, character and difficulty. Tools: brush, eraser, fill, box, picker, select and move, mirror both ways, undo and redo, copy and paste rooms, game layouts, flip. Test the whole map or from one room, back to the editor after. Share the whole map as one line of text (BITMAP code, compressed), paste a code to play or edit. Maps live in this browser. Nineteen new map pieces: teleporters, jump pads, speed strips, bumpers, levers and gates, signs, exit hatches, fire bars, saw blades, spitter totems, powder kegs, snake nests, acid, weak floor, spike traps, pedestals, keys, coins. Three example maps, a Maps tab in How to play, three achievements (Architect, Playtester, Word Of Mouth). -->
+<!-- Bitten v12.4: words and a phone friendly Map Maker. New Text pieces: floor text (chalk, blood, gold, slime, ice; still, glow, wave, flicker), notes that stop the game to read (paper, warning, story page, phone messages), choice shrines with two answers and twelve effects (heal, hurt, coins, buy, blood deal, powerup, downgrade, snakes, gates, bomb, key, nothing; outcomes shown or hidden), shouts (banner on enter, on step, on clear), pressure plates for gates (hold or toggle). Snakes can say a line when the fight starts and leave last words. Rooms can say something on entry and on clear, floors open with a page, maps open with a story and close with a win line. Editor: tap paints on lift, drag paints, long press or double click opens a cell sheet (tile, piece settings, put here), recent brushes row, brush chip on the room, help pages shown on first visit (? or H), sticky tabs and bigger touch targets on phones, character counters on text fields. Fourth example map: Small Talk. -->
+<!-- Bitten v12.5: loot control in the Map Maker. Fix: every chest in a room opens, not just the last one. New Treasure chest piece (Loot): up to three exact, random or legendary powerups, plus coins, an apple or a key, optional mimic. Room reward when the fight is won: up to four drops (powerup, apples, coins, key, chest) in the middle, keep or switch off the game drops. Map powerup pool: only these, or everything but these, with a multi pick list. Pedestal renamed Powerup pedestal. Help page Loot. -->
+<!-- Bitten v12.6: Map Maker on phones. A drag bar between the room and the panel: pull it up and the panel gets more room, pull it down for a bigger room, double tap to reset, the height is remembered. The powerup picker keeps search and filters in place while the list scrolls, no longer opens the keyboard by itself on touch screens, shows a short plain line under every powerup, and the settings panel keeps its scroll position after you pick one. -->
+<!-- Bitten v12.2: Skins rebuilt. The six flat recolors are gone (Oranje Rups, Blauw Boven, Groen Grondje, Wormen Eerst, Woedeaanval, Snoepjas), saves wearing them go back to the original. Every skin left is Epic: an aura, slow light rays and its own particles, a trail behind you in fights, light rays in the wardrobe. One Grotesque skin per apple: Binnenstebuiten, Madennest, Vliegenkoning, Gebit, Lappendeken, Ogenvacht, Botvleugels, Smeltkop. New character Lucky, a crab apple with a horseshoe nailed into his skull and a die for an eye: every shot rolls a die (6 golden seed 2.5x, 1 dud 0.5x), 1 in 6 bites miss him, clashes with Four Leaf and Lucky Pips; unlock Geluksvogel (jackpot twice). Skins Jackpot and Snake Eyes. -->
+<!-- Bitten v12.1: New powerup Ty-Go!. A face with no features, blonde hair, a red GO. When a fight starts: GO for 4 seconds (bosses 3), walk 25% faster and shoot 18% faster, additive, capped. Each kill adds 0.4 seconds, max 5 kills and 8 seconds, none on bosses. Clash rules with Cider Rush, Quick Draw, Seed Rain, Sprout Legs, Tankstation Koffie, Elastiekje, Cider Dash, Nitro, Hypercharge and Chill Vibes. -->
+<!-- Bitten v12.0: Final merge of every chat build (v10.1 to v11.12, all features checked present). Settings rebuilt in tabs (Sound, Screen, Play, Save) with summaries, a Graphics preset (Light, Normal, Full, Custom), live hints when a switch does nothing (Party needs Music, Aim assist needs touch, no buzz), Reset this tab. Descriptions setting: Full, Clear (one short line per powerup, curse, downgrade and pump, no numbers) or Off, with a live preview; the guide follows it. Fixes: two powerups both named Fietsbel (old one is now Ouwe Bel), crash when a run goes past its last floor (chaos, admin floor skip). -->
+<!-- Bitten v11.12: New powerup Mud. Seeds are mud clumps. Hits stack up to 3 layers: more damage taken, slowed, and a short stagger at 3 layers. -->
+<!-- Bitten v11.11: New powerup Watermelon. Seeds become big shaded melons that burst, shove snakes back a little and leave a sticky puddle and broken halves on the floor. -->
+<!-- Bitten v11.10: Every powerup description rewritten short: the mechanic first, numbers as digits and %, a short closer at most. Same numbers and mechanics. Bitten v11.9: Admin room tools. A Rooms section in Admin: pick a room type, click the floor map to add it next to the map or rebuild an existing room, or go to any room. Start and boss rooms stay locked. Bitten v11.8: Klokhuis Gym, a new room. Coach Larspel, an apple with short dark hair, a full beard and a cream zip sweater, opens three of four stations each visit: Loopband (walk speed), Bankdrukken (seed damage), Handboog (seed speed), Proteinereep (health). Amounts change per visit, one set per visit, gains stack additively with caps. Gym Rat achievement. Bitten v11.7: Two more skins for every apple (16): Oranje Rups, Spiegelbol, Paarse Pluis, Blauw Boven, Groen Grondje, Kortsluiting, Snoepjas, Kroket, IJsblok, Wormen Eerst, Woedeaanval, Klompen, Sterinsigne, Deltaplan, Kort Lontje, Afterparty. Bitten v11.6: Lucifappel, a box of matches with a stem: every fourth seed is a lit match, walking charges the striker for a fan of five matches, floor fire does nothing to him (unlock: burn 150 snakes). Skins: Lucifer for Lucifappel, and a third look for every apple (Kermisappel, Capybara, Zonnebloem, Stroopkrul, Klokwerk, Rave Cavia, Feniks); the wardrobe holds any number of skins. Bitten v11.5: Contract page rebuilt: compact paper slips per tier, an icon and a kind per clause, the key number up front, stake, pay, net and a risk meter, what breaks it and what that costs, small print as named tags, reputation and this run's tally in the header. Bitten v11.4: Pause, game over and escape as framed cards, square switches in Settings. Party menu: with the remix on, the start screen becomes a club that follows the song parts (intro, build, drop, break, drop II), now playing slip, Party menu switch. Bitten v11.3: Admin panel in the house style (Custom Run dropdowns with snake pictures, icons in every list). Five locked powerups with achievements: Kaasschaaf, Fietsbel, Zoute Drop, Paraplu, De Nachtwacht (legendary), six clash rules. Bitten v11.2: Sharper look. Bloom on everything that glows, colored torch and tube light, contact shadows and floor grain in every room, dust in the light, a color grade per floor, film grain, rim light on the apple. Fancy graphics switch in Settings, slow phones dial it down by themselves. Bitten v11.1: Skins. Every playable apple has a themed second look (Granny Smith, Streamer Setup, Schimmelkoning, Zomerkrul, Delfts Blauw, Driekleur, Koningsdag). Tap a character to open the wardrobe. Bitten v11.0: Contracten. De Makelaar offers three contracts (Brons, Zilver, Goud) before some fights: 17 kinds of terms, 10 kinds of small print, stakes, loans, reputation, a HUD slip with stamps, marks in the room, a settings switch. Bitten v10.24: new powerup Rotting (rot stacks, softening, spread on death, mushrooms, 3 clash rules, custom icon). Bitten v10.23: small Code tab on the main menu. Code BRIE turns on admin mode and unlocks everything (with undo); admin panel has god mode, one hit kills, infinite coins, rapid fire, speed, freeze, game speed, powerup/curse/downgrade giving, heal, kill, clear, map, floor skip, spawn. Bitten v10.22: Paste code button in Settings reads the clipboard and loads the save at once; pasting in the code box loads it too. Bitten v10.21: 15 powerups, 15 legendaries, 15 locked powerups with 15 achievements, 15 curses, 15 downgrades, 20 court rulings, 15 BP pumps, clash rules. Bitten v10.20: start menu rebuilt (play hero with your apple, tile grid, settings row, stat strip), custom icon dropdowns in Custom Run, red two tap Reset all, Pick your apple as a compact two column grid, Rooms tab as little rooms in their own color, Modes tab as mode cards with emblems, chips and a difficulty ladder. Bitten v10.19: text rewrite. Powerups, curses, downgrades, tankstation pumps, kapsalon cuts, snake and boss cards, room blurbs and tips now read dry and plain. Numbers and mechanics are unchanged. Bitten v10.18: Custom Run panel tightened: stat strip, compact stage rows with icon buttons and floor colors, one line segmented rules with changed markers and per group reset, start powerups with icons, descriptions and clash checks. Bitten v10.17: Custom Run replaces the Customize panel. Pick floors and bosses you have met, boss only stages, rules, start powerups. HUD, De Wals track and FPS moved to Settings. Bitten v10.16: square filter chips, powerup detail colored by its icon. Bitten v10.15: Basics as plain rules, character frames, achievements page rebuilt, 14 new achievements. Bitten v10.14: regular music mutes while a Music tab song plays. Bitten v10.13: Music tab rebuilt, every song with its own art, song parts inside the full song. Bitten v10.12: every snake picture gets its own faded color background. Bitten v10.11: How to play redesign (sticky header, one tab row, grouped lists, compact cards, music tab styled again). Bitten v10.10: 16 powerups (candy shells, the feed, ego, self reflection, chameleon, the egg on the wall), 5 curses, 4 downgrades, 4 achievements, clash rules. Bitten v10.9: save keeps every field (music switch, waiting rewards, game options), backup slot, saves on close; texts box removed from Settings; sharper corners in the Play menu. Bitten v10.6: portal door redesign, BP canopy no longer covers the door above it. Bitten v10.5: Soundtracks player in How to play. Bitten v10.4: epic death remix, old waltz returns with Music off. Bitten v10.3: music toggle + sectioned dynamic remix. Bitten v10.2: Rotten Waltz remix as permanent song. Bitten v10.1: DagelijksHaaDee + "F#@% BITTEN, IK STAP ER UIT!!!" achievement -->
+<style>
+/* Layout: one full-bleed canvas stage, DOM panels float over it. A single, deliberate dark look:
+   cellar soil black, bone white type, one apple red accent, toffee gold for found things. */
+:root {
+  --void: #0b0807;
+  --ink: #ece2d4;
+  --muted: #a69688;
+  --faint: #6f6157;
+  --apple: #d7263d;
+  --apple-hi: #e83a50;
+  --toffee: #e3a54a;
+  --line: rgba(236, 226, 212, 0.18);
+  --scrim: rgba(9, 6, 6, 0.78);
+  --display: 'Grenze Gotisch', 'UnifrakturMaguntia', Georgia, 'Times New Roman', serif;
+  --ui: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', system-ui, sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html { height: 100%; box-sizing: border-box; background: var(--void); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none;
+  background: var(--void); color: var(--ink); font-family: var(--ui); font-size: 16px;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+  -webkit-font-smoothing: antialiased;
+}
+#app { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--void); }
+#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+
+/* ---------- panels ---------- */
+.panel {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  padding-block: 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  text-align: center;
+}
+.panel.scrim { background: var(--scrim); }
+.panel.enter { animation: panelIn .35s ease both; }
+@keyframes panelIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* the start menu: a dripping title, a list of options, and the scene drawn on the canvas behind it */
+.menu { justify-content: flex-start; padding-block: clamp(14px, 4.5vh, 52px); pointer-events: none; gap: 10px; }
+.menu > * { pointer-events: auto; }
+.menu-top { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.logo { width: min(80vw, 470px); height: auto; display: block; overflow: visible; margin-bottom: -14px; }
+.logo text { font-family: var(--display); font-weight: 800; }
+.logo .drip { transform-box: fill-box; transform-origin: 50% 0; animation: drip 7s ease-in-out infinite; }
+.logo .d2 { animation-duration: 9s; animation-delay: -3s; }
+.logo .d3 { animation-duration: 6s; animation-delay: -1.5s; }
+.logo .d4 { animation-duration: 8s; animation-delay: -5s; }
+@keyframes drip { 0%, 100% { transform: scaleY(.5); } 55% { transform: scaleY(1.1); } }
+.logo .drop { opacity: 0; animation: drop 9s ease-in infinite; }
+.logo .o2 { animation-duration: 11s; animation-delay: -4s; }
+@keyframes drop { 0%, 60% { opacity: 0; transform: translateY(-6px); } 64% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; transform: translateY(44px); } 83%, 100% { opacity: 0; transform: translateY(50px); } }
+.tag { margin: 0; color: var(--muted); font-size: clamp(15px, 4vw, 18px); letter-spacing: .04em; max-width: 32ch; text-wrap: balance; animation: flick 11s steps(1) infinite; }
+@keyframes flick { 0%, 100% { opacity: 1; } 71% { opacity: .35; } 72% { opacity: 1; } 74% { opacity: .5; } 75% { opacity: 1; } }
+.best { margin: 0; color: var(--faint); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; font-variant-numeric: tabular-nums; min-height: 1em; text-wrap: balance; }
+.menu-list { display: flex; flex-direction: column; align-items: stretch; gap: 0; width: min(100%, 330px); margin-top: auto; }
+.mi { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 16px auto minmax(0, 1fr); align-items: center; column-gap: 12px;
+  padding: 5px 10px; min-height: 44px; border-radius: 3px; position: relative; color: var(--ink); text-align: left; }
+.mi .ml { font: 800 clamp(25px, 7vw, 32px)/1.02 var(--display); letter-spacing: .01em; transition: transform .18s ease, color .18s ease; }
+.mi small { grid-column: 2 / 4; font: 500 11px/1.2 var(--ui); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi .eye { grid-row: 1 / 3; width: 11px; height: 6px; border-radius: 50%; background: #3a1a1c; justify-self: center; transition: background .18s, box-shadow .18s; }
+.mi:hover .eye, .mi:focus-visible .eye { background: #ff3b3b; box-shadow: 0 0 10px 2px rgba(255, 40, 40, .55); }
+.mi:hover .ml, .mi:focus-visible .ml { transform: translateX(5px); color: #fff4ec; }
+.mi:hover small, .mi:focus-visible small { color: var(--muted); }
+.mi:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.mi.play .ml { color: var(--apple-hi); text-shadow: 0 0 22px rgba(215, 38, 61, .5); }
+.mi.play .eye { background: #ff3b3b; box-shadow: 0 0 8px rgba(255, 50, 50, .55); animation: blink 5s infinite; }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.mi .cf { grid-row: 1; grid-column: 3; justify-self: start; position: relative; margin-top: -4px; line-height: 0; }
+.mi canvas { width: 28px; height: 28px; }
+.mi.new .cf::after { content: "NEW"; position: absolute; left: 100%; top: 6px; margin-left: 6px; background: var(--apple); color: #fff4ec; font: 700 10px/1 var(--ui); letter-spacing: .14em; padding: 3px 5px; border-radius: 2px; }
+@media (min-aspect-ratio: 20/21) {
+  .menu { align-items: flex-start; justify-content: center; gap: 16px; padding-left: max(6vw, env(safe-area-inset-left, 0px)); text-align: left; }
+  .menu-list { margin-top: 0; }
+  .menu-top { align-items: flex-start; }
+  .logo { width: min(38vw, 440px); margin-left: -12px; }
+  .tag { text-align: left; }
+  .best { padding-left: 10px; max-width: 46ch; }
+}
+@media (min-aspect-ratio: 20/21) and (max-height: 560px) {
+  .menu { gap: 6px; padding-block: 10px; }
+  .logo { width: min(30vw, 290px); margin-bottom: -10px; }
+  .tag { display: none; }
+  .mi { min-height: 34px; padding-block: 2px; }
+  .mi .ml { font-size: 23px; }
+  .mi small { display: none; }
+  .mi canvas { width: 24px; height: 24px; }
+  .mi.new .cf::after { top: 4px; }
+}
+
+/* ---------- mode select ---------- */
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.mcard { all: unset; box-sizing: border-box; cursor: pointer; border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px 12px; display: flex; flex-direction: column; gap: 6px;
+  background: rgba(255, 255, 255, .02); min-width: 0; position: relative; transition: border-color .15s, background .15s; }
+.mcard:hover { border-color: rgba(236, 226, 212, .4); }
+.mcard b { font: 800 26px/1 var(--display); padding-right: 34px; }
+.mcard p { margin: 0; font-size: 15px; line-height: 1.3; color: var(--muted); }
+.mcard .mb { font: 600 12px/1.25 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.mcard .mb em { font-style: normal; color: var(--toffee); }
+.mcard svg { width: 26px; height: 26px; position: absolute; top: 11px; right: 12px; color: var(--faint); }
+.mcard.on { border-color: var(--apple); background: rgba(215, 38, 61, .08); box-shadow: inset 0 0 30px rgba(215, 38, 61, .12); }
+.mcard.on svg { color: var(--apple-hi); }
+.mcard:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { all: unset; box-sizing: border-box; cursor: pointer; padding: 12px 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; border-right: 1px solid var(--line); min-width: 0; text-align: center; }
+.seg button:last-child { border-right: 0; }
+.seg b { font: 700 clamp(13px, 3.6vw, 16px)/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; }
+.seg .sk { display: flex; gap: 3px; }
+.seg .sk i { width: 7px; height: 7px; border-radius: 50%; background: rgba(236, 226, 212, .16); }
+.seg .sk i.f { background: var(--apple); }
+.seg button.on { background: rgba(215, 38, 61, .16); }
+.seg button.on b { color: #fff4ec; }
+.seg button.locked b { color: var(--faint); }
+.seg button.off { opacity: .35; cursor: default; }
+.seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: -3px; }
+.ddesc { margin: 10px 0 0; font-size: 15px; color: var(--muted); line-height: 1.35; min-height: 2.7em; max-width: 60ch; }
+.playfoot { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; z-index: 6;
+  position: fixed; left: 0; right: 0; bottom: 0; background: #090606; border-top: 1px solid var(--line); box-shadow: 0 -18px 24px rgba(9, 6, 6, .85);
+  padding: 12px max(16px, env(safe-area-inset-right, 0px), calc((100% - 760px) / 2)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px), calc((100% - 760px) / 2)); }
+#play .sheet-inner { padding-bottom: 92px; }
+.playfoot .btn.char { min-width: 0; flex: 0 1 auto; }
+@media (max-width: 480px) { .playfoot .btn.char .cl small { display: none; } .playfoot .btn.primary { font-size: 17px; letter-spacing: .12em; } }
+.seg .lk { width: 12px; height: 12px; color: var(--faint); }
+.playfoot .btn.primary { flex: 1 1 auto; min-width: 0; padding: 0 14px; max-width: 360px; }
+
+/* ---------- settings ---------- */
+.toggles { display: grid; gap: 8px; }
+.tog { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center;
+  border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; background: rgba(255, 255, 255, .02); }
+.tog span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tog b { font: 700 18px/1.1 var(--ui); letter-spacing: .04em; }
+.tog small { font-size: 14px; color: var(--muted); line-height: 1.3; }
+.tog i { width: 46px; height: 26px; border-radius: 13px; background: rgba(236, 226, 212, .12); position: relative; transition: background .15s; flex: none; }
+.tog i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.tog[aria-checked="true"] i { background: var(--apple); }
+.tog[aria-checked="true"] i::after { transform: translateX(20px); background: #fff4ec; }
+.tog:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.savehint { margin: 0; font-size: 14px; color: var(--faint); letter-spacing: .04em; }
+
+.btn {
+  font: 600 16px/1 var(--ui); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink); background: rgba(11, 8, 7, .55); border: 1px solid var(--line);
+  padding: 0 20px; min-height: 46px; border-radius: 2px; cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.btn:hover { border-color: rgba(236, 226, 212, .45); }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.btn.primary {
+  background: var(--apple); border-color: var(--apple); color: #fff4ec;
+  font-size: 20px; min-height: 56px; padding: 0 46px; letter-spacing: .2em;
+  box-shadow: 0 0 46px rgba(215, 38, 61, .32);
+}
+.btn.primary:hover { background: var(--apple-hi); border-color: var(--apple-hi); }
+.btn.warn { color: var(--toffee); border-color: rgba(227, 165, 74, .6); }
+.btn.char { min-height: 40px; font-size: 14px; letter-spacing: .14em; color: var(--toffee); border-color: rgba(227, 165, 74, .4); }
+.btn.char.locked { color: var(--faint); border-color: var(--line); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.stack { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+h2 { font: 800 clamp(42px, 12vw, 70px)/.95 var(--display); margin: 0; letter-spacing: .01em; color: var(--ink); text-wrap: balance; }
+.kick { font: 600 13px/1 var(--ui); letter-spacing: .32em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.lead { margin: 0; color: var(--muted); font-size: 17px; letter-spacing: .03em; max-width: 34ch; text-wrap: balance; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, auto)); gap: 4px 22px; margin: 0; }
+.stats div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stats dt { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); }
+.stats dd { margin: 0; font: 600 26px/1 var(--ui); font-variant-numeric: tabular-nums; color: var(--ink); }
+@media (max-width: 420px) { .stats { grid-template-columns: repeat(2, minmax(0, auto)); gap: 14px 30px; } }
+
+#coreArt, #winArt { width: 96px; height: 96px; }
+
+/* ---------- how to play sheet ---------- */
+.sheet { justify-content: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; background: rgba(9, 6, 6, .975); }
+.sheet-inner { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 26px; text-align: left; padding-bottom: 12px; }
+.sheet-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.sheet h3 { margin: 0 0 12px; font: 600 13px/1 var(--ui); letter-spacing: .3em; text-transform: uppercase; color: var(--apple-hi); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+.two > * { min-width: 0; }
+.keys { margin: 0; display: grid; gap: 10px; }
+.keys div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.keys dt { color: var(--muted); font-size: 14px; letter-spacing: .14em; text-transform: uppercase; }
+.keys dd { margin: 0; font-size: 17px; line-height: 1.35; }
+kbd { font: 600 14px/1 var(--ui); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 3px 6px; margin-right: 2px; color: var(--ink); white-space: nowrap; }
+.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.rules li { font-size: 17px; line-height: 1.4; color: var(--ink); padding-left: 18px; position: relative; max-width: 62ch; }
+.rules li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--apple); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.cards figure { margin: 0; border: 1px solid var(--line); border-radius: 3px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; background: rgba(255, 255, 255, .02); }
+.cards canvas { width: 100%; height: 92px; display: block; }
+.cards.items canvas { height: 60px; }
+.cards figcaption { display: flex; flex-direction: column; gap: 4px; }
+.cards b { font: 800 22px/1 var(--display); letter-spacing: .01em; }
+.cards .size { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); }
+.cards span { font-size: 15px; line-height: 1.3; color: var(--muted); }
+.cards.items b { color: var(--toffee); }
+
+/* ---------- in-game overlays ---------- */
+.card {
+  position: absolute; left: 0; right: 0; top: 30%; z-index: 4; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  opacity: 0; transform: translateY(6px); transition: opacity .7s ease, transform .7s ease;
+}
+.card.show { opacity: 1; transform: none; }
+.card .k { font: 600 13px/1 var(--ui); letter-spacing: .38em; text-transform: uppercase; color: var(--muted); text-shadow: 0 0 12px #000; }
+.card .t { font: 800 clamp(34px, min(10vw, 12vh), 72px)/.95 var(--display); color: var(--ink); text-shadow: 0 2px 24px #000, 0 0 2px #000; text-wrap: balance; }
+.card .s { font: 500 17px/1.3 var(--ui); letter-spacing: .06em; color: var(--muted); text-shadow: 0 0 12px #000; }
+.card.boss .t { color: #f1d9c9; }
+.card.boss .k { color: var(--apple-hi); }
+
+.banner {
+  position: absolute; left: 50%; top: 80px; z-index: 4; pointer-events: none;
+  transform: translate(-50%, -8px); opacity: 0; transition: opacity .35s ease, transform .35s ease;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  background: rgba(10, 7, 6, .86); border: 1px solid rgba(227, 165, 74, .35); padding: 10px 18px 11px; border-radius: 2px;
+  max-width: calc(100% - 32px); width: max-content;
+}
+.banner.show { opacity: 1; transform: translate(-50%, 0); }
+.banner .t { font: 800 27px/1 var(--display); color: var(--toffee); }
+.banner .s { font: 500 16px/1.25 var(--ui); color: var(--ink); letter-spacing: .03em; }
+
+.iconbtn {
+  position: absolute; z-index: 3; top: 10px; right: max(12px, env(safe-area-inset-right, 0px));
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line);
+  background: rgba(11, 8, 7, .6); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0;
+}
+.iconbtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.iconbtn svg { width: 16px; height: 16px; }
+
+.btn.char { display: inline-flex; align-items: center; gap: 10px; padding: 0 16px 0 6px; min-height: 46px; min-width: 180px; justify-content: center; position: relative; }
+.btn.char canvas { width: 34px; height: 34px; flex: none; }
+.btn.char .cl { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; }
+.btn.char .cl small { font: 500 11px/1 var(--ui); letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+.btn.char.new::after { content: "NEW"; position: absolute; top: -8px; right: -8px; background: var(--apple); color: #fff4ec; font: 700 10px/1 var(--ui); letter-spacing: .14em; padding: 4px 6px; border-radius: 2px; }
+
+/* ---------- characters ---------- */
+.charlist { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.ccard { all: unset; box-sizing: border-box; cursor: pointer; border: 1px solid var(--line); border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+  background: rgba(255, 255, 255, .02); min-width: 0; transition: border-color .15s, background .15s, transform .15s; position: relative; }
+.ccard:hover { border-color: rgba(236, 226, 212, .4); }
+.ccard:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.ccard.on { border-color: var(--toffee); background: rgba(227, 165, 74, .07); box-shadow: 0 0 30px rgba(227, 165, 74, .12) inset; }
+.ccard.locked { cursor: default; }
+.ccard.nope { animation: nope .35s ease; }
+@keyframes nope { 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
+.ccard canvas { width: 100%; height: 120px; display: block; border-radius: 2px; }
+.ccard .cn { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ccard b { font: 800 24px/1 var(--display); color: var(--ink); }
+.ccard.locked b { color: var(--faint); }
+.ccard .tagl { font: 600 11px/1 var(--ui); letter-spacing: .2em; text-transform: uppercase; color: var(--faint); white-space: nowrap; }
+.ccard.on .tagl { color: var(--toffee); }
+.ccard .cd { font-size: 15px; line-height: 1.3; color: var(--muted); margin: 0; }
+.bars { display: grid; gap: 5px; margin: 0; }
+.bars div { display: grid; grid-template-columns: 62px minmax(0, 1fr) 30px; gap: 8px; align-items: center; }
+.bars dt { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--faint); }
+.bars dd { margin: 0; height: 6px; background: rgba(236, 226, 212, .08); border-radius: 3px; overflow: hidden; }
+.bars dd i { display: block; height: 100%; background: var(--apple); border-radius: 3px; }
+.bars span { font: 600 13px/1 var(--ui); font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+.ccard.locked .bars dd i { background: var(--faint); }
+.ccard .perk { font-size: 13px; letter-spacing: .06em; color: var(--toffee); margin: 0; min-height: 1.2em; }
+.ccard .lock { font-size: 14px; color: var(--ink); margin: 0; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 3px; }
+.unl { margin: 0; color: var(--faint); font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
+
+/* ---------- achievements ---------- */
+.lstats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin: 0; }
+.lstats div { border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; background: rgba(255, 255, 255, .02); }
+.lstats dt { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+.lstats dd { margin: 0; font: 600 24px/1 var(--ui); font-variant-numeric: tabular-nums; color: var(--ink); }
+.alist { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.acard { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: start; border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: rgba(255, 255, 255, .02); }
+.acard.done { border-color: rgba(227, 165, 74, .55); background: rgba(227, 165, 74, .06); }
+.acard svg { width: 40px; height: 40px; display: block; }
+.acard .an { font: 700 17px/1.1 var(--ui); letter-spacing: .04em; color: var(--ink); margin: 0 0 3px; }
+.acard:not(.done) .an { color: var(--muted); }
+.acard .ad { font-size: 14px; line-height: 1.3; color: var(--muted); margin: 0; }
+.acard .ab { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-top: 8px; }
+.acard .ab i { display: block; height: 5px; border-radius: 3px; background: rgba(236, 226, 212, .08); overflow: hidden; }
+.acard .ab i b { display: block; height: 100%; background: var(--apple); border-radius: 3px; }
+.acard.done .ab i b { background: var(--toffee); }
+.acard .ab span { font: 600 12px/1 var(--ui); font-variant-numeric: tabular-nums; color: var(--muted); }
+.acard .ar { font-size: 13px; color: var(--toffee); margin: 6px 0 0; letter-spacing: .04em; }
+.coll { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+.coll canvas { width: 44px; height: 44px; border-radius: 4px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
+.coll canvas.rare { border-color: rgba(255, 170, 60, .55); background: rgba(255, 170, 60, .07); }
+#itemCards, #curseCards, #downCards { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+#itemCards figure, #curseCards figure, #downCards figure { flex-direction: row; align-items: center; gap: 12px; padding: 8px 10px; }
+#itemCards canvas, #curseCards canvas, #downCards canvas { width: 46px; height: 46px; flex: none; border-radius: 3px; }
+#itemCards b, #curseCards b, #downCards b { font-size: 19px; }
+#itemCards span, #curseCards span, #downCards span { font-size: 14px; }
+.cards.items figure.curse { border-color: rgba(196, 138, 240, .5); background: rgba(176, 90, 255, .06); }
+.cards.items figure.curse b { color: #d8a8ff; }
+.cards.items figure.down { border-color: rgba(232, 58, 80, .35); background: rgba(232, 58, 80, .04); }
+.cards.items figure.down b { color: #ff9aa8; }
+.cards .tagc, .cards .tagd { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; }
+.cards .tagc { color: #c48af0; }
+.cards .tagd { color: #ff7a8a; }
+.lstats { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.lstats dd { font-size: 22px; }
+.cards.items figure.rare { border-color: rgba(255, 170, 60, .5); background: rgba(255, 170, 60, .05); }
+.cards.items figure.rare b { color: #ffb44a; }
+.cards .tagr { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #d27bff; }
+.cbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.cbar i { display: block; height: 6px; border-radius: 3px; background: rgba(236, 226, 212, .08); overflow: hidden; }
+.cbar i b { display: block; height: 100%; background: var(--toffee); }
+.cbar span { font: 600 13px/1 var(--ui); font-variant-numeric: tabular-nums; color: var(--ink); }
+.savebox { border: 1px solid rgba(227, 165, 74, .35); border-radius: 4px; padding: 14px; background: rgba(227, 165, 74, .04); }
+.savebox h3 { margin-bottom: 8px; }
+.savetxt { margin: 0 0 12px; font-size: 15px; line-height: 1.35; color: var(--muted); max-width: 60ch; }
+.saverow { justify-content: flex-start; }
+.saverow .btn { min-height: 42px; font-size: 14px; padding: 0 16px; }
+.codebox { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.codebox textarea { width: 100%; min-height: 84px; resize: vertical; background: #120d0b; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 8px; font: 12px/1.35 ui-monospace, Menlo, Consolas, monospace; -webkit-user-select: text; user-select: text; word-break: break-all; }
+.savemsg { margin: 10px 0 0; min-height: 1.2em; font-size: 14px; color: var(--toffee); }
+.toast {
+  position: absolute; left: 50%; top: 10px; z-index: 9; pointer-events: none;
+  transform: translate(-50%, -14px); opacity: 0; transition: opacity .3s ease, transform .3s ease;
+  display: flex; gap: 10px; align-items: center; background: rgba(14, 10, 8, .95); border: 1px solid rgba(227, 165, 74, .6);
+  border-radius: 4px; padding: 7px 14px 7px 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); max-width: calc(100% - 32px);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast svg { width: 30px; height: 30px; flex: none; }
+.toast b { display: block; font: 600 11px/1 var(--ui); letter-spacing: .24em; text-transform: uppercase; color: var(--toffee); margin-bottom: 3px; }
+.toast span { font: 700 18px/1.1 var(--ui); letter-spacing: .03em; color: var(--ink); }
+.banner.legend { border-color: rgba(255, 170, 60, .8); box-shadow: 0 0 40px rgba(255, 150, 50, .25); }
+.banner.legend .t { color: #ffb44a; }
+.banner.legend::before { content: "LEGENDARY"; font: 700 11px/1 var(--ui); letter-spacing: .3em; color: #d27bff; }
+.nextun { margin: 0; font-size: 14px; color: var(--muted); letter-spacing: .04em; max-width: 36ch; text-wrap: balance; }
+.nextun b { color: var(--toffee); font-weight: 600; }
+
+/* ---------- pause ---------- */
+.pinfo { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.pstats { display: flex; gap: 18px; margin: 0; }
+.pstats div { display: flex; flex-direction: column; gap: 3px; align-items: center; }
+.pstats dt { font-size: 11px; letter-spacing: .2em; color: var(--faint); }
+.pstats dd { margin: 0; font: 600 20px/1 var(--ui); font-variant-numeric: tabular-nums; }
+.pitems { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 420px; }
+.pitems figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; width: 64px; }
+.pitems canvas { width: 34px; height: 34px; border-radius: 4px; background: rgba(227, 165, 74, .08); }
+.pitems figcaption { font-size: 11px; line-height: 1.1; color: var(--muted); text-align: center; }
+.pitems .none { font-size: 14px; color: var(--faint); }
+@media (orientation: landscape) and (max-height: 560px) {
+  #pause { flex-direction: row; gap: 40px; padding-block: 14px; }
+  #pause h2 { font-size: 46px; }
+  .pinfo { gap: 8px; max-width: 46%; }
+  .pitems figure { width: 54px; }
+  .pitems canvas { width: 28px; height: 28px; }
+  .pitems figcaption { font-size: 10px; }
+  .sheet h2 { font-size: 44px; }
+  .ccard canvas { height: 96px; }
+  .charlist { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+}
+
+/* ---------- story mode ---------- */
+.story {
+  position: absolute; inset: 0; z-index: 6; cursor: pointer;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  padding-bottom: 18px; padding-top: 18px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sbox {
+  width: 100%; max-width: 760px; min-height: 128px; display: flex; flex-direction: column; gap: 6px;
+  background: rgba(12, 9, 8, .94); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px 10px;
+}
+.sbox .who { font: 700 14px/1 var(--ui); letter-spacing: .22em; color: var(--apple-hi); min-height: 14px; }
+.sbox.apple .who { color: #ff9a8f; }
+.sbox.cap .who { display: none; }
+.stext { margin: 0; font: 500 clamp(18px, 4.8vw, 23px)/1.32 var(--ui); color: var(--ink); min-height: 2.64em; overflow-wrap: anywhere; }
+.sbox.jens .stext { font-weight: 600; }
+.sbox.cap .stext { color: var(--muted); font-style: italic; }
+.sbox.apple .stext { color: #f2d6cf; font-style: italic; }
+.sbox .more { align-self: flex-end; font: 600 11px/1 var(--ui); letter-spacing: .24em; text-transform: uppercase; color: var(--faint); }
+.skip { position: absolute; top: 10px; right: max(12px, env(safe-area-inset-right, 0px)); min-height: 38px; font-size: 13px; padding: 0 16px; }
+.scard { position: absolute; left: 50%; top: 9%; transform: translateX(-50%) rotate(-1.2deg); width: min(88%, 400px); cursor: pointer;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 18px 50px rgba(0,0,0,.6); animation: pop .35s ease both; }
+@keyframes pop { from { opacity: 0; transform: translateX(-50%) translateY(10px) rotate(-1.2deg) scale(.96); } }
+.scard.post { background: #f7f5f0; color: #16181c; border-radius: 12px; padding: 12px 14px; }
+.phead { display: flex; gap: 10px; align-items: center; }
+.phead .av { width: 42px; height: 42px; border-radius: 50%; }
+.pname { display: flex; flex-direction: column; min-width: 0; }
+.pname b { font-size: 15px; }
+.pname span { font-size: 13px; color: #6b6f78; }
+.ptext { margin: 8px 0 6px; font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+.ptext .tag { color: #2a63c9; }
+.pfoot { font-size: 13px; color: #6b6f78; border-top: 1px solid #e3e0d8; padding-top: 6px; }
+.preply { margin-top: 8px; background: #ecebe6; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+.preply p { margin: 2px 0 0; }
+.scard.phone { background: #111317; color: #eef0f3; border-radius: 22px; padding: 14px 14px 10px; border: 3px solid #2a2d33; display: flex; flex-direction: column; gap: 6px; }
+.pfrom { font-weight: 700; font-size: 15px; text-align: center; padding-bottom: 6px; border-bottom: 1px solid #2a2d33; }
+.bub { align-self: flex-start; background: #2c3038; border-radius: 16px 16px 16px 4px; padding: 8px 12px; font-size: 15px; max-width: 85%; }
+.pseen { align-self: flex-end; font-size: 11px; color: #8a8f99; }
+.scard.tv { background: #0b0b0d; border: 6px solid #26262b; border-radius: 6px; padding: 0; overflow: hidden; color: #fff; }
+.tv .brk { background: #c3243a; font: 700 13px/1 var(--ui); letter-spacing: .3em; padding: 6px 12px; }
+.tv .thead { font: 700 28px/1.05 var(--ui); text-transform: uppercase; padding: 12px 12px 2px; }
+.tv .tsub { font-size: 15px; padding: 0 12px 12px; color: #d8d8de; }
+.tv .tick { background: #f2c230; color: #111; font: 600 13px/1 var(--ui); padding: 6px 0; white-space: nowrap; overflow: hidden; }
+.tv .tick span { display: inline-block; padding-left: 100%; animation: tick 14s linear infinite; }
+@keyframes tick { to { transform: translateX(-100%); } }
+@media (orientation: landscape) and (max-height: 560px) {
+  .story { padding-bottom: 10px; }
+  .sbox { min-height: 90px; padding: 9px 14px 7px; gap: 4px; }
+  .stext { font-size: 18px; min-height: 2.5em; }
+  .scard { left: auto; right: max(16px, env(safe-area-inset-right, 0px)); top: 54px; transform: rotate(-1.2deg); width: min(46%, 360px); animation: popR .35s ease both; }
+  .ptext { font-size: 14px; margin: 6px 0 4px; }
+  .tv .thead { font-size: 22px; }
+}
+@keyframes popR { from { opacity: 0; transform: translateY(10px) rotate(-1.2deg) scale(.96); } }
+.chat {
+  position: absolute; z-index: 4; left: 50%; top: 70%; transform: translate(-50%, 8px); opacity: 0; pointer-events: none;
+  transition: opacity .3s ease, transform .3s ease;
+  display: flex; gap: 8px; align-items: center; width: max-content; max-width: min(92%, 380px);
+  background: rgba(247, 245, 240, .96); color: #16181c; border-radius: 16px 16px 16px 4px; padding: 6px 12px 6px 6px;
+  font: 500 15px/1.25 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+.chat.show { opacity: 1; transform: translate(-50%, 0); }
+.chat.side { transform: translate(0, 8px); }
+.chat.side.show { transform: none; }
+.chat canvas { width: 32px; height: 32px; border-radius: 50%; flex: none; }
+.chat b { display: block; font: 700 11px/1 var(--ui); letter-spacing: .16em; color: #c3243a; margin-bottom: 2px; }
+.chat .cb { min-width: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .banner, .panel.enter { transition: none; animation: none; }
+  .logo .drip, .tag, .mi.play .eye { animation: none; }
+  .logo .drop { animation: none; opacity: 0; }
+}
+
+/* ---------- version 9 ---------- */
+/* the guide, in tabs */
+.how9 { gap: 18px; }
+.tabs9 { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; position: sticky; top: -28px; z-index: 2; background: rgba(9, 6, 6, .97); padding-top: 10px; }
+.tabs9 button { all: unset; box-sizing: border-box; cursor: pointer; font: 600 15px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  padding: 10px 12px; min-height: 40px; border: 1px solid var(--line); border-radius: 3px; display: inline-flex; align-items: center; }
+.tabs9 button:hover { color: var(--ink); border-color: rgba(236, 226, 212, .4); }
+.tabs9 button[aria-selected="true"] { color: #fff4ec; background: rgba(215, 38, 61, .2); border-color: var(--apple); }
+.tabs9 button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.tabpanel9 { display: flex; flex-direction: column; gap: 16px; }
+.tabpanel9 h3 { margin-bottom: 4px; }
+.intro9 { margin: 0; font-size: 17px; line-height: 1.4; color: var(--muted); max-width: 62ch; }
+.tips9 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.tip9 { border: 1px solid var(--line); border-left: 3px solid var(--apple); border-radius: 3px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; background: rgba(255, 255, 255, .02); }
+.tip9 b { font: 700 17px/1.1 var(--ui); letter-spacing: .04em; color: var(--ink); }
+.tip9 span { font-size: 15px; line-height: 1.32; color: var(--muted); }
+.tip9.down { border-left-color: #ff7a8a; }
+.tip9.curse { border-left-color: #c48af0; }
+.keys9 div { grid-template-columns: 74px minmax(0, 1fr); }
+.rooms9 { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.rooms9 li { display: grid; grid-template-columns: 12px minmax(0, 1fr); column-gap: 10px; row-gap: 3px; align-items: center; align-content: start; border: 1px solid var(--line); border-radius: 3px; padding: 9px 12px; background: rgba(255, 255, 255, .02); }
+.rooms9 i { width: 10px; height: 10px; border-radius: 2px; box-shadow: 0 0 8px rgba(255, 255, 255, .15); }
+.rooms9 b { font: 700 17px/1.1 var(--ui); letter-spacing: .04em; }
+.rooms9 span { grid-column: 2; font-size: 15px; line-height: 1.3; color: var(--muted); }
+.filt9 { display: flex; flex-wrap: wrap; gap: 6px; }
+.filt9 button { all: unset; box-sizing: border-box; cursor: pointer; font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  padding: 8px 12px; min-height: 36px; border: 1px solid var(--line); border-radius: 18px; display: inline-flex; align-items: center; }
+.filt9 button[aria-pressed="true"] { color: #16100d; background: var(--toffee); border-color: var(--toffee); }
+.filt9 button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.search9 { font: 500 17px/1.2 var(--ui); color: var(--ink); background: #120d0b; border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; width: 100%; max-width: 420px;
+  -webkit-user-select: text; user-select: text; }
+.search9:focus { outline: 2px solid var(--toffee); outline-offset: 1px; }
+.isec9 { display: flex; flex-direction: column; gap: 4px; }
+.cards .lk9 { font-size: 12px; letter-spacing: .08em; color: var(--toffee); }
+.cards.chars { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.cards.chars canvas { height: 110px; }
+.cards .perk9 { font-size: 13px; letter-spacing: .04em; color: var(--toffee); }
+
+/* the menu: a story waiting */
+.mi.newst .ml::after { content: "NEW"; position: relative; top: -6px; margin-left: 8px; background: var(--apple); color: #fff4ec; font: 700 10px/1 var(--ui); letter-spacing: .14em; padding: 3px 5px; border-radius: 2px; vertical-align: middle; }
+
+/* the story list */
+.storylist { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.stcard { all: unset; box-sizing: border-box; cursor: pointer; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column;
+  background: rgba(255, 255, 255, .02); min-width: 0; transition: border-color .15s, transform .15s; text-align: left; }
+.stcard canvas { width: 100%; height: 132px; display: block; }
+.stcard .stbody { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
+.stcard .stno { font: 600 12px/1 var(--ui); letter-spacing: .22em; text-transform: uppercase; color: var(--faint); }
+.stcard b { font: 800 30px/1 var(--display); color: var(--ink); }
+.stcard .sttag { font: 600 15px/1.2 var(--ui); letter-spacing: .06em; color: var(--toffee); }
+.stcard p { margin: 0; font-size: 15px; line-height: 1.35; color: var(--muted); }
+.stcard .ststate { font: 600 12px/1 var(--ui); letter-spacing: .2em; text-transform: uppercase; color: var(--apple-hi); margin-top: 4px; }
+.stcard:hover { border-color: rgba(236, 226, 212, .45); }
+.stcard:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.stcard.done { border-color: rgba(227, 165, 74, .55); }
+.stcard.done .ststate { color: var(--toffee); }
+.stcard.locked { cursor: default; }
+.stcard.locked b, .stcard.locked .sttag { color: var(--faint); }
+.stcard.locked .ststate { color: var(--faint); }
+.stcard.nope { animation: nope .35s ease; }
+
+/* the till at the tankstation */
+.sellp { justify-content: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; background: rgba(9, 6, 6, .9); }
+.sell-inner { width: 100%; max-width: 560px; margin-block: auto; display: flex; flex-direction: column; gap: 14px; text-align: left;
+  border: 1px solid rgba(74, 192, 90, .45); border-radius: 6px; background: #0e0b0a; padding: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+.sell-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; border-bottom: 3px solid #f2c230; padding-bottom: 10px; }
+.sell-head h2 { font-size: clamp(36px, 10vw, 52px); }
+.sell-head .kick { color: #4ac05a; margin-bottom: 6px; }
+.sellcoins { margin: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.sellcoins span { font: 600 11px/1 var(--ui); letter-spacing: .22em; text-transform: uppercase; color: var(--faint); }
+.sellcoins b { font: 700 30px/1 var(--ui); font-variant-numeric: tabular-nums; color: #ffd84a; }
+.selltxt { margin: 0; font-size: 15px; line-height: 1.35; color: var(--muted); }
+.selllist { display: grid; gap: 8px; }
+.selllist .none { margin: 0; font-size: 15px; color: var(--faint); }
+.srow { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; background: rgba(255, 255, 255, .02); }
+.srow.rare { border-color: rgba(255, 170, 60, .5); background: rgba(255, 170, 60, .05); }
+.srow canvas { width: 40px; height: 40px; border-radius: 3px; background: rgba(227, 165, 74, .08); }
+.srow .sinfo { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.srow .sinfo b { font: 700 17px/1.1 var(--ui); letter-spacing: .03em; color: var(--toffee); }
+.srow.rare .sinfo b { color: #ffb44a; }
+.srow .sinfo span { font-size: 13px; line-height: 1.3; color: var(--muted); }
+.sbtn { min-height: 42px; font-size: 14px; padding: 0 14px; letter-spacing: .1em; white-space: nowrap; color: #ffd84a; border-color: rgba(242, 194, 48, .5); }
+.sbtn:disabled { color: var(--faint); border-color: var(--line); cursor: default; }
+.sbtn.warn { background: rgba(242, 194, 48, .14); }
+#btnSellDone { align-self: center; }
+
+/* the pause screen: fits on a phone, every icon can be read */
+#pause { justify-content: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; gap: 18px; }
+#pause > .pinfo { margin-top: auto; }
+#pause > .stack { margin-bottom: auto; }
+.pinfo { max-width: 520px; width: 100%; }
+.pstats { flex-wrap: wrap; justify-content: center; row-gap: 8px; }
+.ptunes { margin: 0; font-size: 13px; letter-spacing: .06em; color: #7cff7a; max-width: 44ch; text-wrap: balance; }
+.pitems { max-width: 460px; gap: 6px; }
+.pitems .pit { all: unset; box-sizing: border-box; cursor: pointer; width: 42px; height: 42px; border-radius: 6px; display: grid; place-items: center;
+  background: rgba(227, 165, 74, .08); border: 1px solid transparent; }
+.pitems .pit canvas { width: 34px; height: 34px; background: none; border-radius: 0; }
+.pitems .pit.rare { background: rgba(255, 170, 60, .16); border-color: rgba(255, 180, 70, .7); }
+.pitems .pit.curse { background: rgba(176, 90, 255, .16); border-color: rgba(196, 138, 240, .75); }
+.pitems .pit.down { background: rgba(30, 20, 30, .6); border-color: rgba(232, 58, 80, .55); }
+.pitems .pit.on { outline: 2px solid var(--ink); outline-offset: 1px; }
+.pitems .pit:focus-visible { outline: 2px solid var(--toffee); outline-offset: 2px; }
+.pdetail { margin: 0; min-height: 2.6em; max-width: 44ch; font-size: 14px; line-height: 1.35; color: var(--muted); text-wrap: balance; }
+.pdetail b { color: var(--ink); font-weight: 700; letter-spacing: .03em; margin-right: 6px; }
+.pdetail em { font-style: normal; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--toffee); margin-right: 6px; }
+.pdetail em.r { color: #ffb44a; }
+.pdetail em.c { color: #c48af0; }
+.pdetail em.d { color: #ff7a8a; }
+.pdetail span { display: block; margin-top: 2px; }
+.pdetail .dh { color: var(--faint); font-size: 13px; }
+@media (orientation: landscape) and (max-height: 560px) {
+  #pause { flex-direction: row; align-items: flex-start; justify-content: center; gap: 28px; }
+  #pause > .pinfo, #pause > .stack { margin-block: auto; }
+  .pinfo { max-width: 52%; }
+  .pitems .pit { width: 36px; height: 36px; }
+  .pitems .pit canvas { width: 28px; height: 28px; }
+  .pdetail { min-height: 0; font-size: 13px; }
+  .tabs9 button { min-height: 34px; padding: 7px 10px; font-size: 13px; }
+  .stcard canvas { height: 96px; }
+}
+@media (max-width: 420px) {
+  .tabs9 { gap: 5px; }
+  .tabs9 button { padding: 8px 9px; font-size: 13px; letter-spacing: .1em; min-height: 38px; }
+  .srow { grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; padding: 8px; }
+  .srow canvas { width: 34px; height: 34px; }
+  .srow .sinfo span { font-size: 12px; }
+  .sbtn { padding: 0 9px; min-height: 40px; font-size: 13px; letter-spacing: .06em; }
+  .pitems { max-width: 100%; }
+}
+
+/* the second story's voices */
+.sbox.alesen .who { color: #7ac8ff; }
+.sbox.senale .who { color: #ff9ab0; }
+.sbox.ouders .who { color: #e8c88a; }
+.sbox.alesen .stext, .sbox.senale .stext { font-weight: 600; }
+.sbox.ouders .stext { color: #f2e6cf; }
+
+/* banners for curses, downgrades and good news */
+.banner.curse { border-color: rgba(196, 138, 240, .7); box-shadow: 0 0 34px rgba(176, 90, 255, .2); }
+.banner.curse .t { color: #d8a8ff; }
+.banner.down { border-color: rgba(232, 58, 80, .55); }
+.banner.down .t { color: #ff9aa8; }
+.banner.clean { border-color: rgba(124, 216, 255, .55); }
+.banner.clean .t { color: #9fe8ff; }
+@media (prefers-reduced-motion: reduce) {
+  .stcard.nope { animation: none; }
+}
+
+/* version 10: the achievements page, clash notes */
+.abar10 { height: 8px; border-radius: 4px; background: rgba(236, 226, 212, .08); overflow: hidden; margin-top: -12px; }
+.abar10 i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--apple), var(--toffee)); border-radius: 4px; }
+.asum10 { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+.asum10 div { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; background: rgba(255, 255, 255, .02); display: flex; flex-direction: column; gap: 4px; }
+.asum10 b { font: 700 22px/1 var(--ui); font-variant-numeric: tabular-nums; color: var(--ink); }
+.asum10 span { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.afilt10 { display: flex; flex-direction: column; gap: 6px; }
+.frow10 { display: flex; flex-wrap: wrap; gap: 6px; }
+.frow10 button { font: 600 14px/1 var(--ui); letter-spacing: .06em; color: var(--muted); background: rgba(11, 8, 7, .55); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; min-height: 32px; cursor: pointer; }
+.frow10 button[aria-pressed="true"] { color: var(--void); background: var(--toffee); border-color: var(--toffee); }
+.frow10 button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+#alist { grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 6px; margin-top: -14px; }
+.acard.ac10 { grid-template-columns: 28px minmax(0, 1fr); gap: 9px; padding: 8px 10px; }
+.acard.ac10 svg { width: 28px; height: 28px; }
+.acard.ac10 .an { font-size: 15px; }
+.acard.ac10 .ad { font-size: 13px; line-height: 1.25; }
+.acard.ac10 .ab { margin-top: 5px; }
+.acard.ac10 .ar { font-size: 12px; margin-top: 4px; }
+.agrid10 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.btab10 { display: grid; gap: 3px; }
+.btab10 div { display: flex; justify-content: space-between; gap: 8px; padding: 5px 9px; border-radius: 3px; background: rgba(255, 255, 255, .02); border: 1px solid transparent; font-size: 14px; color: var(--faint); }
+.btab10 div.on { color: var(--ink); border-color: var(--line); }
+.btab10 b { font: 600 14px/1.2 var(--ui); font-variant-numeric: tabular-nums; color: var(--toffee); }
+#lstats { display: block; }
+.lg10 { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.lg10 h4 { margin: 0; font: 600 12px/1 var(--ui); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.lg10 .lstats { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.lg10 .lstats div { padding: 7px 9px; }
+.lg10 .lstats dd { font-size: 19px; }
+.cwin10 { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.cwin10 div { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 3px; color: var(--faint); font-size: 14px; }
+.cwin10 div.on { color: var(--ink); border-color: rgba(227, 165, 74, .5); }
+.cwin10 canvas { width: 30px; height: 30px; }
+.cwin10 b { font: 600 13px/1 var(--ui); color: var(--toffee); white-space: nowrap; }
+#coll { grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 4px; }
+#coll canvas { width: 36px; height: 36px; }
+.cl10 { display: block; margin-top: 3px; font-size: 12px !important; color: #ff9a7a; line-height: 1.25; }
+</style>
+</head>
+<body>
+
+
+<div id="app">
+  <canvas id="stage" aria-label="Bitten game area"></canvas>
+
+  <section id="menu" class="panel menu" aria-label="Start menu">
+    <div class="menu-top">
+      <svg class="logo" viewBox="0 0 600 236" role="img" aria-label="Bitten">
+        <defs>
+          <mask id="biteMask" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="236">
+            <rect width="600" height="236" fill="#fff"/>
+            <circle cx="574" cy="50" r="38" fill="#000"/>
+            <circle cx="540" cy="26" r="22" fill="#000"/>
+            <circle cx="596" cy="92" r="22" fill="#000"/>
+          </mask>
+          <linearGradient id="juice" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#b3182c"/>
+            <stop offset="1" stop-color="#5e0613"/>
+          </linearGradient>
+        </defs>
+        <g class="drips" fill="url(#juice)">
+          <path class="drip d1" d="M96 136h12v26a6 6 0 0 1-12 0z"/>
+          <path class="drip d2" d="M262 140h9v40a4.5 4.5 0 0 1-9 0z"/>
+          <path class="drip d3" d="M404 138h11v20a5.5 5.5 0 0 1-11 0z"/>
+          <path class="drip d4" d="M520 112h8v52a4 4 0 0 1-8 0z"/>
+          <circle class="drop o1" cx="267" cy="186" r="5"/>
+          <circle class="drop o2" cx="524" cy="170" r="4.5"/>
+        </g>
+        <text x="24" y="150" textLength="552" lengthAdjust="spacingAndGlyphs" font-size="156" fill="#ece2d4" mask="url(#biteMask)">BITTEN</text>
+        <g fill="#7a0d1c" mask="url(#biteMask)" opacity=".9">
+          <circle cx="548" cy="58" r="3"/><circle cx="560" cy="86" r="2.4"/><circle cx="528" cy="44" r="2"/>
+        </g>
+      </svg>
+      <p class="tag">You are the apple. Everything down here is hungry.</p>
+    </div>
+    <nav class="menu-list" aria-label="Main menu">
+      <button id="btnPlay" class="mi play" type="button"><i class="eye" aria-hidden="true"></i><span class="ml">Play</span><small id="playNow">Arcade, Normal</small></button>
+      <button id="btnStory" class="mi" type="button"><i class="eye" aria-hidden="true"></i><span class="ml">Story</span><small id="storyNow">Jensbabba has a plan</small></button>
+      <button id="btnChar" class="mi char" type="button"><i class="eye" aria-hidden="true"></i><span class="ml">Characters</span><small id="charNow">The Apple</small><span class="cf"><canvas id="charFace" aria-hidden="true"></canvas></span></button>
+      <button id="btnAch" class="mi" type="button"><i class="eye" aria-hidden="true"></i><span class="ml">Achievements</span><small id="achNow"></small></button>
+      <button id="btnHow" class="mi" type="button"><i class="eye" aria-hidden="true"></i><span class="ml">How to play</span><small>What bites, what helps</small></button>
+      <button id="btnSet" class="mi" type="button"><i class="eye" aria-hidden="true"></i><span class="ml">Settings</span><small id="setNow">Sound on</small></button>
+    </nav>
+    <p id="best" class="best"></p>
+  </section>
+
+  <section id="play" class="panel sheet" aria-label="Choose a mode" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2>Pick your hole</h2>
+        <button id="btnPlayBack" class="btn" type="button">Back</button>
+      </div>
+      <div><h3>Mode</h3><div id="modeList" class="modes" role="radiogroup" aria-label="Mode"></div></div>
+      <div>
+        <h3>Difficulty</h3>
+        <div id="diffList" class="seg" role="radiogroup" aria-label="Difficulty"></div>
+        <p id="diffDesc" class="ddesc"></p>
+      </div>
+      <div class="playfoot">
+        <button id="btnPlayChar" class="btn char" type="button"><canvas id="playFace"></canvas><span class="cl"><span id="playChar">The Apple</span><small>Change character</small></span></button>
+        <button id="btnGo" class="btn primary" type="button">Start</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings" class="panel sheet" aria-label="Settings" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2>Settings</h2>
+        <button id="btnSetBack" class="btn" type="button">Back</button>
+      </div>
+      <div class="toggles" id="toggles">
+        <button class="tog" type="button" role="switch" data-set="sound"><span><b>Sound</b><small>Music box, hisses and crunches. Key M also works.</small></span><i></i></button>
+        <button class="tog" type="button" role="switch" data-set="music"><span><b>Music</b><small>Turn on for the Rotten Waltz remix, it shifts with fights, health and room. Off plays the old music box.</small></span><i></i></button>
+        <button class="tog" type="button" role="switch" data-set="shake"><span><b>Screen shake</b><small>When things explode and bosses slam.</small></span><i></i></button>
+        <button class="tog" type="button" role="switch" data-set="assist"><span><b>Aim assist</b><small>Touch only. Bends your shots a little toward a snake.</small></span><i></i></button>
+        <button class="tog" type="button" role="switch" data-set="vibrate"><span><b>Vibration</b><small>A buzz on every bite, where the phone allows it.</small></span><i></i></button>
+        <button class="tog" type="button" role="switch" data-set="numbers"><span><b>Pop-up text</b><small>Small words like CRIT and GROW over the action.</small></span><i></i></button>
+        <button class="tog" type="button" role="switch" data-set="info"><span><b>Powerup details</b><small>Stand close to a powerup, a shop item or a machine to read what it does and what it costs.</small></span><i></i></button>
+      </div>
+      <div class="savebox">
+        <h3>Your save file</h3>
+        <p class="savetxt">Progress lives in this browser. Download a save file or copy the save code to keep it safe or carry it to another device, then load it here again (Paste code reads your clipboard and loads it), also after the game updates. Loading adds a save to what you already have, nothing gets lost.</p>
+        <div class="row saverow">
+          <button id="btnSaveDl" class="btn" type="button">Download save</button>
+          <button id="btnSaveUp" class="btn" type="button">Load save file</button>
+          <button id="btnSaveCode" class="btn" type="button">Save code</button>
+          <button id="btnCodePaste" class="btn" type="button">Paste code</button>
+        </div>
+        <input type="file" id="saveFile" accept=".json,application/json,text/plain" hidden>
+        <div id="codeBox" class="codebox" hidden>
+          <textarea id="saveCode" rows="4" spellcheck="false" aria-label="Save code"></textarea>
+          <div class="row saverow"><button id="btnCodeCopy" class="btn" type="button">Copy code</button><button id="btnCodeLoad" class="btn" type="button">Load pasted code</button></div>
+        </div>
+        <p id="saveMsg" class="savemsg" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="panel sheet" aria-label="How to play" hidden>
+    <div class="sheet-inner how9">
+      <div class="sheet-head">
+        <h2>How to play</h2>
+        <button id="btnHowBack" class="btn" type="button">Back</button>
+      </div>
+      <div class="tabs9" role="tablist" aria-label="Guide" id="howTabs">
+        <button type="button" role="tab" id="t-basics" data-tab="basics" aria-controls="tab-basics" aria-selected="true">Basics</button>
+        <button type="button" role="tab" id="t-controls" data-tab="controls" aria-controls="tab-controls" aria-selected="false" tabindex="-1">Controls</button>
+        <button type="button" role="tab" id="t-rooms" data-tab="rooms" aria-controls="tab-rooms" aria-selected="false" tabindex="-1">Rooms</button>
+        <button type="button" role="tab" id="t-snakes" data-tab="snakes" aria-controls="tab-snakes" aria-selected="false" tabindex="-1">Snakes</button>
+        <button type="button" role="tab" id="t-items" data-tab="items" aria-controls="tab-items" aria-selected="false" tabindex="-1">Powerups</button>
+        <button type="button" role="tab" id="t-chars" data-tab="chars" aria-controls="tab-chars" aria-selected="false" tabindex="-1">Characters</button>
+        <button type="button" role="tab" id="t-modes" data-tab="modes" aria-controls="tab-modes" aria-selected="false" tabindex="-1">Modes</button>
+        <button type="button" role="tab" id="t-music" data-tab="music" aria-controls="tab-music" aria-selected="false" tabindex="-1">Soundtracks</button>
+      </div>
+      <div class="tabpanel9" role="tabpanel" id="tab-basics" aria-labelledby="t-basics">
+        <p class="intro9">You are the apple. Everything down here wants a bite. Clear every room, find the lair, drop down a floor.</p>
+        <div class="tips9"><div class="tip9 "><b>Doors bite shut</b><span>A room stays locked while anything in it is still hungry. Kill it all and the doors open. Nothing else works.</span></div><div class="tip9 "><b>Bites show</b><span>Every bite takes half an apple and stays on your skin. Out of apples and you are a core.</span></div><div class="tip9 "><b>Length is health</b><span>Shoot a snake and it gets shorter. A short snake is almost dead.</span></div><div class="tip9 "><b>Break things</b><span>Pots and eggs hold apple slices and coins. One per floor hides a gift. Some eggs hatch.</span></div><div class="tip9 "><b>Coins</b><span>Snakes drop coins. Spend them in shops, at the tankstation, the kapsalon and the slot machine.</span></div><div class="tip9 "><b>Powerups stay</b><span>Everything you pick up lasts the whole run. Gold framed ones are legendary.</span></div><div class="tip9 down"><b>Downgrades</b><span>Get bitten in a room and the rot may follow you out. Bosses, springs and the Apple Wash wash it off.</span></div><div class="tip9 curse"><b>Curses are deals</b><span>Something gets a lot better, something gets worse. Offerings, cursed books and some votes come with one.</span></div><div class="tip9 "><b>Floors and lairs</b><span>Every floor ends in a lair. Beat what lives there, then drop into the hole. The last floor ends in daylight.</span></div><div class="tip9 "><b>Read before you take</b><span>Stand next to anything you can take and a card shows what it does and what it costs. Reading is free.</span></div><div class="tip9 "><b>Achievements pay</b><span>Every achievement drops a powerup. Many also add new powerups to the pool. Grinding has a point.</span></div><div class="tip9 "><b>It got harder</b><span>Every floor has one more room, snakes are a bit tougher, and the new snakes deeper down hit hard.</span></div></div>
+      </div>
+      <div class="tabpanel9" role="tabpanel" id="tab-controls" aria-labelledby="t-controls" hidden>
+        <dl class="keys keys9">
+          <div><dt>Move</dt><dd>Left thumb, anywhere on the left half. Or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>.</dd></div>
+          <div><dt>Shoot</dt><dd>Right thumb, drag toward a snake. Or the arrow keys, or hold the mouse button.</dd></div>
+          <div><dt>Dash</dt><dd>With DASH! or as Apploa Vogels. <kbd>Space</kbd>, <kbd>Shift</kbd>, right click, a double tap on <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, or a quick double tap on the left half.</dd></div>
+          <div><dt>Pause</dt><dd>The round button, <kbd>Esc</kbd> or <kbd>P</kbd>. This guide is on the pause screen too.</dd></div>
+          <div><dt>Sound</dt><dd><kbd>M</kbd> switches sound on and off.</dd></div>
+          <div><dt>Auto aim</dt><dd>Code <kbd>AUTOAIM</kbd> on the Code tab, or the Auto aim switch in Admin. You only walk, the apple picks a target and shoots. Your own aim always wins.</dd></div>
+          <div><dt>Buy</dt><dd>Walk onto something in a shop. Walk into a pump or the barber chair. Walk up to the till to sell.</dd></div>
+          <div><dt>Story</dt><dd>Tap, <kbd>Space</kbd> or <kbd>Enter</kbd> for the next line. Skip with the button or <kbd>Esc</kbd>.</dd></div>
+        </dl>
+        <p class="intro9">Settings has screen shake, fancy graphics, vibration, pop-up text, aim assist and the powerup cards. Your save code lives there too.</p>
+      </div>
+      <div class="tabpanel9" role="tabpanel" id="tab-rooms" aria-labelledby="t-rooms" hidden>
+        <p class="intro9">The pillars of a doorway tell you what is behind it.</p>
+        <ul class="rooms9"><li><i style="background:#1aa0e0" aria-hidden="true"></i><b>Shop</b><span>Powerups for 15 coins, legendaries for 35, a whole apple for 6. Cursed goods at half price, the Apple Wash and a reroll machine. Prices are what they are.</span></li><li><i style="background:#4ac05a" aria-hidden="true"></i><b>BP Tankstation</b><span>Three pumps. Each one pushes one number up and another one down, for 20 to 40 coins. The till buys your powerups back, at fair prices.</span></li><li><i style="background:#e8e2d0" aria-hidden="true"></i><b>Kapsalon</b><span>One cut, 8 coins: a small boost for good. One in four is a kappersfail. Nobody will say anything.</span></li><li><i style="background:#b4f03c" aria-hidden="true"></i><b>Klokhuis Gym</b><span>Coach Larspel opens three of four stations: Loopband for walk speed, Bankdrukken for seed damage, Handboog for seed speed, a protein bar for health. The amounts change every visit. One free set per visit, kept for the run. The fourth machine is broken.</span></li><li><i style="background:#d8b46a" aria-hidden="true"></i><b>Rechtbank</b><span>Step onto a plate. Eiser: a good powerup, ten coins or a curse. Gedaagde: walk free, a settlement, or community service.</span></li><li><i style="background:#ff3ad8" aria-hidden="true"></i><b>Club</b><span>A neon door from the second floor on. DJ Manu-Beau plays inside. Beat him for a legendary.</span></li><li><i style="background:#ff3a2a" aria-hidden="true"></i><b>Hellclub</b><span>Hard and Nightmare only, from the third floor. Hidden behind a wall that thumps. The devil plays there.</span></li><li><i style="background:#b8913f" aria-hidden="true"></i><b>Treasure</b><span>A chest with two powerups. Take one, the other vanishes. From the second floor on, a chest can bite.</span></li><li><i style="background:#b0402e" aria-hidden="true"></i><b>Challenge</b><span>Touch the altar, survive three waves, win a powerup.</span></li><li><i style="background:#d04a5c" aria-hidden="true"></i><b>Offering</b><span>A free powerup that costs one apple of health for good, or a curse. Free is relative.</span></li><li><i style="background:#6f9a3a" aria-hidden="true"></i><b>Pantry</b><span>Slices and pots, nothing hungry. A break.</span></li><li><i style="background:#e8742a" aria-hidden="true"></i><b>Vote</b><span>Two motions on two lecterns. Walk onto one, the other fails.</span></li><li><i style="background:#f2c230" aria-hidden="true"></i><b>Slot machine</b><span>Three coins a pull. Snacks, coins, powerups or the jackpot. Sometimes snakes, sometimes rot. You knew that.</span></li><li><i style="background:#3aa89a" aria-hidden="true"></i><b>Spring</b><span>Step in once: two apples healed and every downgrade washed off.</span></li><li><i style="background:#9a5ad8" aria-hidden="true"></i><b>Cursed books</b><span>Each book holds a powerup and a curse. Take one, the others burn.</span></li><li><i style="background:#d06a3a" aria-hidden="true"></i><b>Mini boss</b><span>One big gold snake guarding a good powerup.</span></li><li><i style="background:#c87830" aria-hidden="true"></i><b>Survival</b><span>Touch the altar and stay alive while they keep coming.</span></li><li><i style="background:#c9a000" aria-hidden="true"></i><b>Vault</b><span>A barred door from the second floor on. Its key hides in something breakable on the same floor.</span></li><li><i style="background:#b05aff" aria-hidden="true"></i><b>Portal</b><span>A purple doorway on some floors. The Ender Wyrm lives behind it.</span></li><li><i style="background:#9aa83a" aria-hidden="true"></i><b>Secret room</b><span>One wall per floor is cracked. Shoot it open.</span></li></ul>
+        <h3>Traps and hazards</h3>
+        <ul class="rules">
+          <li>Spikes come up in turns and hurt snakes too. Conveyor belts carry everything along.</li>
+          <li>Cracked tiles cave in during a fight. Shed skins soak up seeds and venom. Roots hold you for a moment.</li>
+          <li>The freezer aisle and black ice are slippery. In a club the lasers sweep the floor: watch the dotted line, then get out of it.</li>
+          <li>Walk or shoot a shopping cart into a snake to ram it. Carts block venom too.</li>
+        </ul>
+      </div>
+      <div class="tabpanel9" role="tabpanel" id="tab-snakes" aria-labelledby="t-snakes" hidden>
+        <h3>What hunts you</h3>
+        <div class="cards snakes"><figure><canvas data-snake="grub" aria-hidden="true"></canvas><figcaption><b>Grub</b><span class="size">Small</span><span>Comes in groups. Lunges when you get close. Low effort, high numbers.</span></figcaption></figure><figure><canvas data-snake="hood" aria-hidden="true"></canvas><figcaption><b>Hood</b><span class="size">Small to medium</span><span>Keeps its distance. Flares a hood full of eyes, then spits. Rude.</span></figcaption></figure><figure><canvas data-snake="lamprey" aria-hidden="true"></canvas><figcaption><b>Lamprey</b><span class="size">Medium</span><span>Blind. Swims under the floor and comes up where you stand. You were standing there.</span></figcaption></figure><figure><canvas data-snake="long" aria-hidden="true"></canvas><figcaption><b>The Long One</b><span class="size">Big</span><span>Moves like the old game. Eats grubs to grow back. Classic.</span></figcaption></figure><figure><canvas data-snake="splitter" aria-hidden="true"></canvas><figcaption><b>Splitter</b><span class="size">Medium</span><span>Kill it and it comes apart into two fast little ones. Now you have two problems.</span></figcaption></figure><figure><canvas data-snake="sniper" aria-hidden="true"></canvas><figcaption><b>Sharpshooter</b><span class="size">Far away</span><span>Draws a red line on you. When the line goes solid, a bolt comes down it. Step sideways. That is the whole trick.</span></figcaption></figure><figure><canvas data-snake="tetra" aria-hidden="true"></canvas><figcaption><b>Block Worm</b><span class="size">Medium</span><span>Drops falling blocks. The outlines show where. Step out of them.</span></figcaption></figure><figure><canvas data-snake="rocket" aria-hidden="true"></canvas><figcaption><b>Boost Worm</b><span class="size">Medium</span><span>Kicks a ball at you. Shoot it back into the worm and it counts as a goal.</span></figcaption></figure><figure><canvas data-snake="fuel" aria-hidden="true"></canvas><figcaption><b>Fuel Worm</b><span class="size">Slow</span><span>Throws fuel cans and blows up when touched. Distance helps.</span></figcaption></figure><figure><canvas data-snake="rotter" aria-hidden="true"></canvas><figcaption><b>Rot Eater</b><span class="size">Grows</span><span>Lives in the secret room. Shoot the rotten apples before it eats them. It does eat them.</span></figcaption></figure><figure><canvas data-snake="bonus" aria-hidden="true"></canvas><figcaption><b>Bonus Worm</b><span class="size">Supermarket</span><span>Throws price tags. They come back like a boomerang. So does the bill.</span></figcaption></figure><figure><canvas data-snake="discount" aria-hidden="true"></canvas><figcaption><b>Discount Worm</b><span class="size">Supermarket</span><span>Rears up and charges. Shopping carts go flying. Aisle five.</span></figcaption></figure><figure><canvas data-snake="kamerlid" aria-hidden="true"></canvas><figcaption><b>Kamerlid</b><span class="size">Second Chamber</span><span>Votes with every other member in the room. Papers up means a volley. Democracy.</span></figcaption></figure><figure><canvas data-snake="lobby" aria-hidden="true"></canvas><figcaption><b>Lobbyist</b><span class="size">Second Chamber</span><span>Hides behind the others, shields and heals them. Kill it first. It is always the one in the back.</span></figcaption></figure><figure><canvas data-snake="stok" aria-hidden="true"></canvas><figcaption><b>Meerkat Worm</b><span class="size">New, fast</span><span>Stands up to look. If it sees you, every snake hurries. Then it digs and comes up next to you. Lookout duty.</span></figcaption></figure><figure><canvas data-snake="stroopw" aria-hidden="true"></canvas><figcaption><b>Stroopwafel Worm</b><span class="size">New, tough</span><span>Rolls at you and leaves syrup that slows you down. Do not stand in it. Sweet, sticky, annoying.</span></figcaption></figure><figure><canvas data-snake="bril" aria-hidden="true"></canvas><figcaption><b>Brillenworm</b><span class="size">New</span><span>Does the maths and shoots where you are going. Break its glasses and it has no idea.</span></figcaption></figure><figure><canvas data-snake="handel" aria-hidden="true"></canvas><figcaption><b>Haggler</b><span class="size">New, a trader</span><span>Steals three coins and runs. Kill it and you get them back, with interest. Fair deal.</span></figcaption></figure><figure><canvas data-snake="pantser" aria-hidden="true"></canvas><figcaption><b>Pantserworm</b><span class="size">New, armored</span><span>Curls up and pinballs around the room. Almost nothing hurts it until it unrolls. Wait for it.</span></figcaption></figure><figure><canvas data-snake="driekop" aria-hidden="true"></canvas><figcaption><b>Driekop</b><span class="size">New, strong</span><span>Three heads, three streams of spit. Shoot the side heads off. Less is more.</span></figcaption></figure><figure><canvas data-snake="sloper" aria-hidden="true"></canvas><figcaption><b>De Sloper</b><span class="size">New, huge</span><span>Charges through rocks and walls and slams the floor. Do not stand next to it. A wall is not cover.</span></figcaption></figure><figure><canvas data-snake="kameleon" aria-hidden="true"></canvas><figcaption><b>Kameleon</b><span class="size">New</span><span>Nearly invisible until it strikes with its tongue. Watch for its eyes. They give it away.</span></figcaption></figure><figure><canvas data-snake="raver" aria-hidden="true"></canvas><figcaption><b>Raver</b><span class="size">New, tiny</span><span>Dances to the beat. Comes in crowds when there is a DJ. Standard weekend.</span></figcaption></figure></div>
+        <h3 style="margin-top:22px">Bosses</h3>
+        <div class="cards snakes"><figure><canvas data-snake="mother" aria-hidden="true"></canvas><figcaption><b>The Grub Mother</b><span class="size">Cellar boss</span><span>Births grubs and charges. Family business.</span></figcaption></figure><figure><canvas data-snake="queen" aria-hidden="true"></canvas><figcaption><b>The Lamprey Queen</b><span class="size">Halls boss</span><span>Dives under the floor and comes up under you. Watch the floor.</span></figcaption></figure><figure><canvas data-snake="pwblue,pwyellow" aria-hidden="true"></canvas><figcaption><b>The Price War</b><span class="size">Supermarket boss</span><span>Two stores at once. Kill one and the other gets angry. Competition.</span></figcaption></figure><figure><canvas data-snake="coalition" aria-hidden="true"></canvas><figcaption><b>The Coalition</b><span class="size">Second Chamber boss</span><span>Four parties in one suit. Falls apart into four at half health. Typical.</span></figcaption></figure><figure><canvas data-snake="ouro" aria-hidden="true"></canvas><figcaption><b>Ouroboros</b><span class="size">Garden boss</span><span>Circles you, then lets go of its own tail. Hunger.</span></figcaption></figure><figure><canvas data-snake="ender" aria-hidden="true"></canvas><figcaption><b>The Ender Wyrm</b><span class="size">Portal boss</span><span>Teleports, builds walls and brings creepers. You know the game.</span></figcaption></figure><figure><canvas data-snake="manu" aria-hidden="true"></canvas><figcaption><b>DJ Manu-Beau</b><span class="size">Club boss</span><span>A big guy who turned into a worm. Every attack lands on the beat of his remix. Back at the decks during the break: shoot him there. Nobody asked for the remix.</span></figcaption></figure><figure><canvas data-snake="manudevil" aria-hidden="true"></canvas><figcaption><b>Devil DJ Manu-Beau</b><span class="size">Hellclub, Hard and Nightmare</span><span>The afterparty, in hell. Faster song, lasers, hellfire, more of everything. Still on the beat.</span></figcaption></figure><figure><canvas data-snake="bus" aria-hidden="true"></canvas><figcaption><b>Lijn 34</b><span class="size">Story boss</span><span>A bus. A worm. Watch the lane warning, then get out of the lane. Late, as usual.</span></figcaption></figure><figure><canvas data-snake="tellie" aria-hidden="true"></canvas><figcaption><b>De Tellie</b><span class="size">Story boss</span><span>A phone at 8 percent. Shoot it while it charges at a socket to pull the plug. Always needs a charger.</span></figcaption></figure><figure><canvas data-snake="rechter" aria-hidden="true"></canvas><figcaption><b>De Kantonrechter</b><span class="size">Story boss</span><span>Slams his gavel where you stand and reads out verdicts. Bring a lawyer.</span></figcaption></figure></div>
+        <ul class="rules" style="margin-top:16px">
+          <li>Harder difficulties give some snakes a trait, and none of them are good. Armored ones shrug off seeds to the face, so shoot their sides. Swift ones are a third faster. Spiteful ones burst into venom. Some regrow when you leave them alone.</li>
+        </ul>
+      </div>
+      <div class="tabpanel9" role="tabpanel" id="tab-items" aria-labelledby="t-items" hidden>
+        <div class="filt9" id="howFilter" role="group" aria-label="Show">
+          <button type="button" data-f="all" aria-pressed="true">All</button>
+          <button type="button" data-f="power" aria-pressed="false">Powerups</button>
+          <button type="button" data-f="legend" aria-pressed="false">Legendary</button>
+          <button type="button" data-f="locked" aria-pressed="false">Still locked</button>
+          <button type="button" data-f="curse" aria-pressed="false">Curses</button>
+          <button type="button" data-f="down" aria-pressed="false">Downgrades</button>
+        </div>
+        <input id="howSearch" class="search9" type="search" placeholder="Search powerups" aria-label="Search powerups" autocomplete="off">
+        <div class="isec9"><h3>Powerups</h3><div class="cards items" id="itemCards"></div></div>
+        <div class="isec9"><h3>Curses</h3><div class="cards items" id="curseCards"></div></div>
+        <div class="isec9"><h3>Downgrades</h3><div class="cards items" id="downCards"></div></div>
+      </div>
+      <div class="tabpanel9" role="tabpanel" id="tab-chars" aria-labelledby="t-chars" hidden>
+        <p class="intro9">Pick one on the Characters screen. Locked ones show what unlocks them.</p>
+        <div class="cards chars" id="howChars"></div>
+      </div>
+      <div class="tabpanel9" role="tabpanel" id="tab-music" aria-labelledby="t-music" hidden><div id="jukebox"></div></div>
+      <div class="tabpanel9" role="tabpanel" id="tab-modes" aria-labelledby="t-modes" hidden>
+        <ul class="rooms9">
+          <li><i style="background:#e83a50" aria-hidden="true"></i><b>Arcade</b><span>Five floors: the cellar, the halls, a supermarket that never closes, the Second Chamber and the garden at the bottom.</span></li>
+          <li><i style="background:#e8742a" aria-hidden="true"></i><b>Endless</b><span>The floors loop forever. Every lap down is tougher.</span></li>
+          <li><i style="background:#b05aff" aria-hidden="true"></i><b>Boss Rush</b><span>Every boss in a row, DJ Manu-Beau included. Vote for a powerup before each fight.</span></li>
+          <li><i style="background:#ff5a8a" aria-hidden="true"></i><b>Extreme Chaos</b><span>Three layers of 10 to 20 rooms. Any room, any snake and any boss can turn up anywhere, even in rooms where they never live. Bosses wait halfway through a layer too.</span></li>
+          <li><i style="background:#c9a24a" aria-hidden="true"></i><b>Custom Run</b><span>Build your own run: stack floors you have visited, swap in any boss you have met, make a stage boss only, and set rules like apples, damage, fire rate and snake speed. Add up to three powerups you have found as a start gift; picks that clash are blocked. Wins here do not count as escapes.</span></li>
+          <li><i style="background:#3aa89a" aria-hidden="true"></i><b>Daily Run</b><span>The same dungeon for everyone today, with one twist. Always on Normal.</span></li>
+          <li><i style="background:#ffd27a" aria-hidden="true"></i><b>Stories</b><span>STOP DE LOCKDOWN, and after you finish it, ONDER CURATELE. Pick any story you have opened from the Story screen.</span></li>
+        </ul>
+        <h3>Difficulty</h3>
+        <ul class="rules">
+          <li><b style="color:#ece2d4">Easy</b>: an extra apple, softer snakes, fewer downgrades.</li>
+          <li><b style="color:#ece2d4">Normal</b>: the way it was meant to bite.</li>
+          <li><b style="color:#ece2d4">Hard</b>: tougher, faster snakes, two of them with a nasty trait. The Hellclub can show up.</li>
+          <li><b style="color:#ece2d4">Nightmare</b>: one more snake in every fight, three traits, and every bite takes a whole apple. Unlock it by escaping on Hard.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="chars" class="panel sheet" aria-label="Characters" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <div class="stack" style="align-items:flex-start;gap:8px"><h2>Pick your apple</h2><p class="unl" id="charCount"></p></div>
+        <button id="btnCharsBack" class="btn" type="button">Back</button>
+      </div>
+      <div id="charList" class="charlist" role="radiogroup" aria-label="Characters"></div>
+    </div>
+  </section>
+
+  <section id="achs" class="panel sheet" aria-label="Achievements" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <div class="stack" style="align-items:flex-start;gap:8px"><h2>Achievements</h2><p class="unl" id="achCount"></p></div>
+        <button id="btnAchBack" class="btn" type="button">Back</button>
+      </div>
+      <div class="abar10" aria-hidden="true"><i id="achBar10"></i></div>
+      <div class="asum10" id="achSum10"></div>
+      <div><h3>Achievements</h3><div class="afilt10" id="achFilt10" role="group" aria-label="Show"></div></div>
+      <div class="alist" id="alist"></div>
+      <div class="agrid10">
+        <div><h3>Bosses beaten</h3><div class="btab10" id="bossTab10"></div></div>
+        <div><h3>Most hunted</h3><div class="btab10" id="snakeTop10"></div></div>
+      </div>
+      <div><h3>Your numbers</h3><div id="lstats"></div></div>
+      <div><h3>Escaped as</h3><div class="cwin10" id="charWin10"></div></div>
+      <div><h3 id="collHead">Powerups found</h3><div class="coll" id="coll"></div></div>
+      <p class="savehint">Your save file and save code live in Settings.</p>
+    </div>
+  </section>
+
+  <section id="pause" class="panel scrim" aria-label="Paused" hidden>
+    <div class="pinfo">
+      <p class="kick" id="pauseWhere">Level 1</p>
+      <h2>Paused</h2>
+      <dl class="pstats" id="pauseStats"></dl>
+      <p class="ptunes" id="pauseTunes" hidden></p>
+      <div class="pitems" id="pauseItems"></div>
+      <p class="pdetail" id="pauseDetail" aria-live="polite"></p>
+      <p class="nextun" id="pauseNext"></p>
+    </div>
+    <div class="stack">
+      <button id="btnResume" class="btn primary" type="button">Resume</button>
+      <div class="row">
+        <button id="btnSet2" class="btn" type="button">Settings</button>
+        <button id="btnHow2" class="btn" type="button">How to play</button>
+      </div>
+      <div class="row">
+        <button id="btnRestart" class="btn" type="button">Restart</button>
+        <button id="btnQuit" class="btn" type="button">Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="stories" class="panel sheet" aria-label="Stories" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <div class="stack" style="align-items:flex-start;gap:8px"><h2>Stories</h2><p class="unl" id="storyCount"></p></div>
+        <button id="btnStoriesBack" class="btn" type="button">Back</button>
+      </div>
+      <p class="savehint">Finish a story to open the next one. You can always play one you opened again.</p>
+      <div id="storyList" class="storylist"></div>
+    </div>
+  </section>
+
+  <section id="sell" class="panel scrim sellp" aria-label="Sell powerups" hidden>
+    <div class="sell-inner">
+      <div class="sell-head">
+        <div><p class="kick">BP Tankstation</p><h2>De kassa</h2></div>
+        <p class="sellcoins" id="sellCoins"></p>
+      </div>
+      <p class="selltxt">Sell a powerup for coins. It leaves your apple for good, numbers and all. Tap twice to sell.</p>
+      <div id="sellList" class="selllist"></div>
+      <button id="btnSellDone" class="btn primary" type="button">Done</button>
+    </div>
+  </section>
+
+  <section id="over" class="panel scrim" aria-label="You were eaten" hidden>
+    <canvas id="coreArt"></canvas>
+    <div class="stack">
+      <h2>You were eaten</h2>
+      <p class="lead" id="overWhere"></p>
+    </div>
+    <dl class="stats" id="overStats"></dl>
+    <div class="row">
+      <button id="btnRetry" class="btn primary" type="button">Try again</button>
+      <button id="btnOverMenu" class="btn" type="button">Menu</button>
+    </div>
+  </section>
+
+  <section id="win" class="panel scrim" aria-label="You escaped" hidden>
+    <canvas id="winArt"></canvas>
+    <div class="stack">
+      <h2 id="winTitle">You escaped</h2>
+      <p class="lead" id="winLead">The garden is quiet. For now.</p>
+    </div>
+    <dl class="stats" id="winStats"></dl>
+    <div class="row">
+      <button id="btnAgain" class="btn primary" type="button">Play again</button>
+      <button id="btnWinMenu" class="btn" type="button">Menu</button>
+    </div>
+  </section>
+
+  <section id="story" class="story" aria-label="Story" hidden>
+    <button id="btnSkip" class="btn skip" type="button">Skip</button>
+    <div id="storyCard" class="scard" hidden></div>
+    <div id="storyBox" class="sbox">
+      <span id="storyWho" class="who"></span>
+      <p id="storyText" class="stext"></p>
+      <span class="more">Tap to continue</span>
+    </div>
+  </section>
+  <div id="chat" class="chat" aria-live="polite"><canvas id="chatFace" width="64" height="64"></canvas><div class="cb"><b id="chatName">JENSBABBA</b><span id="chatText"></span></div></div>
+  <div id="card" class="card" aria-live="polite"><span class="k"></span><span class="t"></span><span class="s"></span></div>
+  <div id="toast" class="toast" aria-live="polite"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#2a1a0c" stroke="#e3a54a" stroke-width="2"/><path d="M13 11h14v5a7 7 0 0 1-14 0z" fill="#e3a54a"/><path d="M13 13h-4a4 4 0 0 0 4 5M27 13h4a4 4 0 0 1-4 5" fill="none" stroke="#e3a54a" stroke-width="2"/><rect x="18" y="23" width="4" height="5" fill="#e3a54a"/><rect x="14" y="28" width="12" height="3" rx="1" fill="#e3a54a"/></svg><div><b>Achievement</b><span id="toastName"></span></div></div>
+  <div id="banner" class="banner" aria-live="polite"><span class="t"></span><span class="s"></span></div>
+  <button id="btnPause" class="iconbtn" type="button" aria-label="Pause" hidden>
+    <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor"/><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor"/></svg>
+  </button>
+</div>
+
+<script src="bitten.js"></script>
+<script>
+/* T11: offline cache, only when served over http(s) */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
