@@ -1,6 +1,7 @@
 /* Bitten service worker (T11). Cache first for every game file. The cache name carries the version:
-   a new version gets a new cache and the old ones are deleted on activate. */
-const CACHE = 'bitten-v14.0-net1';
+   a new version gets a new cache and the old ones are deleted on activate.
+   Install fetches with cache: 'reload', so a new cache never stores files the browser kept from the old version. */
+const CACHE = 'bitten-v14.0-net2';
 const CORE = [
   './', 'index.html', 'bitten.js', 'net.js', 'vendor/peerjs.min.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png',
@@ -12,7 +13,7 @@ const CORE = [
 const LAZY = /\/(assets\/wals\.mp3|fonts\/[\w-]+\.woff2)$/;
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(CORE.map((u) => c.add(u).catch(() => null)))).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(CORE.map((u) => c.add(new Request(u, { cache: 'reload' })).catch(() => null)))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('bitten-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
