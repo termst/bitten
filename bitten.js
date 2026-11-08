@@ -40810,8 +40810,20 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   safe(() => {
     const nav = document.querySelector('#menu .menu-list'), set = $('btnSet');
     if (!nav) return;
+    /* the menu tile, same build as the Map Maker tile: title, subtitle, one dot per apple colour */
+    const tc = document.createElement('style');
+    tc.textContent = `#menu.m19 .mi.co14{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:10px;row-gap:3px;align-items:center;min-height:58px;padding:9px 12px;border-radius:3px;
+  background:linear-gradient(100deg,rgba(44,14,18,.92),rgba(14,9,8,.94) 60%);border:1px solid rgba(215,38,61,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+#menu.m19 .mi.co14 .ml{grid-column:1;grid-row:1;font:800 clamp(21px,5.8vw,25px)/.95 var(--display);color:var(--ink);transform:none}
+#menu.m19 .mi.co14 small{grid-column:1;grid-row:2;margin:0;font:600 10px/1.15 var(--ui);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#menu.m19 .mi.co14 .cot{grid-column:2;grid-row:1/3;display:grid;grid-template-columns:repeat(2,10px);gap:4px}
+#menu.m19 .mi.co14 .cot i{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c);opacity:.85}
+#menu.m19 .mi.co14:hover,#menu.m19 .mi.co14:focus-visible{border-color:var(--apple);transform:translateY(-1px)}
+@media (min-aspect-ratio:20/21) and (max-height:560px){#menu.m19 .mi.co14{min-height:34px;padding:4px 10px}#menu.m19 .mi.co14 small,#menu.m19 .mi.co14 .cot{display:none}#menu.m19 .mi.co14 .ml{font-size:17px}}
+@media (max-height:700px) and (max-aspect-ratio:20/21){#menu.m19 .mi.co14{min-height:46px}}`;
+    document.head.appendChild(tc);
     const b = document.createElement('button'); b.className = 'mi co14'; b.id = 'btnCoop14'; b.type = 'button';
-    b.innerHTML = `<i class="eye" aria-hidden="true"></i><span class="ml">${T('Coop')}</span><small id="coopNow14">${T('Play with friends: on this screen or online.')}</small>`;
+    b.innerHTML = `<i class="eye" aria-hidden="true"></i><span class="ml">${T('Coop')}</span><small id="coopNow14">${T('Play with friends: on this screen or online.')}</small><span class="cot" aria-hidden="true">${COL.map((c) => `<i style="--c:${c}"></i>`).join('')}</span>`;
     if (set && set.parentNode === nav) nav.insertBefore(b, set); else nav.appendChild(b);
     b.addEventListener('click', (e) => { e.preventDefault(); safe(() => Sfx.init()); openCoop(); });
   });

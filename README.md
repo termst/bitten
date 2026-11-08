@@ -13,7 +13,7 @@ assets/wals.mp3       the De Wals track, fetched on first use
 fonts/                Barlow Condensed and Grenze Gotisch, woff2, SIL OFL 1.1
 icons/                app icons 192 and 512
 manifest.webmanifest  install as an app
-sw.js                 service worker, cache first, cache name bitten-v14.0
+sw.js                 service worker, cache first, cache name bitten-v14.0-net2
 src/                  the game source, one file per feature, in load order
 build.mjs             concatenates src/ into bitten.js
 tools/                one-time tools used to make this layout from v13.7
