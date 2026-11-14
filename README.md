@@ -13,7 +13,7 @@ assets/wals.mp3       the De Wals track, fetched on first use
 fonts/                Barlow Condensed and Grenze Gotisch, woff2, SIL OFL 1.1
 icons/                app icons 192 and 512
 manifest.webmanifest  install as an app
-sw.js                 service worker, cache first, cache name bitten-v14.0-net2
+sw.js                 service worker: code network first, fonts and audio cache first, build id from build.mjs
 src/                  the game source, one file per feature, in load order
 build.mjs             concatenates src/ into bitten.js
 tools/                one-time tools used to make this layout from v13.7
@@ -64,4 +64,6 @@ up to three others join with the code. The host picks the mode (any mode except 
 ## Deploy
 
 Copy everything except `ref/`, `test/`, `tools/` and `src/` (optional) into the Pages repo under `/bitten/`.
-After changing game files, bump `CACHE` in `sw.js` so players get the new version.
+After changing game files run `node build.mjs --check` and commit the result (bitten.js and sw.js).
+Players get the new version on their next load; the service worker asks the server first and only
+falls back to its cache offline. GitHub Pages must deploy from `main` (Settings, Pages, Branch).

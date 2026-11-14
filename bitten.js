@@ -27040,7 +27040,7 @@ html body #achs .filt9 button[aria-pressed="true"] em { color: var(--toffee); bo
     /* ---------- styles and elements */
     const css = document.createElement('style');
     css.textContent = `
-.tab23{position:fixed;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:30;font:600 11px/1 inherit;letter-spacing:.08em;text-transform:uppercase;color:rgba(236,226,212,.55);background:rgba(10,8,8,.7);border:1px solid rgba(236,226,212,.22);border-radius:0;padding:7px 10px;cursor:pointer}
+.tab23{position:fixed;right:10px;bottom:calc(5px + env(safe-area-inset-bottom,0px));z-index:30;font:600 11px/1 inherit;letter-spacing:.08em;text-transform:uppercase;color:rgba(236,226,212,.55);background:rgba(10,8,8,.7);border:1px solid rgba(236,226,212,.22);border-radius:0;padding:4px 10px;cursor:pointer}
 .tab23:hover{color:#ece2d4;border-color:rgba(236,226,212,.5)}
 .tab23.adm{right:62px;color:#ffd27a;border-color:rgba(255,210,122,.45)}
 .ov23{position:fixed;inset:0;z-index:90;background:rgba(6,4,4,.82);display:flex;align-items:center;justify-content:center;padding:12px}

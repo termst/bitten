@@ -24,6 +24,7 @@ Work follows the phase order of the v14 prompt. Item codes are used in commits a
 ## Tests (all offline, Playwright from `NODE_PATH=$(npm root -g)`)
 
 * `node test/phase0.js` web layout checks (29 checks).
+* `node test/update.js` release path: old cached release to new build in one visit, later push live on next load, offline.
 * `node test/bot.js --runs 20` seeded bot runs, v13.7 vs index.html; `node test/stats.js test/out/bot.json` Welch t-test.
   `--a index.html --b index.html` checks determinism; `--render 1` keeps render on; `--hz 120`.
 * `node test/hz.js` 60 vs 120 Hz typing and game speed.

@@ -990,7 +990,7 @@ window.addEventListener('keydown', function (e) { if (window.__netKey14) window.
 <script>
 /* T11: offline cache, only when served over http(s) */
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {}); });
 }
 </script>
 </body>
