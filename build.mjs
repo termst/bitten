@@ -1,9 +1,10 @@
 // Bitten build (T6): concatenates src/*.js in name order into bitten.js. No npm dependencies.
 // Usage: node build.mjs          build bitten.js
-//        node build.mjs --check  build, then run node --check on bitten.js and net.js
+//        node build.mjs --check  build, then run node --check on bitten.js, net.js and sw.js
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 const root = path.dirname(new URL(import.meta.url).pathname);
 const srcDir = path.join(root, 'src');
@@ -17,8 +18,18 @@ for (const f of files) {
 }
 fs.writeFileSync(path.join(root, 'bitten.js'), out);
 console.log(`bitten.js: ${files.length} files, ${(out.length / 1024).toFixed(0)} KB`);
+// stamp sw.js with a hash of the game files: every build that changes the game installs a fresh offline copy
+{
+  const h = createHash('sha256');
+  for (const f of ['index.html', 'bitten.js', 'net.js', 'manifest.webmanifest', 'vendor/peerjs.min.js']) h.update(fs.readFileSync(path.join(root, f)));
+  const id = h.digest('hex').slice(0, 10), swp = path.join(root, 'sw.js'), sw = fs.readFileSync(swp, 'utf8');
+  const next = sw.replace(/const BUILD = '[^']*';/, `const BUILD = '${id}';`);
+  if (next === sw && !sw.includes(`const BUILD = '${id}';`)) throw new Error('sw.js: BUILD line not found');
+  if (next !== sw) fs.writeFileSync(swp, next);
+  console.log(`sw.js: build ${id}`);
+}
 if (process.argv.includes('--check')) {
-  for (const f of ['bitten.js', 'net.js']) {
+  for (const f of ['bitten.js', 'net.js', 'sw.js']) {
     const p = path.join(root, f);
     if (!fs.existsSync(p)) continue;
     execFileSync(process.execPath, ['--check', p], { stdio: 'inherit' });
