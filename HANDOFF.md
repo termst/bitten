@@ -56,6 +56,13 @@ Determinism rules learned the hard way, keep them when adding code:
 * shared step-off flags (till, pumps, pedestals, Jaude plates, gym): `armed14`/`setArmed14`, one per apple.
 * run start draws from a seeded Math.random on every peer; mode, save and OPTS7 come from the host.
 Tests: `node test/net.js [secs] [guests] [--bot]`.
+v14.0.1 fixes (online did not work outside the local test transport):
+* PeerJS json mode refused messages over 16 KB and closed the link: the start message (host save) and repairs.
+  Now raw mode plus our own framing in `makeLink` (5000 character pieces). PROTO bumped to -2.
+* Relay fallback (MQTT over wss, `RelayNet`, `AutoNet`), resend of missed bundles (`rs`, `NET.ring`), guest retries
+  for 30 s while the host is away (sharing the link from another app).
+* Phone: Coop opens on Online on touch devices without a gamepad, one join tile, padding under the fixed Start bar.
+* `node test/netreal.js [peer|relay|fallback]`: real transports, local brokers, 60 KB save, forced repairs.
 
 ## Not done yet (next chat)
 

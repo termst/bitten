@@ -40204,7 +40204,8 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   const T = (s) => (typeof sayF9 === 'function' ? sayF9(s) : s);
   const LINES = ['Coop', 'Couch', 'Online', 'Keyboard and mouse', 'Gamepad', 'Press A on a gamepad to join', 'Keyboard and mouse is one apple. Every gamepad is one more. Up to four, one screen, one room.',
     'Start', 'Back', 'Remove', 'Character', 'Look', 'Name', 'Nobody pressed A yet. You can still play alone.', 'KLOKHUIS', 'BACK IN', 'One per apple', 'You already took one. Leave it for the others.',
-    'The door waits for everyone', 'Everyone in?', 'Play with friends: on this screen or online.', 'Host paused'];
+    'The door waits for everyone', 'Everyone in?', 'Play with friends: on this screen or online.', 'Host paused', 'Touch',
+    'Touch is one apple. Every gamepad is one more. Friends on their own phone or computer: use Online.'];
   safe(() => { for (const s of LINES) if (!TEXT_LIT9.messages.includes(s)) TEXT_LIT9.messages.push(s); });
 
   /* ================================================================ input sources (M4) */
@@ -40716,12 +40717,18 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
 #coop14 .co14-src button{all:unset;cursor:pointer;color:var(--faint);font:700 11px/1 var(--ui);letter-spacing:.12em;padding:3px 6px;border:1px solid var(--line);border-radius:2px}
 #coop14 .co14-pane[hidden]{display:none!important}
 #coop14 .co14-note{font:500 14px/1.35 var(--ui);color:var(--muted);max-width:640px;margin:0 0 10px}
+#coop14 .sheet-inner{padding-bottom:96px}
+#coop14 .co14-slot.empty{min-height:58px}
+@media (max-height:520px){#coop14 .sheet-inner{gap:10px;padding-bottom:72px}#coop14 .sheet-head h2{font-size:30px}#coop14 .co14-tabs{margin-bottom:6px}#coop14 .co14-tabs button{padding:8px 4px 7px}
+  #coop14 .co14-note{font-size:13px;margin-bottom:6px}#coop14 .playfoot{padding-top:7px;padding-bottom:calc(7px + env(safe-area-inset-bottom,0px))}}
 `;
   const $ = (id) => document.getElementById(id);
   const charsOpen = () => CHAR_IDS.filter((id) => id === 'apple' || Save.data.unlocks[id]);
   const looksOf = (id) => (B.SKINS24 && B.SKINS24.SKINS[id] ? B.SKINS24.SKINS[id].length : 0);
   const lookName = (id, n) => (n ? B.SKINS24.SKINS[id][n - 1].name : 'Original');
-  const UIc = { sec: null, tab: 'couch' };
+  const UIc = { sec: null, tab: null };
+  /* a phone or tablet: no keyboard, no mouse. Couch play needs gamepads there, Online is what people want */
+  const touchOnly = () => safe(() => matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches, false);
   function slotsDefault() {
     const s0 = Coop.slots[0] || {};
     Coop.slots = [{ src: new KeyboardMouseSource(), kind: 'kbm', char: s0.char || Save.data.char || 'apple', look: s0.look != null ? s0.look : (B.SKINS24 ? B.SKINS24.skinIdx(Save.data.char || 'apple') : 0), name: (Save.data.settings.coopNames14 || [])[0] || 'P1' }]
@@ -40738,13 +40745,13 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     box.innerHTML = '';
     for (let i = 0; i < 4; i++) {
       const s = Coop.slots[i], d = document.createElement('div');
-      if (!s) { d.className = 'co14-slot empty'; d.textContent = T('Press A on a gamepad to join'); box.appendChild(d); continue; }
+      if (!s) { if (i > Coop.slots.length) break; d.className = 'co14-slot empty'; d.textContent = T('Press A on a gamepad to join'); box.appendChild(d); continue; }
       d.className = 'co14-slot'; d.style.setProperty('--pc', COL[i]);
       d.innerHTML = `<canvas width="128" height="128" aria-hidden="true"></canvas>
         <input type="text" maxlength="12" aria-label="${T('Name')}" value="${String(s.name).replace(/[<>&"]/g, '')}">
         <div class="co14-row"><button type="button" data-d="-1" data-k="char" aria-label="${T('Character')}">&lsaquo;</button><span>${CHARS[s.char] ? CHARS[s.char].name : s.char}</span><button type="button" data-d="1" data-k="char" aria-label="${T('Character')}">&rsaquo;</button></div>
         <div class="co14-row"><button type="button" data-d="-1" data-k="look" aria-label="${T('Look')}">&lsaquo;</button><span>${lookName(s.char, s.look)}</span><button type="button" data-d="1" data-k="look" aria-label="${T('Look')}">&rsaquo;</button></div>
-        <div class="co14-src"><span>${s.kind === 'kbm' ? T('Keyboard and mouse') : T('Gamepad') + ' ' + (s.index + 1)}</span>${i > 0 ? `<button type="button" data-rm="1">${T('Remove')}</button>` : ''}</div>`;
+        <div class="co14-src"><span>${s.kind === 'kbm' ? T(touchOnly() ? 'Touch' : 'Keyboard and mouse') : T('Gamepad') + ' ' + (s.index + 1)}</span>${i > 0 ? `<button type="button" data-rm="1">${T('Remove')}</button>` : ''}</div>`;
       d.querySelector('input').addEventListener('change', (e) => { s.name = e.target.value.trim().slice(0, 12) || NAMES[i]; const L = Save.data.settings.coopNames14 = (Save.data.settings.coopNames14 || []).slice(); L[i] = s.name; Save.store(); });
       for (const b of d.querySelectorAll('[data-k]')) b.addEventListener('click', (e) => {
         e.preventDefault(); const dd = +b.dataset.d;
@@ -40761,6 +40768,7 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   function openCoop() {
     if (!UIc.sec) buildCoop();
     slotsDefault();
+    if (!UIc.tab) UIc.tab = touchOnly() && !connectedPads().length ? 'online' : 'couch';
     UI.hidePanels(); UIc.sec.hidden = false; UIc.sec.classList.remove('enter'); void UIc.sec.offsetWidth; UIc.sec.classList.add('enter');
     setTab(UIc.tab); paintCoop();
     setTimeout(() => { const b = UIc.sec.querySelector('[data-a="go"]'); if (b) b.focus({ preventScroll: true }); }, 60);
@@ -40779,7 +40787,7 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
       <div class="sheet-head"><h2>${T('Coop')}</h2><button class="btn" type="button" data-a="back">${T('Back')}</button></div>
       <div class="co14-tabs" role="tablist"><button type="button" role="tab" data-tab="couch">${T('Couch')}</button><button type="button" role="tab" data-tab="online">${T('Online')}</button></div>
       <div class="co14-pane" data-pane="couch">
-        <p class="co14-note">${T('Keyboard and mouse is one apple. Every gamepad is one more. Up to four, one screen, one room.')}</p>
+        <p class="co14-note">${T(touchOnly() ? 'Touch is one apple. Every gamepad is one more. Friends on their own phone or computer: use Online.' : 'Keyboard and mouse is one apple. Every gamepad is one more. Up to four, one screen, one room.')}</p>
         <div class="co14-slots"></div>
         <div class="playfoot"><span class="co14-mode ddesc"></span><button class="btn primary" type="button" data-a="go">${T('Start')}</button></div>
       </div>
