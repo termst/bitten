@@ -54,10 +54,18 @@ up to three others join with the code. The host picks the mode (any mode except 
   save is untouched and comes back after the run. Progress from an online run is not stored for guests.
 * Every 60 ticks the peers compare a state hash. A guest that drifts gets the host's state at a later
   checkpoint (rng, apples, snakes, seeds, pickups). The Debug counter (Settings) shows repairs as errors.
-* Transport: PeerJS 1.5.5 (`vendor/peerjs.min.js`, MIT, loaded only when you host or join) over WebRTC,
-  with the public PeerJS broker (0.peerjs.com) for the handshake and Google STUN. There is no TURN server:
-  two players both behind strict (symmetric) NAT may not connect. Set `window.BITTEN_NET_CONFIG` (PeerJS
-  options, e.g. your own broker or TURN in `config.iceServers`) before net.js loads to change that.
+* Transport, tried in this order:
+  1. Direct: PeerJS 1.5.5 (`vendor/peerjs.min.js`, MIT, loaded only when you host or join) over a WebRTC data
+     channel, public PeerJS broker (0.peerjs.com) for the handshake, Google STUN. Lowest delay.
+  2. Relay: MQTT over a secure websocket to a public broker (broker.hivemq.com, then broker.emqx.io). Used when the
+     direct link does not come up within 9 s (phones on 4G/5G behind carrier NAT, strict Wi-Fi, PeerJS broker down).
+     The host listens on both, a guest falls back by itself. The lobby shows `relay` next to such an apple.
+  `?net=relay` forces the relay. `window.BITTEN_NET_CONFIG` (set before net.js loads) takes PeerJS options
+  (own broker, TURN in `config.iceServers`) and `relays: ['wss://...']` for other MQTT brokers.
+* Messages over 5000 characters travel in pieces (net.js `makeLink`). Up to v14.0 they did not: PeerJS refused
+  any message over 16 KB and closed the connection, so a run never started for a played save (the start message
+  carries the host's save) and the first repair (it carries the room state) dropped the guest.
+* A guest that misses bundles asks the host again (`rs`); the host keeps the last 20 s.
 * Not supported: joining a run that already started (wait for the next one), Story and Daily online.
 * `?net=local` swaps the network for a BroadcastChannel: two tabs of one browser, no internet (tests).
 
