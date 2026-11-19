@@ -64,6 +64,18 @@ v14.0.1 fixes (online did not work outside the local test transport):
 * Phone: Coop opens on Online on touch devices without a gamepad, one join tile, padding under the fixed Start bar.
 * `node test/netreal.js [peer|relay|fallback]`: real transports, local brokers, 60 KB save, forced repairs.
 
+## More icon free content (src/78-v14-more-text.js)
+
+31 BP pumps, 22 kapsalon cuts, 13 eiser and 14 gedaagde rulings. These categories show text only, so they need no icon painters.
+* Pumps and cuts are written as percentages in `PUMP_SPECS` and `CUT_SPECS`; `build()` makes the mod numbers, the description and
+  the Clear line from them. Add a line to a spec table and it works everywhere (texts file, Clear mode, guide counts).
+* Pump extras beyond the old ones: `heal14` (half apples, after the fill) and `rot14` (a downgrade). Both run in an `updateTank9` wrapper.
+* `stock9` wrapper: the original three pump draw runs on the old pool (same Math.random calls, so seeded bot runs stay identical:
+  apple 38.7 / 12.3 / 192, lucif 60 / 19.3 / 351, lucky 58 / 17 / 288), then the three pumps are dealt again from all pumps with a
+  generator seeded from run seed and floor. Do not shuffle the full `PUMPS` list with Math.random: it shifts every seeded run.
+* Fight rulings set `room.taak22` and pay out in a `clearRoom9` wrapper. Banner texts live in `TX` and are added to TEXT_LIT9.messages.
+* Test hook: `window.__bitten.MORE14`.
+
 ## Not done yet (next chat)
 
 * F9 recap UI on game over and win screens (data exists; icon painters: drawItemIcon* in 06/07/08/20/43).
