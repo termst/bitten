@@ -3,9 +3,10 @@
 // give the same state hash at every checkpoint (lockstep), no repairs needed, no page errors.
 // Usage: NODE_PATH=$(npm root -g) node test/net.js [seconds=30] [guests=1] [--bot]
 //        --bot: every tab plays with the regression bot (test/bot.js): fights, loot, doors, panels
+//        --exit: the first start room has an open hole under the apples, the next one the light (exit animations)
 const { launch, serve } = require('./lib');
 const { botInstall } = require('./bot');
-const BOT = process.argv.includes('--bot');
+const BOT = process.argv.includes('--bot'), EXIT = process.argv.includes('--exit');
 (async () => {
   const secs = +(process.argv[2] || 30), guests = +(process.argv[3] || 1);
   const srv = await serve(0); const port = srv.address().port;
@@ -15,6 +16,10 @@ const BOT = process.argv.includes('--bot');
   for (let i = 0; i <= guests; i++) {
     const p = await ctx.newPage(); p.on('pageerror', (e) => errs.push(`p${i}: ${e.message}`));
     await p.goto(url); await p.waitForFunction(() => window.__bitten && window.__bitten.net14);
+    if (EXIT) await p.evaluate(() => {
+      const { Game, G } = window.__bitten, er0 = Game.enterRoom;
+      Game.enterRoom = function (room) { const r = er0.apply(this, arguments); if (G.map && room === G.map.start && G.levelIdx < 2 && !room.exit) room.exit = { x: G.player.x, y: G.player.y, t: 2, kind: G.levelIdx ? 'light' : 'hole' }; return r; };
+    });
     if (BOT) { await p.evaluate(`(${botInstall.toString()})(${i + 1}, { render: true, net: true })`); pages.push(p); continue; }
     /* scripted input: each tab walks its own circle and shoots ahead, dashes now and then */
     await p.evaluate((k) => {
@@ -45,7 +50,7 @@ const BOT = process.argv.includes('--bot');
   for (const s of st.slice(1)) for (const [n, h] of s.hist) if (hm.has(n)) { if (hm.get(n) === h) same++; else { diff++; if (firstDiff == null) firstDiff = n; } }
   for (const s of st) delete s.hist;
   console.log(JSON.stringify({ code, lobby, st, checkpoints: { same, diff, firstDiff }, errs: errs.slice(0, 5) }, null, 1));
-  const ok = st.every((s) => (s.live || s.state === "over") && !s.errors) && same > 5 && diff === 0 && !errs.length;
+  const ok = st.every((s) => (s.live || s.state === "over" || (EXIT && s.state === 'win')) && !s.errors) && same > 5 && diff === 0 && !errs.length;
   console.log(ok ? 'PASS' : 'FAIL');
   await b.close(); srv.close(); process.exit(ok ? 0 : 1);
 })();
