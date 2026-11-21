@@ -3,7 +3,7 @@
    answers when the network fails or takes over 6 s. A push is live on the next load, nothing to bump by hand.
    Fonts, icons and the De Wals track: cache first, they do not change.
    BUILD is written by build.mjs (hash of the game files), so each build installs a fresh offline copy. */
-const BUILD = '64ed65e7fb';
+const BUILD = '9dc9aed29a';
 const CACHE = 'bitten-nf-' + BUILD;
 const CORE = [
   './', 'bitten.js', 'net.js', 'vendor/peerjs.min.js', 'manifest.webmanifest',

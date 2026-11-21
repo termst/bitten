@@ -2611,6 +2611,110 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     });
     return { THEMES, PX };
   })();
+  /* ------------------------------------------------------------------ v14.1: Appelgameplay as Olijf
+     A plump green olive, oil sheen and all. The mullet is an olive branch now, a cocktail pick goes
+     through the top with a red frill, pimento peeks out of the pit hole, oil drips off the bottom.
+     Appended last so every saved and synced look index stays where it was. */
+  function olivePath141(c, R) {
+    // a little longer than wide, the top end a touch narrower than the bottom
+    c.beginPath();
+    c.moveTo(0, -R * 1.06);
+    c.bezierCurveTo(R * 0.6, -R * 1.06, R * 0.96, -R * 0.56, R * 0.96, R * 0.04);
+    c.bezierCurveTo(R * 0.96, R * 0.66, R * 0.58, R * 1.06, 0, R * 1.06);
+    c.bezierCurveTo(-R * 0.58, R * 1.06, -R * 0.96, R * 0.66, -R * 0.96, R * 0.04);
+    c.bezierCurveTo(-R * 0.96, -R * 0.56, -R * 0.6, -R * 1.06, 0, -R * 1.06);
+    c.closePath();
+  }
+  function oliveLeaf141(c, x, y, a, L, W, t, ph) {
+    c.save(); c.translate(x, y); c.rotate(a + Math.sin(t * 1.8 + ph) * 0.08);
+    c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(L * 0.5, -W, L, 0); c.quadraticCurveTo(L * 0.5, W, 0, 0); c.closePath();
+    const g = c.createLinearGradient(0, -W, 0, W); g.addColorStop(0, '#6f8a46'); g.addColorStop(0.55, '#4d6630'); g.addColorStop(1, '#a9b894');
+    c.fillStyle = g; c.fill(); c.strokeStyle = '#1e2a10'; c.lineWidth = Math.max(0.5, W * 0.32); c.stroke();
+    c.strokeStyle = 'rgba(214,226,190,0.55)'; c.lineWidth = Math.max(0.4, W * 0.18);
+    c.beginPath(); c.moveTo(L * 0.08, 0); c.quadraticCurveTo(L * 0.5, -W * 0.15, L * 0.9, 0); c.stroke();
+    c.restore();
+  }
+  function oliveBranch141(c, R, t) {
+    // the mullet, leaf for leaf: a laurel of olive leaves over the crown, longer locks down both sides
+    const W = R * 0.13;
+    c.strokeStyle = '#3a2a14'; c.lineWidth = Math.max(0.8, R * 0.06); c.lineCap = 'round';
+    for (const s of [-1, 1]) { c.beginPath(); c.arc(0, -R * 0.02, R * 0.98, -Math.PI / 2 + s * 0.12, -Math.PI / 2 + s * 2.2, s < 0); c.stroke(); }
+    let i = 0;
+    for (const s of [-1, 1]) for (let k = 0; k < 7; k++, i++) {
+      const th = -Math.PI / 2 + s * (0.16 + k * 0.32), rr = R * (0.98 + (k > 4 ? 0.04 : 0)), x = Math.cos(th) * rr, y = Math.sin(th) * rr - R * 0.02;
+      const tan = th + s * Math.PI / 2, L = R * (k > 4 ? 0.7 : 0.5 + k * 0.03);
+      oliveLeaf141(c, x, y, tan - s * 0.55, L, W, t, i);
+      if (k % 2 === 0) oliveLeaf141(c, x, y, tan + s * 0.15, L * 0.85, W * 0.9, t, i + 20);
+    }
+    // a few small olives on the branch
+    for (const [x, y, s] of [[-0.78, -0.86, 1], [0.84, -0.8, 0.9], [-1.16, 0.3, 0.85]]) {
+      const g = c.createRadialGradient(x * R - R * 0.04, y * R - R * 0.05, 0, x * R, y * R, R * 0.15 * s);
+      g.addColorStop(0, '#d6de86'); g.addColorStop(1, '#5c6c1c');
+      ell(c, x * R, y * R, R * 0.11 * s, R * 0.14 * s, x * 0.6); c.fillStyle = g; c.fill(); c.strokeStyle = '#1e2a08'; c.lineWidth = Math.max(0.5, R * 0.035); c.stroke();
+      c.fillStyle = 'rgba(255,255,240,0.6)'; ell(c, x * R - R * 0.035, y * R - R * 0.05, R * 0.03 * s, R * 0.05 * s, -0.5); c.fill();
+    }
+  }
+  function drawOlijf141(c, R, st) {
+    const t = st.t || 0, br = 1 + Math.sin(t * 2.4) * 0.012;
+    oliveBranch141(c, R, t);
+    c.save(); c.scale(1 / br, br);
+    // the olive itself: ripe green, darker and a hint of purple low down
+    const g = c.createRadialGradient(-R * 0.34, -R * 0.42, R * 0.06, 0, R * 0.1, R * 1.25);
+    g.addColorStop(0, '#e9eea0'); g.addColorStop(0.3, '#b5c43a'); g.addColorStop(0.72, '#6c7d1c'); g.addColorStop(1, '#2e380a');
+    olivePath141(c, R); c.fillStyle = g; c.fill();
+    c.save(); olivePath141(c, R); c.clip();
+    const pg = c.createLinearGradient(0, R * 0.3, 0, R * 1.1); pg.addColorStop(0, 'rgba(90,40,70,0)'); pg.addColorStop(1, 'rgba(90,40,70,0.32)');
+    c.fillStyle = pg; c.fillRect(-R * 1.1, R * 0.2, R * 2.2, R);
+    // lenticels: tiny pale freckles
+    c.fillStyle = 'rgba(240,244,190,0.45)';
+    for (let i = 0; i < 16; i++) { const a = rnd24(i + 141) * TAU, d = Math.sqrt(rnd24(i + 77)) * 0.85; circle(c, Math.cos(a) * d * R * 0.9, Math.sin(a) * d * R, R * (0.014 + rnd24(i + 5) * 0.016)); }
+    // rim light on the shadow side
+    c.strokeStyle = 'rgba(220,240,140,0.35)'; c.lineWidth = R * 0.08;
+    c.beginPath(); c.ellipse(0, 0, R * 0.9, R * 1.0, 0, 0.15, 1.25); c.stroke();
+    // oil sheen sliding over the skin
+    const sx = Math.sin(t * 0.9) * R * 0.08;
+    ell(c, -R * 0.5 + sx, -R * 0.42, R * 0.13, R * 0.34, -0.42); c.fillStyle = 'rgba(255,255,245,0.55)'; c.fill();
+    ell(c, -R * 0.62 + sx, R * 0.08, R * 0.05, R * 0.1, -0.2); c.fillStyle = 'rgba(255,255,245,0.35)'; c.fill();
+    c.restore();
+    olivePath141(c, R); c.strokeStyle = '#1c2406'; c.lineWidth = Math.max(1, R * 0.1); c.stroke();
+    // the pit hole at the top, stuffed with pimento
+    ell(c, 0, -R * 0.98, R * 0.2, R * 0.08); c.fillStyle = '#3a1004'; c.fill();
+    c.fillStyle = '#d8281e'; c.beginPath(); c.ellipse(0, -R * 1.0, R * 0.15, R * 0.06, 0, Math.PI, TAU); c.quadraticCurveTo(R * 0.06, -R * 0.92, 0, -R * 0.96); c.quadraticCurveTo(-R * 0.06, -R * 0.92, -R * 0.15, -R * 1.0); c.fill();
+    c.fillStyle = 'rgba(255,170,150,0.7)'; ell(c, -R * 0.05, -R * 1.02, R * 0.05, R * 0.015); c.fill();
+    c.restore();
+    // bites show olive flesh, pale and buttery
+    if (st.bites && st.bites.length) {
+      c.globalCompositeOperation = 'source-atop';
+      for (const b of st.bites) { c.fillStyle = mixHex('#e2e09a', '#9a8a3a', clamp((t - b.t) / 30, 0, 1)); biteShape(c, R, b.a, 1.38); c.fill(); }
+      c.globalCompositeOperation = 'destination-out';
+      for (const b of st.bites) { biteShape(c, R, b.a, 1); c.fill(); }
+      c.globalCompositeOperation = 'source-over';
+    }
+    if (st.face !== false) {
+      drawAppelFace(c, R, st);
+      c.fillStyle = 'rgba(200,120,90,0.3)'; for (const s of [-1, 1]) { ell(c, s * R * 0.6, R * 0.22, R * 0.12, R * 0.07); c.fill(); }
+    }
+    // a cocktail pick through the top, frill fluttering
+    c.save(); c.translate(R * 0.08, -R * 0.92); c.rotate(0.38 + Math.sin(t * 2.1) * 0.04);
+    c.strokeStyle = '#5a3a14'; c.lineWidth = Math.max(0.9, R * 0.09); c.beginPath(); c.moveTo(0, R * 0.25); c.lineTo(0, -R * 0.75); c.stroke();
+    c.strokeStyle = '#e8c88a'; c.lineWidth = Math.max(0.6, R * 0.05); c.beginPath(); c.moveTo(0, R * 0.25); c.lineTo(0, -R * 0.75); c.stroke();
+    c.translate(0, -R * 0.78);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * TAU + t * 0.6, f = 1 + Math.sin(t * 7 + i * 1.7) * 0.18;
+      c.fillStyle = i % 2 ? '#e8303a' : '#ff6a5a';
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a - 0.3) * R * 0.2 * f, Math.sin(a - 0.3) * R * 0.2 * f); c.lineTo(Math.cos(a + 0.3) * R * 0.2 * f, Math.sin(a + 0.3) * R * 0.2 * f); c.closePath(); c.fill();
+    }
+    c.fillStyle = '#ffd0c8'; circle(c, 0, 0, R * 0.05);
+    c.restore();
+    // a drop of oil hangs on, grows and lets go
+    const ph = (t * 0.55) % 1, dy = ph < 0.7 ? 0 : (ph - 0.7) * R * 2.2, dr = R * (0.04 + Math.min(ph, 0.7) * 0.06);
+    c.fillStyle = 'rgba(214,186,40,0.85)';
+    c.beginPath(); c.moveTo(R * 0.12, R * 1.0 + dy); c.quadraticCurveTo(R * 0.12 + dr, R * 1.06 + dy + dr, R * 0.12, R * 1.06 + dy + dr * 2); c.quadraticCurveTo(R * 0.12 - dr, R * 1.06 + dy + dr, R * 0.12, R * 1.0 + dy); c.fill();
+    c.fillStyle = 'rgba(255,250,200,0.8)'; circle(c, R * 0.1, R * 1.06 + dy + dr, dr * 0.3);
+  }
+  FX122.Olijf = { mote: 'drip', dcol: '#d6ba28', col: '#b5c43a', col2: '#f2f0b0', n: 6 };
+  if (SKINS.appel) SKINS.appel.push({ name: 'Olijf', tier: 'Epic', line: 'Picked green, cured in brine, stuffed with pimento. The mullet grew back as an olive branch. Comes in peace, leaves oil on everything.',
+    draw: drawOlijf141, bg: ['#3a4a12', '#0c1004'], motif: 'spores', acc: '#b5c43a' });
   for (const id in SKINS) for (const S of SKINS[id]) epic122(S);
 
   /* old saves stored a position in the old list: find the same skin by name, or fall back to the original */
