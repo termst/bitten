@@ -9,19 +9,19 @@ const fs = require('fs');
   const { page, log } = await open(b, 'file://' + path.resolve(ROOT, file), { ctx: { viewport: { width: 1400, height: 900 } } });
   await startRun(page);
   const res = await page.evaluate((only) => {
-    const ids = Object.keys(KINDS).filter((k) => !only || only.includes(k));
-    const C = 200, R = 150, cols = 8, rows = Math.ceil(ids.length / cols);
+    const ids = []; for (const k of Object.keys(KINDS).filter((k) => !only || only.includes(k))) { const L = KINDS[k].look14, n = L && L.vars ? L.vars.length : 1; for (let v = 0; v < n; v++) ids.push([k, v]); }
+    const C = 200, R = 150, cols = 10, rows = Math.ceil(ids.length / cols);
     const cv = document.createElement('canvas'); cv.width = cols * C; cv.height = rows * R;
     const c = cv.getContext('2d'); c.fillStyle = '#3a3f36'; c.fillRect(0, 0, cv.width, cv.height);
     const errs = [];
-    ids.forEach((id, i) => {
+    ids.forEach(([id, vi], i) => {
       const ox = (i % cols) * C, oy = Math.floor(i / cols) * R;
       c.save(); c.beginPath(); c.rect(ox, oy, C, R); c.clip();
       c.fillStyle = (i + Math.floor(i / cols)) % 2 ? '#3a3f36' : '#343a31'; c.fillRect(ox, oy, C, R);
       try {
         const K = KINDS[id], sc = Math.min(2.4, 150 / ((K.maxLen + 2) * K.spacing + K.headR * 2), 34 / K.headR);
         const sn = new Snake(id, 0, 0, { emerge: false, ang: 0 });
-        sn.state = 'active'; sn.eyeOpen = 1; sn.spawnTime = 0; sn.under = []; sn.holes = [];
+        if (vi || (KINDS[id].look14 && KINDS[id].look14.vars)) window.__bitten.lookVariant14(sn, vi); sn.state = 'active'; sn.eyeOpen = 1; sn.spawnTime = 0; sn.under = []; sn.holes = [];
         const len = (sn.maxLen + 2) * sn.spacing, tr = [];
         for (let s = 0; s <= len; s += 2) tr.push({ x: -s, y: Math.sin(s / 28) * 14, s: len - s });
         sn.odo = len; sn.x = 0; sn.y = 0; sn.trail = tr; sn.drawAng = sn.ang = Math.atan2(Math.cos(0) * 14 / 28, 1) + Math.PI;
@@ -32,7 +32,7 @@ const fs = require('fs');
         drawSnake(c, sn, 1.3);
       } catch (e) { errs.push(id + ': ' + e.message); }
       c.restore();
-      c.fillStyle = '#fff'; c.font = '11px sans-serif'; c.fillText(id + (KINDS[id].boss ? ' (boss)' : ''), ox + 4, oy + 13);
+      c.fillStyle = '#fff'; c.font = '11px sans-serif'; c.fillText(id + (vi ? ' v' + (vi + 1) : '') + (KINDS[id].boss ? ' (boss)' : ''), ox + 4, oy + 13);
     });
     return { url: cv.toDataURL('image/png'), errs, n: ids.length };
   }, only);
