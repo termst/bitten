@@ -15,14 +15,14 @@
     ['library', 'Cursed library', 'LIB'], ['gamble', 'Slot machine', 'SLT'], ['spring', 'Spring', 'SPR'], ['offering', 'Offering altar', 'OFR'],
     ['pantry', 'Pantry', 'PAN'], ['vault', 'Vault', 'VLT'], ['secret', 'Secret room', 'SEC'], ['portal', 'Portal (Ender Wyrm)', 'PRT'],
     ['tank', 'BP Tankstation', 'TNK'], ['kapper', 'Kapsalon', 'KAP'], ['courtroom', 'Rechtbank', 'CRT'], ['gym', 'Klokhuis Gym', 'GYM'],
-    ['club', 'Club (DJ Manu-Beau)', 'CLB'], ['hellclub', 'Hellclub', 'HEL'], ['clownhq', 'Clini-Clown HQ', 'CLN'], ['quiet', 'Prikkelarme Kamer', 'QUI'],
+    ['club', 'Club (DJ Manu-Beau)', 'CLB'], ['hellclub', 'Hellclub', 'HEL'], ['clownhq', 'Clini-Clown HQ', 'CLN'], ['quiet', 'Prikkelarme Kamer', 'QUI'], ['brawl', 'De Knokpit', 'KNK'],
   ];
   const CODE = { start: 'STA', boss: 'BOS' };
   for (const t of TYPES) CODE[t[0]] = t[2];
   const MODS = [['', 'No modifier'], ['dark', 'Dark'], ['swarm', 'Swarm'], ['elite', 'Elite'], ['spikes', 'Spikes'], ['collapse', 'Collapse'],
     ['freezer', 'Freezer aisle'], ['skins', 'Shed skins'], ['roots', 'Roots'], ['lasers', 'Lasers'], ['blackice', 'Black ice']];
   // rooms that hang off one door in the normal game, and rooms nobody else may open into
-  const HUNG = new Set(['club', 'hellclub', 'portal', 'secret', 'vault', 'clownhq', 'quiet']);
+  const HUNG = new Set(['club', 'hellclub', 'portal', 'secret', 'vault', 'clownhq', 'quiet', 'brawl']);
   const NOLINK = new Set(['club', 'hellclub', 'portal', 'secret', 'vault']);
   const LOCKED = new Set(['start', 'boss']);
   const sel = { type: 'gym', mod: '', boss: '', mode: 'place', go: true };
