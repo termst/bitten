@@ -924,30 +924,30 @@ function drawSnake(c, sn, t) {
   const flash = sn.flash > 0;
   const ow = sn.isBoss ? 2.6 : 1.8;
   c.fillStyle = K.outline;
-  for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) circle(c, p.x, p.y, p.r + ow); }
+  for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) seg14(c, sn, k, p, p.r + ow); }
   for (let k = n - 1; k >= 0; k--) {
     const p = pts[k]; if (p.hid) continue;
     c.fillStyle = k & 1 ? K.body2 : K.body;
-    circle(c, p.x, p.y, p.r);
+    seg14(c, sn, k, p, p.r);
   }
   c.fillStyle = K.hi;
   for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) circle(c, p.x - p.r * 0.22, p.y - p.r * 0.32, p.r * 0.48); }
   decorateSnake(c, sn, t);
   if (sn.slow > 0) {
     c.fillStyle = 'rgba(150,210,255,0.24)';
-    for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) circle(c, p.x, p.y, p.r); }
+    for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) seg14(c, sn, k, p, p.r); }
   }
   if (sn.burn > 0) {
     c.fillStyle = 'rgba(255,120,40,0.16)';
-    for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) circle(c, p.x, p.y, p.r); }
+    for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) seg14(c, sn, k, p, p.r); }
   }
   if (sn.poison > 0) {
     c.fillStyle = 'rgba(120,200,80,0.08)';
-    for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) circle(c, p.x, p.y, p.r); }
+    for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) seg14(c, sn, k, p, p.r); }
   }
   if (flash) {
     c.fillStyle = 'rgba(255,245,235,0.55)';
-    for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) circle(c, p.x, p.y, p.r); }
+    for (let k = n - 1; k >= 0; k--) { const p = pts[k]; if (!p.hid) seg14(c, sn, k, p, p.r); }
   }
   if (!sn.burrowed) {
     drawSnakeHead(c, sn, t, false);
