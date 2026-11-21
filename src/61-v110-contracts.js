@@ -15,7 +15,7 @@
   /* v14.2: in a split coop run every apple has its own contract and its own offer (P.ct14); otherwise one */
   const CTS = { cur: null, pend: null };
   const ctS = (P) => { P = P || G.player; return P && coopSplit14() ? P.ct14 || (P.ct14 = { cur: null, pend: null }) : CTS; };
-  let NEXT_ID = 1, OWNER = null;
+  let NEXT_ID = 1, OWNER = null, OPEN_ROOM = null;
   const fail = (C, why) => resolve(C, false, why);
 
   /* ------------------------------------------------------------------ the clauses */
@@ -584,7 +584,7 @@
     </article>`;
   }
   function open(room) {
-    const P = G.player; OWNER = P;
+    const P = G.player; OWNER = P; OPEN_ROOM = room;
     OFF = offers(room, P);
     if (!OFF.length) return;
     G.run.ctFloorN24 = (G.run.ctFloorN24 || 0) + 1; G.run.ctCool24 = 1;
@@ -611,6 +611,7 @@
   function close() {
     sec.hidden = true; Sched.cancel(rafId);
     if (G.state === 'contract') { G.state = 'play'; safe(() => { UI.el.btnPause.hidden = false; }); }
+    safe(() => window.__bitten.panelDone14 && window.__bitten.panelDone14('contract'));   /* v14.2.1: personal panel online */
     safe(() => Input.reset());
     safe(() => View.cv.focus({ preventScroll: true }));
   }
@@ -618,6 +619,8 @@
     if (OWNER && G.player !== OWNER && coopSplit14()) return withPlayer(OWNER, () => sign(i));
     if (busy) return;
     const o = OFF[i]; if (!o) return;
+    /* v14.2.1: online the others play on while you read; a room that got cleared or left meanwhile is no deal */
+    if (OPEN_ROOM && (G.room !== OPEN_ROOM || OPEN_ROOM.cleared || !live(OPEN_ROOM).length)) { decline(); safe(() => UI.banner('Te laat', 'The fight is over. No contract.')); return; }
     const R = G.run, P = G.player, room = G.room;
     const card = sec.querySelectorAll('.ct-card')[i];
     if (!o.def.loan && o.stake > (R.coins || 0)) { safe(() => Sfx.thud()); return; }
@@ -712,7 +715,7 @@
     safe(() => {
       if (ctS().pend) {
         if (ctS().pend.run !== G.run || ctS().pend.room !== room) ctS().pend = null;
-        else if (!G.trans && G.state === 'play' && !(P.dying > 0) && !CUR_LIVE()) { const r = ctS().pend.room; ctS().pend = null; open(r); return; }
+        else if (!G.trans && G.state === 'play' && !G.panel14 && !(P.dying > 0) && !CUR_LIVE()) { const r = ctS().pend.room; ctS().pend = null; open(r); return; }
       }
       const C = ctS().cur; if (!C) return;
       if (C.run !== G.run) { ctS().cur = null; return; }

@@ -116,6 +116,17 @@ A rare floor (tier 4, `set: 'ruimte'`, boss `galaxy`). Every room is open space:
 * Open: per apple sell till balance check in couch is not covered by a test; contract offers in split open one panel per
   apple in a row; the Custom Run summary guests see updates on the next lobby change.
 
+## v14.2.1: online freeze fix
+
+* Online, the sell till and contract panels froze the whole run (G.state left 'play') until that one player chose; in Coop every
+  apple gets its own offer, so it froze twice per offer, and for good when that player dropped. Now they are personal:
+  `G.panel14 = {k, slot, t0}` (net.js state setter), G.state stays 'play', only the owner sees the panel, stands still and
+  cannot be bitten; one panel at a time; an away owner's panel closes; a contract signed after the fight ended is declined.
+  Couch keeps the old shared pause (one screen). PROTO -4.
+* A hidden host tab (no rAF) stopped every guest: a worker clock (`bgStart`) pumps the host ticks while `document.hidden`.
+* Tests: `test/netfreeze.js [secs] [split|plus] [guests]` fails on any 6 s stall in play, `test/nethidden.js` hidden host.
+  `test/bot.js` handles personal panels (signs every other contract).
+
 ## Not done yet (next chat)
 
 * F9 recap UI on game over and win screens (data exists; icon painters: drawItemIcon* in 06/07/08/20/43).
