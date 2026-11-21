@@ -19,7 +19,7 @@
   const B = window.__bitten = window.__bitten || {};
   const safe = (fn, fb) => { try { return fn(); } catch (e) { try { errNote14(e, 'net'); } catch (e2) { /* ignore */ } return fb; } };
   const T = (s) => (typeof sayF9 === 'function' ? sayF9(s) : s);
-  const PROTO = 'bitten-net-14.0-3';
+  const PROTO = 'bitten-net-14.0-4';
   const STEP = 1 / 60, CHECK = 60, MAXP = 4;
   const ID_PREFIX = 'bitten14-';
   const LINES = ['Host a game', 'Join', 'Room code', 'Leave', 'Copy invite link', 'Link copied', 'Waiting for players', 'Connecting',
@@ -489,7 +489,7 @@
   function sampleLocal() {
     const P = G.players && G.players[S.me];
     const L = NET.local;
-    if (!P || NET.menu || (NET.decider >= 0 && G.state !== 'play') || document.hidden) return [0, 0, null, null, 0, L.dashN, L.pingN, null, null];
+    if (!P || NET.menu || (NET.decider >= 0 && G.state !== 'play') || myPanel() || document.hidden) return [0, 0, null, null, 0, L.dashN, L.pingN, null, null];
     return withPlayer(P, () => {
       let mv = Input.moveVec();
       const pads = (B.input14 && B.input14.Pads.any) || [];
@@ -538,7 +538,7 @@
     if (S.role === 'guest') swapSave(msg);
     else NET.keep = null;
     S.running = true;
-    NET.tick = 0; NET.acc = 0; NET.queue = []; NET.events = []; NET.menu = false; NET.decider = -1; NET.hashes = new Map(); NET.hist = new Map(); NET.fixAt = -1; NET.needFix = false; NET.wantFix = false; NET.fixWait = 0;
+    NET.tick = 0; NET.acc = 0; NET.queue = []; NET.events = []; NET.menu = false; NET.decider = -1; G.panel14 = null; NET.hashes = new Map(); NET.hist = new Map(); NET.fixAt = -1; NET.needFix = false; NET.wantFix = false; NET.fixWait = 0;
     NET.want = 0; NET.ring = []; NET.rsT = 0; NET.lastIns = null; NET.inLast = null; NET.inSent = 0; NET.fixSaid = false; for (const m of S.members) { m.pend = null; m.sentT = 0; }
     NET.local = { dashN: 0, pingN: 0 };
     NET.srcs = msg.members.map((m) => new NetSource(m.slot));
@@ -553,11 +553,11 @@
     for (const P of G.players) P.net14 = true;
     NET.live = true;
     lastFrame = performance.now();
-    if (S.role === 'host') NET.hostLast = performance.now();
+    if (S.role === 'host') { NET.hostLast = performance.now(); bgStart(); }
   }
   function endRun(silent) {
     if (!NET.live && !S.running) return;
-    NET.live = false; S.running = false; NET.menu = false; TM.list = []; NET.decider = -1; NET.queue = []; NET.events = [];
+    NET.live = false; S.running = false; NET.menu = false; TM.list = []; NET.decider = -1; G.panel14 = null; bgStop(); NET.queue = []; NET.events = [];
     gameRandOff();
     if (NET.keep) { const k = NET.keep; NET.keep = null; safe(k); }
   }
@@ -606,7 +606,7 @@
     if (NET.tick % CHECK === 0) checkpoint(NET.tick, b[3]);
   }
   function applyEvent(e) {
-    if (e.k === 'away') { const P = G.players[e.s]; if (P) { P.away14 = true; P.vx = P.vy = 0; } return; }
+    if (e.k === 'away') { const P = G.players[e.s]; if (P) { P.away14 = true; P.vx = P.vy = 0; } if (G.panel14 && G.panel14.slot === e.s) closePanel(); return; }
     if (e.k === 'act') { const P = G.players[e.s]; if (P) withPlayer(P, () => replayClick(e.a)); return; }
   }
 
@@ -666,6 +666,19 @@
       if (!NET.pingT || now - NET.pingT > 2000) { NET.pingT = now; L.send({ t: 'p', ts: now }); }
     }
   }
+  /* v14.2.1: a host in a background tab (another window, a minimized browser) gets no animation frames, so
+     the ticks stopped and every guest froze. A worker clock keeps the host ticking while the tab is hidden. */
+  let bgW = null, bgLast = 0;
+  function bgTick() {
+    if (!NET.live || S.role !== 'host' || !document.hidden) { bgLast = 0; return; }
+    const now = performance.now(), dt = bgLast ? Math.min(0.1, (now - bgLast) / 1000) : STEP; bgLast = now;
+    safe(() => NET.pump(dt, now));
+  }
+  function bgStart() {
+    if (bgW || typeof Worker === 'undefined') return;
+    safe(() => { bgW = new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},16)'], { type: 'text/javascript' }))); bgW.onmessage = bgTick; });
+  }
+  function bgStop() { if (bgW) { safe(() => bgW.terminate()); bgW = null; } bgLast = 0; }
   NET.pump = function (dt, now) {
     if (!NET.live) return;
     if (S.role === 'host') hostPump(dt);
@@ -744,6 +757,21 @@
 
   /* ================================================================ panels that change the run (sell, contract) */
   const MODAL_STATES = { sell: 'sell', contract: 'contract24' };
+  /* v14.2.1: online these panels are personal. The run does not stop: G.state stays 'play', G.panel14 says
+     whose panel is open, that apple stands still and cannot be bitten, the other apples play on and do not see
+     the panel. Before, the whole run froze until that one player chose (twice per offer in Coop, where every
+     apple gets its own contract), and for good when that player dropped out. One panel at a time. */
+  const myPanel = () => !!(G.panel14 && G.panel14.slot === S.me);
+  const panelKind = () => (G.panel14 ? G.panel14.k : MODAL_STATES[G.state] ? G.state : null);
+  function closePanel() {
+    const k = G.panel14 && G.panel14.k; if (!k) return;
+    inSim(() => {
+      if (k === 'sell') safe(() => UI.closeSell());
+      else safe(() => (B.CT24 && B.CT24.decline ? B.CT24.decline(true) : null));
+    });
+    G.panel14 = null; NET.decider = -1;
+  }
+  B.panelDone14 = (k) => { if (G.panel14 && G.panel14.k === k) { G.panel14 = null; NET.decider = -1; safe(() => { UI.el.btnPause.hidden = false; }); } };
   /* who opened it: the apple in context when the state changed */
   safe(() => {
     let st = G.state;
@@ -751,8 +779,14 @@
       configurable: true, enumerable: true,
       get() { return st; },
       set(v) {
+        if (NET.live && MODAL_STATES[v] && st === 'play' && MP14.on) {
+          const slot = G.player && G.player.slot14 != null ? G.player.slot14 : 0;
+          G.panel14 = { k: v, slot, t0: NET.tick }; NET.decider = slot;
+          return;                                              /* the run goes on */
+        }
+        if (NET.live && v !== 'play' && G.panel14) closePanel();
         if (NET.live && MODAL_STATES[v] && st === 'play') NET.decider = G.player && G.player.slot14 != null ? G.player.slot14 : 0;
-        if (NET.live && v === 'play') NET.decider = -1;
+        if (NET.live && v === 'play' && !G.panel14) NET.decider = -1;
         /* couch: remember whose panel it is, clicks in it run for that apple (below) */
         if (!NET.live && MP14.on && MODAL_STATES[v] && st === 'play') NET.couchOwner = G.player;
         if (v === 'play' || v === 'menu') NET.couchOwner = null;
@@ -783,7 +817,7 @@
     if (!NET.live || NET.replay) return;
     const root = modalRoot(e.target); if (!root) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    if (!MODAL_STATES[G.state]) return;
+    if (!panelKind()) return;
     if (NET.decider !== S.me) { const P = G.players[NET.decider]; safe(() => UI.banner((P ? P.name14 : '') + ' ' + T('is choosing'), '')); return; }
     const hit = e.target.closest('button, a, input, label, [data-i], [tabindex]') || e.target;
     const a = { r: root.id, i: pathOf(root, hit) };
@@ -793,19 +827,40 @@
   }, true);
   window.__netKey14 = (e) => {
     if (!NET.live) return;
-    if (MODAL_STATES[G.state] && !['Tab', 'Enter', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) { e.stopImmediatePropagation(); e.preventDefault(); }
-    if (e.code === 'KeyE' && !e.repeat && G.state === 'play') NET.local.pingQ = true;
+    if ((G.panel14 ? myPanel() : MODAL_STATES[G.state]) && !['Tab', 'Enter', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) { e.stopImmediatePropagation(); e.preventDefault(); }
+    if (e.code === 'KeyE' && !e.repeat && G.state === 'play' && !myPanel()) NET.local.pingQ = true;
   };
   /* the panel says who chooses */
   Sched.every('ui', 'v14 net modal note', () => {
-    const id = MODAL_STATES[G.state]; if (!id) return;
+    const id = MODAL_STATES[panelKind()]; if (!id) return;
     const root = document.getElementById(id); if (!root) return;
+    /* a personal panel: only its owner sees it */
+    if (G.panel14) {
+      const mine = myPanel();
+      if (!mine) { root.hidden = true; if (UI.el.btnPause.hidden && !NET.menu) UI.el.btnPause.hidden = false; }
+      else if (!root.dataset.seen14) { root.dataset.seen14 = '1'; }
+    }
     let n = root.querySelector('.net14-note');
     if (!n) { n = document.createElement('div'); n.className = 'net14-note'; n.style.cssText = 'position:sticky;top:0;z-index:5;margin:0 auto 8px;max-width:520px;padding:6px 10px;background:rgba(12,8,8,.9);border:1px solid var(--line);border-radius:3px;font:700 13px/1.2 var(--ui);letter-spacing:.06em;text-align:center;color:#fff4ec'; root.prepend(n); }
     const P = G.players[NET.decider], mine = NET.decider === S.me;
     n.hidden = mine; if (!mine) n.textContent = (P ? P.name14 : '') + ' ' + T('is choosing');
     root.style.pointerEvents = '';
   }, () => NET.live);
+
+  /* the owner of a personal panel cannot be bitten while choosing; a stale panel (its DOM closed) is cleared */
+  Sched.every('step', 'v14.2.1 panel owner', () => {
+    const pn = G.panel14; if (!pn) return;
+    const P = G.players[pn.slot];
+    if (P) { P.inv = Math.max(P.inv || 0, 0.25); P.vx = P.vy = 0; }
+  }, () => NET.live);
+  safe(() => {
+    const ir0 = Input.reset;
+    Input.reset = function () { if (NET.live && G.panel14 && !myPanel() && G.panel14.t0 === NET.tick) return; return ir0.apply(this, arguments); };
+    const os0 = UI.openSell;
+    UI.openSell = function () { if (NET.live && G.panel14) return; return os0.apply(this, arguments); };
+    const cs0 = UI.closeSell;
+    UI.closeSell = function () { const r = cs0.apply(this, arguments); safe(() => B.panelDone14 && B.panelDone14('sell')); return r; };
+  });
 
   /* ================================================================ pause, retry, menu while online */
   safe(() => {

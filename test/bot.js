@@ -125,6 +125,20 @@ function botInstall(seed, opt = {}) {
   // modal screens: close or skip them
   setInterval(() => {
     const G = B.G;
+    /* online personal panels (v14.2.1): the state stays 'play', G.panel14 names the panel and its apple */
+    const pn = G.panel14, mineP = pn && B.net14 && pn.slot === B.net14.S.me;
+    if (mineP) {
+      St.modalT++; St.modals++;
+      try {
+        if (pn.k === 'sell') { const d = document.getElementById('btnSellDone'); if (d) d.click(); return; }
+        const root = document.getElementById('contract24'), btns = root ? [...root.querySelectorAll('button')].filter((b) => !b.disabled) : [];
+        const skip = btns.find((b) => /decline|no thanks|nee|walk away|not now|later|skip|leave/i.test(b.textContent)) || btns.find((b) => b.classList.contains('ct-none'));
+        if (St.modalT === 1) St.panN = (St.panN || 0) + 1;
+        const pick = St.panN % 2 ? (btns.find((b) => b.classList.contains('ct-go')) || skip) : skip;   /* sign every other offer */
+        if (pick) pick.click();
+      } catch (e) { St.err = String(e); }
+      return;
+    }
     if (G.state === 'play' || G.state === 'over' || G.state === 'win' || G.state === 'menu') { St.modalT = 0; return; }
     St.modalT++; St.modals++;
     try {
