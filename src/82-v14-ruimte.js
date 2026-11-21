@@ -15,7 +15,7 @@
   const inSpace = () => !!(G.levelDef && G.levelDef.set === SET);
   const spaceRoom = (room) => !!room && !SPECIAL9[room.type] && !clubRoom9(room) && room.type !== 'clownhq' && room.type !== 'quiet';
   const hash = (x) => { const s = Math.sin(x * 12.9898 + 4.1414) * 43758.5453; return s - Math.floor(s); };
-  function fx14(room) { if (!room.fx14) room.fx14 = { shocks: [], holes: [], meteors: [], rings: [], nova: null, novaT: null }; return room.fx14; }
+  function fx14(room) { if (!room.fx14) room.fx14 = { shocks: [], holes: [], meteors: [], rings: [], cons: [], horizon: null, nova: null, novaT: null }; return room.fx14; }
 
   /* ================================================================== the floor */
   FLOOR10[SET] = {
@@ -129,7 +129,7 @@
       body: '#d8b46a', body2: '#c8a45a', outline: '#2a1e08', hi: 'rgba(255,245,210,0.3)', band: '#b0843e', ring: '#ecdcaa', blood: '#c8a45a', eye: '#ffe8a0',
     },
     galaxy: {
-      boss: true, name: 'De Galaxyworm', hp: 360, headR: 24, r0: 21, r1: 9, spacing: 13, maxLen: 20, minLen: 7, bite: 2, speed: 56, turn: 2.4, noMound: true,
+      boss: true, name: 'De Galaxyworm', hp: 400, headR: 24, r0: 21, r1: 9, spacing: 13, maxLen: 20, minLen: 7, bite: 2, speed: 56, turn: 2.4, noMound: true,
       body: '#1c1240', body2: '#22164c', outline: '#04020c', hi: 'rgba(200,170,255,0.16)', neb: '#c45aff', blood: '#c45aff', eye: '#fff6d8',
     },
   });
@@ -262,7 +262,8 @@
 
   BOSS9_INIT.galaxy = (sn) => {
     sn.mode = 'move'; sn.cd = 2.2; sn.spiralCd = 3; sn.birthCd = 6; sn.holeCd = 7; sn.meteorCd = 5; sn.novaCd = 2;
-    sn.ph14 = 1; sn.spin14 = 0; sn.charge14 = 0; sn.armA = 0; sn.armT = 0; sn.armDir = 1;
+    sn.spin14 = 0; sn.charge14 = 0; sn.armA = 0; sn.armT = 0; sn.armDir = 1;
+    sn.conCd = 4; sn.cometCd = 99; sn.pulsarCd = 99; sn.beamA14 = 0; sn.beamN14 = 0;
   };
   function birth14(room, sn, n, kinds) {
     let made = 0;
@@ -275,21 +276,28 @@
     }
     if (made) { floatText(sn.x, sn.y - 44, 'NIEUWE PLANETEN', '#e8d8ff', true); Sfx.warp(); }
   }
-  AI.galaxy = function (sn, room, dt) {
-    const P = G.player, vs = G.levelDef.venomSpeed, f = sn.hp / sn.maxHp;
-    const ph = f > 0.66 ? 1 : f > 0.33 ? 2 : 3;
-    sn.mt += dt; sn.spin14 += dt * (ph === 3 ? 1.7 : 1);
-    if (ph !== sn.ph14) {
-      sn.ph14 = ph;
-      if (ph === 2) { UI.banner('Zwart Gat', 'The middle of the galaxy opens. Do not get pulled in.', 'curse'); sn.holeCd = 1.2; sn.meteorCd = 3; }
-      if (ph === 3) { UI.banner('Supernova', 'Its heart is collapsing. Hide behind a rock when it blows.', 'curse'); sn.novaCd = 1.2; }
+  // stage changes come from the shared boss stage system (src/85-v14-stages.js: DEF.galaxy sets sn.stage14)
+  // a constellation: stars around you, then lines between them burn. Stand still inside, or dash out early.
+  function constellation14(room, sn, P, ph) {
+    const n = 3 + ph, a0 = rnd(TAU), pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = a0 + (i / n) * TAU + rnd(-0.2, 0.2), r = rnd(80, 140);
+      pts.push({ x: clamp(P.x + Math.cos(a) * r, 20, RW - 20), y: clamp(P.y + Math.sin(a) * r, 20, RH - 20) });
     }
+    fx14(room).cons.push({ pts, t: 0, warn: ph >= 4 ? 1.05 : 1.3, on: 0.55, ring: ph >= 2, hitP: new Set() });
+    floatText(P.x, P.y - 40, 'STERRENBEELD', '#bfe0ff', true); Sfx.zap();
+  }
+  AI.galaxy = function (sn, room, dt) {
+    const P = G.player, vs = G.levelDef.venomSpeed, ph = sn.stage14 || 1, F = fx14(room);
+    sn.mt += dt; sn.spin14 += dt * (ph >= 3 ? 1.7 : 1);
     if (sn.mode === 'spiral') {
       sn.drawAng = sn.ang + Math.sin(sn.mt * 6) * 0.05;
       sn.armT -= dt;
       if (sn.armT <= 0) {
-        sn.armT = ph === 1 ? 0.17 : 0.13;
-        const arms = ph === 1 ? 3 : 4;
+        sn.armT = ph === 1 ? 0.17 : ph === 4 ? 0.11 : 0.13;
+        const arms = ph === 1 ? 3 : ph === 4 ? 5 : 4;
+        // from stage 3 the arms turn back half way: the spiral folds
+        if (ph >= 3 && Math.abs(sn.mt - 1.3) < 0.07) sn.armDir = -sn.armDir;
         sn.armA += 0.3 * sn.armDir;
         for (let i = 0; i < arms; i++) { const v = spawnVenom(sn.x, sn.y, sn.armA + (i * TAU) / arms, vs * 0.6, '#fff2b0'); v.kind = 'star14'; v.r = 5; v.life = 3.4; }
       }
@@ -302,15 +310,56 @@
       if (Math.random() < dt * 40) { const a = rnd(TAU), r = rnd(70, 150); addP({ kind: 'dot', x: sn.x + Math.cos(a) * r, y: sn.y + Math.sin(a) * r, vx: -Math.cos(a) * 140, vy: -Math.sin(a) * 140, r: rnd(1, 2.2), life: 0.6, col: '#fff6d8', glow: true, drag: 0 }); }
       if (sn.mt >= 2.2) {
         shock14(room, sn.x, sn.y, { hostile: true, dmg: 2, speed: 300, max: 640, col: '#fff6d8' });
-        sn.charge14 = 0; sn.mode = 'move'; sn.mt = 0; sn.novaCd = rnd(12, 15);
+        sn.charge14 = 0; sn.mode = 'move'; sn.mt = 0; sn.novaCd = ph >= 4 ? rnd(10, 12) : rnd(12, 15);
       }
       return;
     }
+    // Komeet: winds up, then streaks across the room and leaves a tail of ice that drifts apart
+    if (sn.mode === 'cometWind') {
+      sn.ang = turnToward(sn.ang, Math.atan2(P.y - sn.y, P.x - sn.x), 7 * dt); sn.drawAng = sn.ang + Math.sin(sn.mt * 45) * 0.06; sn.mouth = 1;
+      if (sn.mt > 0.6) { sn.mode = 'comet'; sn.mt = 0; sn.cometA = sn.ang; sn.tailT = 0; sn.tailS = 1; Sfx.whoosh10(); }
+      return;
+    }
+    if (sn.mode === 'comet') {
+      steerMove(sn, room, sn.cometA, ph >= 4 ? 470 : 420, 0.9, dt);
+      sn.tailT -= dt;
+      if (sn.tailT <= 0) {
+        sn.tailT = 0.055; sn.tailS = -sn.tailS;
+        const v = spawnVenom(sn.x, sn.y, sn.cometA + sn.tailS * Math.PI / 2, vs * 0.32, '#9ad8ff'); v.kind = 'ice14'; v.r = 4.5; v.life = 2.6;
+      }
+      if (sn.mt > 0.8 || sn.blockT > 0.1) { sn.mode = 'move'; sn.mt = 0; G.shake = Math.max(G.shake || 0, 5); }
+      return;
+    }
+    // Pulsar: it stops and two (stage 4: three) beams sweep the room. A rock between you and the worm blocks them.
+    if (sn.mode === 'pulsar') {
+      sn.drawAng = sn.ang + Math.sin(sn.mt * 20) * 0.03;
+      const warm = 0.9, dur = 2.6;
+      sn.beamA14 += dt * (sn.mt < warm ? 0.25 : 1.05) * sn.armDir;
+      if (sn.mt >= warm) for (const Q of livePlayers14()) {
+        if (Q.dying > 0 || Q.dashT > 0) continue;
+        const qa = Math.atan2(Q.y - sn.y, Q.x - sn.x), d = dist(Q.x, Q.y, sn.x, sn.y);
+        for (let i = 0; i < sn.beamN14; i++) {
+          const off = Math.abs(angDiff(sn.beamA14 + (i * TAU) / sn.beamN14, qa)) * d;
+          if (d > sn.headR && off < Q.r + 6 && clearLine(room, sn.x, sn.y, Q.x, Q.y)) { withPlayer(Q, () => Q.hurt(1, sn.x, sn.y)); break; }
+        }
+      }
+      if (sn.mt >= warm + dur) { sn.mode = 'move'; sn.mt = 0; sn.beamN14 = 0; }
+      return;
+    }
     sn.mode = 'move';
-    keepAway(sn, room, dt, 150, 270, sn.K.speed * (ph === 3 ? 1.15 : 1));
+    keepAway(sn, room, dt, 150, 270, sn.K.speed * (ph >= 4 ? 1.25 : ph === 3 ? 1.15 : 1));
     sn.cd -= dt; sn.spiralCd -= dt; sn.birthCd -= dt; sn.holeCd -= dt; sn.meteorCd -= dt; sn.novaCd -= dt;
+    sn.conCd -= dt; sn.cometCd -= dt; sn.pulsarCd -= dt;
     if (P.dying > 0) return;
-    if (ph === 3 && sn.novaCd <= 0) { sn.mode = 'nova'; sn.mt = 0; sn.charge14 = 0; Sfx.charge(); floatText(sn.x, sn.y - 44, 'SUPERNOVA', '#fff6d8', true); return; }
+    if (ph >= 3 && sn.novaCd <= 0) { sn.mode = 'nova'; sn.mt = 0; sn.charge14 = 0; Sfx.charge(); floatText(sn.x, sn.y - 44, 'SUPERNOVA', '#fff6d8', true); return; }
+    if (ph >= 3 && sn.pulsarCd <= 0) {
+      sn.pulsarCd = rnd(11, 13); sn.mode = 'pulsar'; sn.mt = 0; sn.beamN14 = ph >= 4 ? 3 : 2;
+      sn.beamA14 = Math.atan2(P.y - sn.y, P.x - sn.x) + Math.PI / sn.beamN14; sn.armDir = Math.random() < 0.5 ? 1 : -1;
+      floatText(sn.x, sn.y - 44, 'PULSAR', '#bfe0ff', true); Sfx.charge();
+      return;
+    }
+    if (sn.conCd <= 0 && !F.cons.length) { sn.conCd = ph >= 3 ? rnd(7, 9) : rnd(9, 11); constellation14(room, sn, P, ph); return; }
+    if (ph >= 2 && sn.cometCd <= 0) { sn.cometCd = rnd(7, 9); sn.mode = 'cometWind'; sn.mt = 0; Sfx.hiss(0.9); floatText(sn.x, sn.y - 44, 'KOMEET', '#9ad8ff', true); return; }
     if (sn.spiralCd <= 0) { sn.spiralCd = rnd(6.5, 8); sn.mode = 'spiral'; sn.mt = 0; sn.armT = 0; sn.armA = rnd(TAU); sn.armDir = Math.random() < 0.5 ? 1 : -1; Sfx.zap(); return; }
     if (sn.birthCd <= 0) { sn.birthCd = rnd(9, 11); birth14(room, sn, 2, ph === 1 ? ['pluto', 'pluto', 'mars', 'aarde'] : ['pluto', 'mars', 'aarde', 'saturnus', 'neptunus']); return; }
     if (ph >= 2 && sn.holeCd <= 0) {
@@ -321,18 +370,29 @@
     }
     if (ph >= 2 && sn.meteorCd <= 0) {
       sn.meteorCd = rnd(6, 8);
-      const n = ph === 3 ? 6 : 4;
+      const n = ph >= 3 ? 6 : 4;
       for (let i = 0; i < n; i++) meteor14(room, clamp(P.x + (i ? rnd(-120, 120) : 0), 24, RW - 24), clamp(P.y + (i ? rnd(-100, 100) : 0), 24, RH - 24), { hostile: true, warn: 1.1 + i * 0.18, r: 30 });
       Sfx.whoosh10();
       return;
     }
     if (sn.cd <= 0) {
-      sn.cd = rnd(1.3, 1.9);
+      sn.cd = ph >= 4 ? rnd(1.0, 1.4) : rnd(1.3, 1.9);
       const base = Math.atan2(P.y - sn.y, P.x - sn.x);
       for (let i = -2; i <= 2; i++) { const v = spawnVenom(sn.x, sn.y, base + i * 0.2, vs, '#fff2b0'); v.kind = 'star14'; v.r = 5; }
       sn.mouth = 1; Sfx.spit();
     }
   };
+  // what each new stage starts with (called by the stage system)
+  function galaxyStage14(sn, room, ph) {
+    if (ph === 2) { sn.holeCd = 1.2; sn.meteorCd = 3; sn.cometCd = 4.5; }
+    if (ph === 3) { sn.novaCd = 1.2; sn.pulsarCd = 6; }
+    if (ph === 4) {
+      // Singulariteit: the event horizon. Outside the ring space itself hurts, and the ring keeps closing.
+      const F = fx14(room);
+      F.horizon = { x: RW / 2, y: RH / 2, R: Math.hypot(RW, RH) / 2, max: Math.hypot(RW, RH) / 2, t: 0 };
+      sn.novaCd = Math.max(sn.novaCd, 4); sn.pulsarCd = 2.5;
+    }
+  }
 
   /* ================================================================== shockwaves, black holes, meteors, rings */
   // a ring that grows out from x, y. Hostile waves hurt the apples they reach, unless a rock is in the way.
@@ -363,6 +423,41 @@
       F.nova = null;
       F.holes = F.holes.filter((h) => !h.hostile);
       F.meteors = F.meteors.filter((m) => !m.hostile);
+      F.cons = []; F.horizon = null;
+    }
+    if (!F.cons) F.cons = [];
+    // constellations: the lines burn for a moment, then (stage 2 on) every star throws a small ring
+    for (let i = F.cons.length - 1; i >= 0; i--) {
+      const K = F.cons[i]; K.t += dt;
+      if (K.t >= K.warn && !K.fired) {
+        K.fired = true; Sfx.zap(); G.shake = Math.max(G.shake || 0, 4);
+        if (K.ring) for (const q of K.pts) for (let j = 0; j < 4; j++) { const v = spawnVenom(q.x, q.y, j * TAU / 4 + K.t, G.levelDef.venomSpeed * 0.45, '#bfe0ff'); v.kind = 'star14'; v.r = 4; v.life = 2; }
+      }
+      if (K.t >= K.warn) for (const Q of livePlayers14()) {
+        if (Q.dying > 0 || Q.dashT > 0 || K.hitP.has(Q)) continue;
+        for (let j = 0; j < K.pts.length; j++) {
+          const a = K.pts[j], b = K.pts[(j + 1) % K.pts.length];
+          if (segDist14(Q.x, Q.y, a.x, a.y, b.x, b.y) < Q.r + 3) { K.hitP.add(Q); withPlayer(Q, () => Q.hurt(1, Q.x, Q.y)); break; }
+        }
+      }
+      if (K.t >= K.warn + K.on) F.cons.splice(i, 1);
+    }
+    // the event horizon (Galaxyworm stage 4): closes to 165 px over 6 s, holds 3 s, opens over 2 s, rests 2 s
+    if (F.horizon) {
+      const Hz = F.horizon; Hz.t = (Hz.t + dt) % 13;
+      const u = Hz.t < 6 ? Hz.t / 6 : Hz.t < 9 ? 1 : Hz.t < 11 ? 1 - (Hz.t - 9) / 2 : 0;
+      Hz.R = lerp(Hz.max, 165, u * u * (3 - 2 * u));
+      for (const Q of livePlayers14()) {
+        if (Q.dying > 0) continue;
+        const d = dist(Q.x, Q.y, Hz.x, Hz.y);
+        if (d < Hz.R - Q.r) { Q.hor14 = 0; continue; }
+        const a = Math.atan2(Hz.y - Q.y, Hz.x - Q.x);
+        let nx = Q.x + Math.cos(a) * 55 * dt, ny = Q.y + Math.sin(a) * 55 * dt;
+        [nx, ny] = Q.flyer ? resolveFly10(room, nx, ny, Q.r) : resolveTiles(room, nx, ny, Q.r);
+        Q.x = clamp(nx, Q.r, RW - Q.r); Q.y = clamp(ny, Q.r, RH - Q.r);
+        Q.hor14 = (Q.hor14 || 0) + dt;
+        if (Q.hor14 >= 0.8) { Q.hor14 = 0; withPlayer(Q, () => Q.hurt(1, Hz.x, Hz.y)); }
+      }
     }
     // the dying star of a supernova room
     if (F.nova) {
@@ -488,6 +583,10 @@
         }
       }
     }
+  }
+  function segDist14(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy || 1, u = clamp(((px - ax) * dx + (py - ay) * dy) / L, 0, 1);
+    return Math.hypot(px - ax - dx * u, py - ay - dy * u);
   }
   const starR14 = (N) => 7 + 10 * Math.min(1, N.t / N.fuse);
   {
@@ -991,6 +1090,43 @@
       c.fillStyle = '#5a4a44'; circle(c, mx, my, 6); c.fillStyle = '#ffb46a'; circle(c, mx - 1.5, my + 1.5, 3);
     }
   }
+  function drawCons14(c, K, t) {
+    const live = K.t >= K.warn, u = Math.min(1, K.t / K.warn);
+    c.save();
+    c.strokeStyle = live ? 'rgba(220,240,255,0.95)' : `rgba(170,210,255,${(0.2 + 0.35 * u).toFixed(3)})`;
+    c.lineWidth = live ? 5 : 1.2; if (!live) c.setLineDash([4, 6]);
+    c.beginPath();
+    K.pts.forEach((q, i) => (i ? c.lineTo(q.x, q.y) : c.moveTo(q.x, q.y))); c.closePath(); c.stroke();
+    c.setLineDash([]);
+    for (const q of K.pts) {
+      const r = 3 + 2 * u + Math.sin(t * 9 + q.x) * 0.8;
+      c.fillStyle = '#ffffff'; c.beginPath();
+      for (let k = 0; k < 8; k++) { const a = (k * Math.PI) / 4, rr = k % 2 ? r * 0.4 : r * 1.4; c.lineTo(q.x + Math.cos(a) * rr, q.y + Math.sin(a) * rr); }
+      c.fill();
+    }
+    c.restore();
+  }
+  function drawHorizon14(c, Hz, t) {
+    c.save();
+    c.fillStyle = 'rgba(10,0,24,0.5)';
+    c.beginPath(); c.rect(0, 0, RW, RH); c.arc(Hz.x, Hz.y, Hz.R, 0, TAU, true); c.fill();
+    for (let i = 0; i < 3; i++) {
+      c.strokeStyle = `rgba(196,90,255,${(0.75 - i * 0.22).toFixed(3)})`; c.lineWidth = 4 - i;
+      c.beginPath(); c.arc(Hz.x, Hz.y, Hz.R + i * 5, t * (0.6 + i * 0.3), t * (0.6 + i * 0.3) + TAU * 0.82); c.stroke();
+    }
+    c.restore();
+  }
+  function drawPulsar14(c, sn, t) {
+    const live = sn.mt >= 0.9;
+    c.save(); c.lineCap = 'round';
+    for (let i = 0; i < sn.beamN14; i++) {
+      const a = sn.beamA14 + (i * TAU) / sn.beamN14, x1 = sn.x + Math.cos(a) * 900, y1 = sn.y + Math.sin(a) * 900;
+      c.strokeStyle = live ? 'rgba(190,225,255,0.35)' : 'rgba(190,225,255,0.25)'; c.lineWidth = live ? 18 : 2;
+      c.beginPath(); c.moveTo(sn.x, sn.y); c.lineTo(x1, y1); c.stroke();
+      if (live) { c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 5 + Math.sin(t * 40) * 1.5; c.beginPath(); c.moveTo(sn.x, sn.y); c.lineTo(x1, y1); c.stroke(); }
+    }
+    c.restore();
+  }
   function drawShock14(c, s) {
     const a = Math.max(0, 1 - s.R / s.max);
     c.strokeStyle = rgba(s.col, 0.85 * a); c.lineWidth = 10 * a + 2;
@@ -1043,7 +1179,10 @@
           for (const g of F.rings) drawRing14(c, g, t);
           for (const m of F.meteors) drawMeteor14(c, m, t);
           for (const s of F.shocks) drawShock14(c, s);
+          for (const K of F.cons || []) drawCons14(c, K, t);
+          if (F.horizon) drawHorizon14(c, F.horizon, t);
         }
+        for (const sn of room.snakes) if (sn.kind === 'galaxy' && sn.mode === 'pulsar' && sn.beamN14) drawPulsar14(c, sn, t);
         for (const P of players14()) {
           if (P.moon14 && !(P.dying > 0)) drawMoon14(c, P);
           if (P.ice14T > 0) { c.strokeStyle = `rgba(190,232,255,${(0.5 * Math.min(1, P.ice14T)).toFixed(3)})`; c.lineWidth = 2; c.beginPath(); c.arc(P.x, P.y, P.r + 5, 0, TAU); c.stroke(); }
@@ -1169,11 +1308,11 @@
       fig('pluto', 'Plutoworm', 'Tiny, fast, De Ruimte', 'Hard to see from far away, it fades into the dark. Comes in groups. Still a planet, it says.'),
       fig('saturnus', 'Saturnusworm', 'Big, De Ruimte', 'Throws its ring like a boomerang. The ring comes back: dodge it twice. Without its ring it waits.'),
     ].join(''));
-    if (decks[1]) decks[1].insertAdjacentHTML('beforeend', fig('galaxy', 'De Galaxyworm', 'Ruimte boss', 'Spins arms of stars and gives birth to planets. Past two thirds: black holes that pull and meteor showers. Past one third its heart collapses: a supernova every few seconds. Hide behind an asteroid.'));
+    if (decks[1]) decks[1].insertAdjacentHTML('beforeend', fig('galaxy', 'De Galaxyworm', 'Ruimte boss', 'Four stages, and its own song follows them. Nevel: star spirals, planet births and constellations that burn their lines. Zwart Gat (70%): black holes, meteors and a comet dash. Supernova (40%): the nova and a sweeping pulsar; hide behind an asteroid. Singulariteit (15%): the event horizon closes in, stay inside the ring.'));
     const rules = document.querySelector('#tab-rooms ul.rules');
     if (rules) rules.insertAdjacentHTML('beforeend', '<li>In De Ruimte some fights have a dying star. It grows for a few seconds, then goes supernova: a shockwave across the room. Put an asteroid between you and the star. Snakes in the open get hit too.</li>');
     const modes = document.querySelector('#tab-modes ul.rooms9');
     if (modes) modes.insertAdjacentHTML('beforeend', '<li><i style="background:#7a5aff" aria-hidden="true"></i><b>De Ruimte</b><span>The deepest rare floor. Every room is open space, every worm a planet, and the boss is De Galaxyworm. The eight space powerups only drop here.</span></li>');
   });
-  Object.assign(window.__bitten || (window.__bitten = {}), { SPACE14: Object.assign(SPACE, { NEW, PLANETS, FIGHTS, shock14, hole14, meteor14, fx14 }) });
+  Object.assign(window.__bitten || (window.__bitten = {}), { SPACE14: Object.assign(SPACE, { NEW, PLANETS, FIGHTS, shock14, hole14, meteor14, fx14, galaxyStage14 }) });
 })();
