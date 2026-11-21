@@ -264,7 +264,7 @@
   /* ================================================================ Custom Run: your own floors, bosses and rules */
   const MAX_STAGES = 20, MAX_START = 3;
   const BASICS = ['cellar', 'halls', 'market', 'kamer', 'garden'];
-  const RARE_SETS = ['bus', 'rook', 'mega', 'arena', 'rave', 'court', 'metro', 'afgrond'];
+  const RARE_SETS = ['bus', 'rook', 'mega', 'arena', 'rave', 'court', 'metro', 'afgrond', 'ruimte'];
   const NO_PICK = {};
   const PD = { apples: 0, coins: 0, hearts: 1, dmg: 1, fire: 1, pspeed: 1, speed: 1, bossHp: 1, noodles: 1, rooms: 0, loop: 0 };
   const PG = [

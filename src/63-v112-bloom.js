@@ -13,6 +13,7 @@
     market: { warm: '#e8f2ff', grade: '#8ab0a0', ga: 0.08, bloom: 0.36 },
     kamer: { warm: '#ffc070', grade: '#6a80c8', ga: 0.10, bloom: 0.40 },
     garden: { warm: '#ff7a4a', grade: '#c05050', ga: 0.12, bloom: 0.46 },
+    ruimte: { warm: '#9ab8ff', grade: '#5a6ac8', ga: 0.10, bloom: 0.5 },
   };
   const gradeOf = () => { const L = G.levelDef || LEVELS[0]; return GRADE[L.set] || GRADE.cellar; };
   const FX = { low: false, slow: 0, n: 0, b1: null, b2: null, grain: null, motes: new WeakMap(), frames: 0 };
@@ -32,6 +33,7 @@
     const rng = mulberry32((room.seed ^ 0x5f3759df) >>> 0);
     const empty = (cc, rr) => cc >= 0 && rr >= 0 && cc < COLS && rr < ROWS && !(room.tiles[rr] && room.tiles[rr][cc]);
     const block = (cc, rr) => cc >= 0 && rr >= 0 && cc < COLS && rr < ROWS && room.tiles[rr][cc] && room.tiles[rr][cc].solid && room.tiles[rr][cc].type !== 'candle';
+    if (!L.noGrain) { // v14.2: floors in open space (De Ruimte) have no grain and nothing casts a contact shadow
     // floor grain: soft blotches and tiny specks on empty tiles only, so nothing lands on a rock
     for (let rr = 0; rr < ROWS; rr++) for (let cc = 0; cc < COLS; cc++) {
       if (!empty(cc, rr)) continue;
@@ -62,6 +64,7 @@
       if (block(cc - 1, rr)) edge(x0, y0, SH * 0.8, T, x0, 0, x0 + SH * 0.8, 0, 0.3);
       if (block(cc + 1, rr)) edge(x0 + T - SH * 0.8, y0, SH * 0.8, T, x0 + T, 0, x0 + T - SH * 0.8, 0, 0.3);
       if (block(cc, rr + 1)) edge(x0, y0 + T - SH * 0.6, T, SH * 0.6, 0, y0 + T, 0, y0 + T - SH * 0.6, 0.22);
+    }
     }
     // the walls lean over the floor: a deep shadow band along every inside edge
     const band = (x, y, w, h, gx0, gy0, gx1, gy1, a) => {

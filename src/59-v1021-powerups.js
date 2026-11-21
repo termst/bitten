@@ -674,7 +674,7 @@
     const A = Object.assign({ on: false, t: {}, scale: 1 }, rd());
     A.t = A.t || {};
     const wr = () => { try { localStorage.setItem(AKEY, JSON.stringify(A)); } catch (e) { /* storage unavailable */ } };
-    const FLOORS = ['cellar', 'halls', 'market', 'kamer', 'garden', 'bus', 'rook', 'mega', 'arena', 'rave', 'court', 'metro', 'afgrond'];
+    const FLOORS = ['cellar', 'halls', 'market', 'kamer', 'garden', 'bus', 'rook', 'mega', 'arena', 'rave', 'court', 'metro', 'afgrond', 'ruimte'];
 
     /* ---------- unlock everything, with a snapshot to undo it */
     function unlockAll() {
@@ -754,6 +754,12 @@
       AUTOAIM() {
         A.t.aim = !A.t.aim; wr();
         return A.t.aim ? 'Auto aim on. You only walk, the apple aims and shoots. Enter the code again to switch it off.' : 'Auto aim off.';
+      },
+      RUIMTE() {
+        const S = window.__bitten && window.__bitten.SPACE14;
+        if (!S) return 'Not a code.';
+        S.force = !S.force;
+        return S.force ? 'Your next Arcade run goes to De Ruimte on floor 2. Enter the code again to cancel.' : 'De Ruimte is back to chance.';
       },
       BRIE() {
         const again = A.on;

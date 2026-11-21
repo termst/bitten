@@ -30,7 +30,7 @@
   const MIRX = [4, 3, 2, 1, 0, 7, 6, 5], MIRY = [0, 7, 6, 5, 4, 3, 2, 1];
 
   // the floors a map can use, in the order the picker shows them
-  const SETS = ['cellar', 'halls', 'market', 'kamer', 'garden', 'bus', 'rook', 'mega', 'arena', 'rave', 'court', 'metro', 'afgrond'];
+  const SETS = ['cellar', 'halls', 'market', 'kamer', 'garden', 'bus', 'rook', 'mega', 'arena', 'rave', 'court', 'metro', 'afgrond', 'ruimte'];
   const setDef = (set) => (SET_LEVEL[set] != null ? LEVELS[SET_LEVEL[set]] : (typeof floorDef10 === 'function' && floorDef10(set)) || LEVELS[0]);
   const setName = (set) => setDef(set).name || set;
 

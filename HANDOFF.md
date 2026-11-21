@@ -76,6 +76,27 @@ v14.0.1 fixes (online did not work outside the local test transport):
 * Fight rulings set `room.taak22` and pay out in a `clearRoom9` wrapper. Banner texts live in `TX` and are added to TEXT_LIT9.messages.
 * Test hook: `window.__bitten.MORE14`.
 
+## De Ruimte, a space floor (src/82-v14-ruimte.js)
+
+A rare floor (tier 4, `set: 'ruimte'`, boss `galaxy`). Every room is open space: a baked starfield and nebula
+(`spaceFloor14`), live twinkle and shooting stars (`twinkle14`), asteroids (`ROCK9.asteroid14`) and comet ice pots
+(`URN9.comet14`). No torches, no bones, no floor grain or contact shadows (`noGrain` flag, read in 63-v112-bloom.js).
+* Planet worms, spawn characters `E` Aarde (moon that blocks seeds and bumps you, 3 hits to break), `^` Mars (dust, then a
+  straight charge), `0` Neptunus (ice fan, slows you via `P.syrupT`), `?` Pluto (fades when far, `AI.grub` movement),
+  `(` Saturnus (ring boomerang). Grub, hood and lamprey spawns on this floor are remapped to planets; eggs hatch Plutos.
+* De Galaxyworm: phase 1 star spirals, star fans, planet births. Below 66%: hostile black holes that pull every apple, meteor
+  showers. Below 33%: supernova every 12 to 15 s, a room wide shockwave that an asteroid blocks (`clearLine`).
+* Room mod `supernova` (32% of fights here, also in Chaos): a dying star grows 6.5 to 8 s and blows. Hits apples and snakes
+  in the open. Shared effects live in `room.fx14` (shocks, holes, meteors, rings) and update once per frame in the first
+  `mpPasses14` pass; every apple is checked inside (`livePlayers14`, `withPlayer`).
+* Eight powerups (ids end in 14, two legendary): only in the pool on this floor (`itemOk9`), and 45% of rolls there are space ones.
+* Placement: Arcade and Daily run the normal plan first, then a generator of its own from the run seed puts De Ruimte on
+  floor 3, 4 or 5 in 35% of runs. Endless: 20% from floor 3 on. No extra Math.random draws, so runs that never reach it are
+  identical: `test/bot.js --runs 3` with the odds at 0 gives identical 3/3 for apple, lucif and lucky against v14.1.
+* Code `RUIMTE` (Code tab): the next offline Arcade run gets De Ruimte as floor 2. Ignored online (every peer plans itself).
+* Also in Custom Run, Boss Rush (before the Ender Wyrm), the Map Maker floor list, Admin unlock, the guide and two achievements.
+* Test: `node test/ruimte.js` (forced floor, fight, supernova room, all powerups, boss phases, icons and guide pictures).
+
 ## Not done yet (next chat)
 
 * F9 recap UI on game over and win screens (data exists; icon painters: drawItemIcon* in 06/07/08/20/43).
