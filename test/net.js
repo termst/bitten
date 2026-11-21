@@ -45,7 +45,7 @@ const BOT = process.argv.includes('--bot');
   for (const s of st.slice(1)) for (const [n, h] of s.hist) if (hm.has(n)) { if (hm.get(n) === h) same++; else { diff++; if (firstDiff == null) firstDiff = n; } }
   for (const s of st) delete s.hist;
   console.log(JSON.stringify({ code, lobby, st, checkpoints: { same, diff, firstDiff }, errs: errs.slice(0, 5) }, null, 1));
-  const ok = st.every((s) => s.live || s.state === 'over') && same > 5 && diff === 0 && !errs.length;
+  const ok = st.every((s) => (s.live || s.state === "over") && !s.errors) && same > 5 && diff === 0 && !errs.length;
   console.log(ok ? 'PASS' : 'FAIL');
   await b.close(); srv.close(); process.exit(ok ? 0 : 1);
 })();

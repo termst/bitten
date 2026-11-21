@@ -97,6 +97,25 @@ A rare floor (tier 4, `set: 'ruimte'`, boss `galaxy`). Every room is open space:
 * Also in Custom Run, Boss Rush (before the Ender Wyrm), the Map Maker floor list, Admin unlock, the guide and two achievements.
 * Test: `node test/ruimte.js` (forced floor, fight, supernova room, all powerups, boss phases, icons and guide pictures).
 
+## v14.2: Game Maker, Coop and Coop Plus, leaner online traffic
+
+* `src/83-v14-gamemaker.js`: the Game Maker panel (Coop screen, Couch tab and Online lobby). Mode and difficulty (same
+  settings as the Play menu), coop style, run rules for every mode (the Custom Run rules; a Custom Run uses its own
+  builder, moved into the panel), team rules (`CO14`: revive time, revive health, door wait, team scaling, coin drops),
+  room (max apples, fixed seed). Stored in `Save.data.gm14`; guests get it with the host save. Guests see it read only.
+* Coop styles (`coopStyle14()`, `G.run.coop14`): `split` (Coop) own coins (`P.coins14` behind a `G.run.coins` accessor),
+  own clean room count, own contract and offer (`P.ct14` in 61), own pump/chair/gym flags (`perApple14`), gym sets timed
+  on `MP14.dt`, 1.5x coins per extra apple (Auto). `plus` (Coop Plus) one purse, `collectItem` gives every apple the powerup,
+  `coopLoot14()` deals chests, treasure and boss loot as for one apple.
+* Fixed: Custom Run rules only reached apple 1 in coop. Couch sell and contract panels now act for the apple that opened them.
+* net.js PROTO -3: slots that repeat the previous tick travel as `1`, trailing nulls and zeros are cut, inputs at 1/100,
+  guests send input only on change (250 ms keep alive), bundle `[tick, slots(, events, repair)]`. `test/netbytes.js`:
+  host to guest 6.2 to 2.6 KB/s, guest to host 2.2 to 1.1 KB/s (bot, 1 guest).
+* Tests: `test/gm.js` (couch styles and panel), `test/netgm.js [secs] [split|plus]` (lobby sync, max apples, seed, lockstep),
+  `test/netbytes.js`. `test/net.js` now also fails on counted game errors.
+* Open: per apple sell till balance check in couch is not covered by a test; contract offers in split open one panel per
+  apple in a row; the Custom Run summary guests see updates on the next lobby change.
+
 ## Not done yet (next chat)
 
 * F9 recap UI on game over and win screens (data exists; icon painters: drawItemIcon* in 06/07/08/20/43).

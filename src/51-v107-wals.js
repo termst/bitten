@@ -649,11 +649,13 @@
     }
     function paint() { summary(); paintStages(); paintRules(); paintItems(); }
     build();
+    /* v14.2: the Game Maker borrows this builder for a Custom Run in coop; home() puts it back */
+    (window.__bitten || (window.__bitten = {})).custUI10 = { box, paint, home: () => { if (box.parentNode !== inner) inner.insertBefore(box, foot); } };
 
     const pp0 = UI.paintPlay;
     UI.paintPlay = function () {
       pp0.apply(this, arguments);
-      safe(() => { const on = Save.data.mode === 'custom'; box.hidden = !on; play.classList.toggle('cust-on', on); if (on) paint(); });
+      safe(() => { window.__bitten.custUI10.home(); const on = Save.data.mode === 'custom'; box.hidden = !on; play.classList.toggle('cust-on', on); if (on) paint(); });
     };
 
     /* screen and sound live in Settings */
@@ -699,7 +701,7 @@
 
   /* music runs on its own clock so it also stops on the menu */
   Sched.every('audio', 'v10.7 wals track', () => safe(musicTick));   /* T3 */
-  Object.assign(window.__bitten || (window.__bitten = {}), { spawnNoodles, OPTS7: OPTS, cust10: { norm, ensureCust, floorList, bossList, floorOpen, bossOpen, itemOpen, floorBase, NO_PICK, RP }, walsTrack: M, walsLoad: () => { if (!Sfx.ctx) Sfx.init(); loadTrack(); }, walsFetch: fetchTrack });
+  Object.assign(window.__bitten || (window.__bitten = {}), { spawnNoodles, OPTS7: OPTS, cust10: { PG, PD, norm, ensureCust, floorList, bossList, floorOpen, bossOpen, itemOpen, floorBase, NO_PICK, RP }, walsTrack: M, walsLoad: () => { if (!Sfx.ctx) Sfx.init(); loadTrack(); }, walsFetch: fetchTrack });
 })();
 
 

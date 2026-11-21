@@ -157,14 +157,17 @@
     if (!g.greeted) { g.greeted = true; say(room, 'greet', true); }
     g.sayCd -= dt;
     if (g.sayCd <= 0 && P.dying <= 0 && dist(P.x, P.y, g.coach.x, g.coach.y) < 150) say(room, g.used ? 'after' : 'idle');
+    /* v14.2: in a split coop run every apple trains for itself, so its set runs on the real frame time
+       (the extra coop passes get dt 0) */
+    const pdt = coopSplit14() ? (MP14.dt || dt) : dt;
     for (const s of g.stations) {
       const on = P.dying <= 0 && dist(P.x, P.y, s.x, s.y) < 17;
-      if (!on) { setArmed14(s, true); s.prog = Math.max(0, s.prog - dt * 2.5); s.said = false; continue; }
+      if (!on) { setArmed14(s, true); s.prog = Math.max(0, s.prog - pdt * 2.5); s.said = false; continue; }
       if (!s.open) { if (armed14(s)) { setArmed14(s, false); say(room, 'broken', true); Sfx.thud(); } continue; }
       if (g.used) { if (armed14(s)) { setArmed14(s, false); say(room, 'again', true); } continue; }
       if (capped(P, s.k)) { if (armed14(s)) { setArmed14(s, false); say(room, 'max', true); } continue; }
       const before = s.prog;
-      s.prog += dt;
+      s.prog += pdt;
       if (!s.said) { s.said = true; say(room, s.k, true); if (s.k === 'eiwit') { Sfx.vend(); g.pop = 1; } }
       const S = ST[s.k];
       // a rep every fifth of the set
@@ -173,7 +176,7 @@
         if (s.k === 'cardio' || s.k === 'kracht') addP({ kind: 'dot', x: P.x + rnd(-8, 8), y: P.y - 10, vx: rnd(-30, 30), vy: rnd(-50, -20), r: rnd(1, 1.8), life: 0.6, col: '#bfe4ff', drag: 1.5, g: 140 });
       }
       if (s.k === 'boog') {
-        s.fire -= dt;
+        s.fire -= pdt;
         if (s.fire <= 0) {
           s.fire = 0.38;
           const tg = room.obs.find((o) => o.type === 'target11');
