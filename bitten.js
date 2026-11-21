@@ -43200,63 +43200,63 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   /* ------------------------------------------------------------------ every boss, its own stages */
   const DEF = {
     // the Grub Mother was a 64 hp pushover: more of her, faster, and she poisons the ground she crawls on
-    mother: { at: [0.6, 0.25], col: '#c8d86a', speed: [1.05, 1.1, 1.2],
-      names: [['Broedkoorts', 'She leaves a trail of slime. Do not follow her.'], ['Laatste Leg', 'Every egg she has left, all at once.']],
+    mother: { sting: ['squelch', 'roar'], at: [0.6, 0.25], col: '#c8d86a', speed: [1.05, 1.1, 1.2],
+      names: [['Broedkoorts', 'She leaves a trail of slime. Do not follow her.', 'My children are hungry.'], ['Laatste Leg', 'Every egg she has left, all at once.', 'Every last egg. For you.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'slime', 0.45, dt)) trail(sn, '#b8c85a', 1.4);
         if (st >= 3 && every(sn, 'eggs', 4.5, dt, 1.5)) ring(sn.x, sn.y, 8, vs() * 0.6, '#e8e0a0', rnd(TAU));
       } },
-    queen: { at: [0.66, 0.33], col: '#e2604e', speed: [1.1, 1.15, 1.25],
-      names: [['Echolocatie', 'Under the floor she leaves tremors that stay.'], ['Twee Tunnels', 'Every time she comes up, the floor bursts in a ring.']],
+    queen: { sting: ['rumble', 'roar'], at: [0.66, 0.33], col: '#e2604e', speed: [1.1, 1.15, 1.25],
+      names: [['Echolocatie', 'Under the floor she leaves tremors that stay.', 'I can hear your heartbeat.'], ['Twee Tunnels', 'Every time she comes up, the floor bursts in a ring.', 'The whole floor is mine.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && sn.mode === 'under' && every(sn, 'tremor', 0.28, dt)) { const v = spawnVenom(sn.x, sn.y, 0, 0, '#a0583a'); v.r = 6; v.life = 1.4; }
         if (modeIn(sn, 'warn', 'surface') && st >= 3) ring(sn.x, sn.y, 12, vs() * 0.75, '#e2604e', rnd(TAU));
       } },
     // the Price War: two bosses. Each has its own second stage, and the one left standing goes for a monopoly.
-    pwblue: { at: [0.5], col: '#3a8aff', speed: [1.1, 1.3],
-      names: [['Uitverkoop', 'Blue slashes prices: faster, and price tags fly.']],
+    pwblue: { sting: ['register', 'coin'], at: [0.5], col: '#3a8aff', speed: [1.1, 1.3],
+      names: [['Uitverkoop', 'Blue slashes prices: faster, and price tags fly.', 'Everything must go. You first.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'tags', 3.2, dt, 0.8)) aimed(sn, 3, 0.18, 1.1, '#9ac8ff');
         monopoly(sn, room, dt, 'pwyellow');
       } },
-    pwyellow: { at: [0.5], col: '#ffd23a', speed: [1.1, 1.2],
-      names: [['Bonuskaart', 'Yellow hands its partner a shield and spends coins like venom.']],
+    pwyellow: { sting: ['coin', 'dingdong'], at: [0.5], col: '#ffd23a', speed: [1.1, 1.2],
+      names: [['Bonuskaart', 'Yellow hands its partner a shield and spends coins like venom.', 'Bonus card says: you lose.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'card', 6, dt, 1)) { const o = partner(sn, room, 'pwblue'); if (o && o.alive && o.dying <= 0) { o.shieldT = Math.max(o.shieldT || 0, 2.2); floatText(o.x, o.y - 30, 'BONUSKAART', '#ffd23a'); } ring(sn.x, sn.y, 8, vs() * 0.8, '#ffd23a', rnd(TAU)); }
         monopoly(sn, room, dt, 'pwblue');
       } },
-    coalition: { at: [0.75], col: '#c0c0d0', speed: [1.1, 1.2],
-      names: [['Kabinetscrisis', 'The parties argue in rings of venom.']],
+    coalition: { sting: ['gavel', 'roar'], at: [0.75], col: '#c0c0d0', speed: [1.1, 1.2],
+      names: [['Kabinetscrisis', 'The parties argue in rings of venom.', 'We agree on nothing. Except you.']],
       tick(sn, room, dt, st) { if (st >= 2 && !sn.split && every(sn, 'crisis', 4.2, dt, 1)) for (let k = 0; k < 4; k++) ring(sn.x, sn.y, 4, vs() * (0.55 + k * 0.12), ['#e2604e', '#3a8aff', '#5ac85a', '#ffd23a'][k], k * 0.4); } },
-    party: { at: [0.5], col: '#c0c0d0', speed: [1, 1.3],
-      names: [['Motie van Wantrouwen', 'A party on its own has nothing to lose.']],
+    party: { sting: ['gavel', 'hiss'], at: [0.5], col: '#c0c0d0', speed: [1, 1.3],
+      names: [['Motie van Wantrouwen', 'A party on its own has nothing to lose.', 'No coalition. No mercy.']],
       tick(sn, room, dt, st) { if (st >= 2 && every(sn, 'motie', 2.8, dt, 0.5)) aimed(sn, 3, 0.25, 1, sn.K.blood); } },
-    ouro: { at: [0.7, 0.35], col: '#ff7a3c', speed: [1.05, 1.15, 1.3],
-      names: [['Staart in de Bek', 'From the middle of its ring, venom flies outward.'], ['Vervelling', 'It sheds its skin. The old skin still bites.']],
+    ouro: { sting: ['hiss', 'roar'], at: [0.7, 0.35], col: '#ff7a3c', speed: [1.05, 1.15, 1.3],
+      names: [['Staart in de Bek', 'From the middle of its ring, venom flies outward.', 'The end bites the beginning.'], ['Vervelling', 'It sheds its skin. The old skin still bites.', 'Out with the old skin.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && sn.mode === 'ring' && every(sn, 'core', 3.2, dt, 0.6)) ring(sn.cx, sn.cy, 10, vs() * 0.6, '#ff7a3c', sn.theta);
         if (st >= 3 && every(sn, 'skin', 0.4, dt)) { const p = sn.pts[Math.floor(sn.pts.length * 0.7)]; if (p && !p.hid) { const v = spawnVenom(p.x, p.y, 0, 0, '#c8803a'); v.r = 6; v.life = 2.4; } }
       } },
-    ender: { at: [0.66, 0.33], col: '#c86bff', speed: [1.1, 1.15, 1.25],
-      names: [['Parelregen', 'Every time it lands from a teleport, pearls burst around it.'], ['Het Einde', 'Obsidian falls from the ceiling. Keep moving.']],
+    ender: { sting: ['warp', 'roar'], at: [0.66, 0.33], col: '#c86bff', speed: [1.1, 1.15, 1.25],
+      names: [['Parelregen', 'Every time it lands from a teleport, pearls burst around it.', 'Do not look me in the eyes.'], ['Het Einde', 'Obsidian falls from the ceiling. Keep moving.', 'This is how it ends.']],
       tick(sn, room, dt, st) {
         if (modeIn(sn, 'tpIn', 'move') && st >= 2) ring(sn.x, sn.y, 8, vs() * 0.7, '#c86bff', rnd(TAU));
         if (st >= 3 && every(sn, 'obsid', 5, dt, 1.5)) strikes(room, 3, 120, { col: '#6a3aa8', r: 28 });
       } },
-    manu: { at: [0.5], col: '#ff3ad8', speed: [1, 1.1],
-      names: [['Bass Drop', 'The speakers fall from the rafters. Watch the floor.']],
+    manu: { sting: ['stinger', 'boom'], at: [0.5], col: '#ff3ad8', speed: [1, 1.1],
+      names: [['Bass Drop', 'The speakers fall from the rafters. Watch the floor.', 'Hands in the air. Speakers too.']],
       tick(sn, room, dt, st) { if (st >= 2 && every(sn, 'spk', 6.5, dt, 1)) strikes(room, 3, 130, { col: '#ff3ad8', r: 32, ring: 6 }); } },
-    manudevil: { at: [0.66, 0.33], col: '#ff3a2a', speed: [1, 1.1, 1.2],
-      names: [['Vuurdans', 'He dances on fire. The fire stays.'], ['Hellevuur', 'The whole floor is the stage now.']],
+    manudevil: { sting: ['stinger', 'boom', 'curse'], at: [0.66, 0.33], col: '#ff3a2a', speed: [1, 1.1, 1.2],
+      names: [['Vuurdans', 'He dances on fire. The fire stays.', 'Feel the heat on the floor.'], ['Hellevuur', 'The whole floor is the stage now.', 'Welcome to the afterparty.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && sn.mode !== 'booth' && every(sn, 'fire', 0.22, dt)) trail(sn, '#ff6a2a', 1.8);
         if (st >= 3 && every(sn, 'hell', 5.5, dt, 1)) { const P = G.player; for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; strike(room, P.x + Math.cos(a) * 95, P.y + Math.sin(a) * 95, { col: '#ff3a2a', r: 30, warn: 1.2 }); } }
       } },
-    bus: { at: [0.5], col: '#ffb43a', speed: [1, 1.3],
-      names: [['Spitsuur', 'Rush hour. Lijn 34 is late and does not stop for anyone.']],
+    bus: { sting: ['busHorn', 'boost'], at: [0.5], col: '#ffb43a', speed: [1, 1.3],
+      names: [['Spitsuur', 'Rush hour. Lijn 34 is late and does not stop for anyone.', 'Next stop: you. No stopping.']],
       tick(sn, room, dt, st) { if (st >= 2 && every(sn, 'exh', 0.18, dt)) trail(sn, '#6a6a6a', 1.5); } },
-    tellie: { at: [0.5], col: '#3ae0ff', speed: [1.05, 1.2],
-      names: [['Kortsluiting', 'Every socket in the room sparks at you.']],
+    tellie: { sting: ['buzz', 'zap'], at: [0.5], col: '#3ae0ff', speed: [1.05, 1.2],
+      names: [['Kortsluiting', 'Every socket in the room sparks at you.', 'Stay tuned. Stay plugged in.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && room.sockets9 && every(sn, 'spark', 4.2, dt, 0.8)) {
           const P = G.player;
@@ -43264,20 +43264,20 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
           Sfx.zap && Sfx.zap();
         }
       } },
-    rechter: { at: [0.6, 0.3], col: '#d8b46a', speed: [1.05, 1.15, 1.25],
-      names: [['Hoger Beroep', 'The gavel comes down where you stand.'], ['Cassatie', 'Final ruling: venom in every direction.']],
+    rechter: { sting: ['gavel', 'paper'], at: [0.6, 0.3], col: '#d8b46a', speed: [1.05, 1.15, 1.25],
+      names: [['Hoger Beroep', 'The gavel comes down where you stand.', 'Objection overruled.'], ['Cassatie', 'Final ruling: venom in every direction.', 'Final verdict: guilty.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'gavel', 4.6, dt, 1)) strikes(room, 2, 90, { col: '#d8b46a', r: 34 });
         if (st >= 3 && every(sn, 'cross', 2.6, dt, 0.5)) { sn.crossO14 = (sn.crossO14 || 0) + Math.PI / 4; ring(sn.x, sn.y, 4, vs() * 0.85, '#f2e6cf', sn.crossO14); }
       } },
-    peuk: { at: [0.5], col: '#a0a0a0', speed: [1.1, 1.25],
-      names: [['Asregen', 'Burning ash falls. The smoke hangs in the air.']],
+    peuk: { sting: ['fuse', 'puff'], at: [0.5], col: '#a0a0a0', speed: [1.1, 1.25],
+      names: [['Asregen', 'Burning ash falls. The smoke hangs in the air.', 'Ashes to ashes.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'ash', 5, dt, 1)) strikes(room, 3, 140, { col: '#ff8a2a', r: 26 });
         if (st >= 2 && every(sn, 'smoke', 0.35, dt)) trail(sn, '#7a7a7a', 2);
       } },
-    tvboss: { at: [0.6, 0.3], col: '#3ae0ff', speed: [1.05, 1.15, 1.25],
-      names: [['Zapper', 'Channel change: a ring with one way out.'], ['Storing', 'No signal. Static everywhere.']],
+    tvboss: { sting: ['zap', 'dingdong'], at: [0.6, 0.3], col: '#3ae0ff', speed: [1.05, 1.15, 1.25],
+      names: [['Zapper', 'Channel change: a ring with one way out.', 'We now switch channels.'], ['Storing', 'No signal. Static everywhere.', 'Signal lost. So are you.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'zap14', 4.5, dt, 1)) {
           const P = G.player, gap = Math.atan2(P.y - sn.y, P.x - sn.x) + rnd(-1.2, 1.2);
@@ -43285,38 +43285,38 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
         }
         if (st >= 3 && every(sn, 'static', 4, dt, 2)) strikes(room, 4, 160, { col: '#d8f0ff', r: 24, warn: 0.95 });
       } },
-    kampioen: { at: [0.5], col: '#ffd23a', speed: [1.15, 1.3],
-      names: [['Tweede Ronde', 'The champion is warmed up: faster, and an uppercut after every dash.']],
+    kampioen: { sting: ['dingdong', 'roar'], at: [0.5], col: '#ffd23a', speed: [1.15, 1.3],
+      names: [['Tweede Ronde', 'The champion is warmed up: faster, and an uppercut after every dash.', 'Round two. Gloves off.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'upper', 2.8, dt, 0.6)) aimed(sn, 3, 0.16, 1.2, '#ffd23a');
       } },
-    tunnel: { at: [0.66, 0.33], col: '#a08a6a', speed: [1.05, 1.15, 1.2],
-      names: [['Instorting', 'The tunnel roof comes down in pieces.'], ['Lockdown', 'More rock, faster. Nobody leaves.']],
+    tunnel: { sting: ['collapse', 'rumble'], at: [0.66, 0.33], col: '#a08a6a', speed: [1.05, 1.15, 1.2],
+      names: [['Instorting', 'The tunnel roof comes down in pieces.', 'Mind the ceiling.'], ['Lockdown', 'More rock, faster. Nobody leaves.', 'Nobody leaves the tunnel.']],
       tick(sn, room, dt, st) { if (st >= 2 && every(sn, 'rock', st >= 3 ? 3.4 : 5, dt, 1)) strikes(room, st >= 3 ? 5 : 3, 150, { col: '#c8a878', r: 28 }); } },
-    leegte: { at: [0.6, 0.3], col: '#8a6aff', speed: [1.05, 1.15, 1.2],
-      names: [['Niets', 'Nothing spins out of it, in two arms.'], ['Alles Weg', 'It pulls everything in. Run the other way.']],
+    leegte: { sting: ['descend', 'warp'], at: [0.6, 0.3], col: '#8a6aff', speed: [1.05, 1.15, 1.2],
+      names: [['Niets', 'Nothing spins out of it, in two arms.', 'There is nothing here.'], ['Alles Weg', 'It pulls everything in. Run the other way.', 'Everything comes to nothing.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'arm', 0.16, dt)) { sn.armA14 = (sn.armA14 || 0) + 0.33; if (Math.floor(G.t / 3) % 2 === 0) ring(sn.x, sn.y, 2, vs() * 0.55, '#8a6aff', sn.armA14); }
         if (st >= 3) pull(sn, dt, 70, 320);
       } },
-    spook: { at: [0.5], col: '#d8e8ff', speed: [1.1, 1.25],
-      names: [['Spookuur', 'Midnight. Ghost lights come at you from every corner.']],
+    spook: { sting: ['curse', 'descend'], at: [0.5], col: '#d8e8ff', speed: [1.1, 1.25],
+      names: [['Spookuur', 'Midnight. Ghost lights come at you from every corner.', 'It is midnight. My hour.']],
       tick(sn, room, dt, st) {
         if (st >= 2 && every(sn, 'corner', 4.5, dt, 1)) {
           const P = G.player;
           for (const [x, y] of [[30, 30], [RW - 30, 30], [30, RH - 30], [RW - 30, RH - 30]]) { const v = spawnVenom(x, y, Math.atan2(P.y - y, P.x - x), vs() * 0.6, '#d8e8ff'); v.r = 7; v.life = 5; }
         }
       } },
-    jaude: { at: [0.5], col: '#ff5ab4', speed: [1.15, 1.35],
-      names: [['Jaude Boos', 'Jaude is angry now. Faster, and venom on every stomp.']],
+    jaude: { sting: ['slam', 'roar'], at: [0.5], col: '#ff5ab4', speed: [1.15, 1.35],
+      names: [['Jaude Boos', 'Jaude is angry now. Faster, and venom on every stomp.', 'Jaude is not happy.']],
       tick(sn, room, dt, st) { if (st >= 2 && every(sn, 'boos', 3.4, dt, 0.8)) ring(sn.x, sn.y, 8, vs() * 0.75, '#ff5ab4', rnd(TAU)); } },
     // De Wals keeps its own second half at 50%; the coda is new: strikes fall in threes, in time
-    wals: { at: [0.5, 0.2], col: '#ff5ab4', speed: [1, 1, 1.15],
-      names: [null, ['Coda', 'The last bars. One, two, three, all around you.']],
+    wals: { sting: ['stinger', 'whoosh10'], at: [0.5, 0.2], col: '#ff5ab4', speed: [1, 1, 1.15],
+      names: [['Tweede Helft', 'The second half of the waltz. It brought the noodles.', 'Faster now. Keep up.'], ['Coda', 'The last bars. One, two, three, all around you.', 'One, two, three. The end.']],
       tick(sn, room, dt, st) { if (st >= 3 && every(sn, 'coda', 3 * 0.33 * 4, dt, 1)) { const P = G.player, a0 = rnd(TAU); for (let i = 0; i < 3; i++) { const a = a0 + (i / 3) * TAU; strike(room, P.x + Math.cos(a) * 70, P.y + Math.sin(a) * 70, { col: '#ff5ab4', r: 34, warn: 0.99 + i * 0.33, ring: 3 }); } } } },
     // De Galaxyworm: four stages, all of its attacks live in its own AI (src/82-v14-ruimte.js)
-    galaxy: { at: [0.7, 0.4, 0.15], col: '#c45aff',
-      names: [['Zwart Gat', 'The middle of the galaxy opens. Black holes, meteors, a comet.'], ['Supernova', 'Its heart is collapsing. Hide behind a rock when it blows.'], ['Singulariteit', 'The event horizon closes in. Stay inside the ring.']],
+    galaxy: { sting: ['warp', 'charge'], at: [0.7, 0.4, 0.15], col: '#c45aff',
+      names: [['Zwart Gat', 'The middle of the galaxy opens. Black holes, meteors, a comet.', 'I ate every star you wished on.'], ['Supernova', 'Its heart is collapsing. Hide behind a rock when it blows.', 'Watch my heart go.'], ['Singulariteit', 'The event horizon closes in. Stay inside the ring.', 'Not even light leaves now.']],
       enter(sn, room, st) { const S = window.__bitten.SPACE14; if (S && S.galaxyStage14) S.galaxyStage14(sn, room, st); } },
   };
   // the Price War partner that is left alone goes for the monopoly, once
@@ -43350,16 +43350,28 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     if (line != null && sn.hp - a < sn.maxHp * line) { a = Math.max(0, sn.hp - sn.maxHp * line); sn.stagePend14 = true; }
     return a;
   };
+  // the stage card: the boss's own name and colour, how far along the fight is, and a line in its own voice.
+  // The banner under it keeps the gameplay hint.
+  function announce(sn, D, nm) {
+    const total = D.at.length + 1, who = sn.displayName || sn.K.name, col = D.col || '#ffffff';
+    const pips = Array.from({ length: total }, (_, i) => (i < sn.stage14 ? '\u25c6' : '\u25c7')).join(' ');
+    UI.card(`${who}  ${pips}`, nm[0], nm[2] ? '\u201c' + nm[2] + '\u201d' : '', 'boss stage14', 2.6);
+    if (UI.el && UI.el.card) UI.el.card.style.setProperty('--sc', col);
+    UI.banner(`Stage ${sn.stage14} of ${total}`, nm[1], 'curse');
+    floatText(sn.x, sn.y - sn.headR - 26, nm[0].toUpperCase(), col, true);
+    if (sn.kind === 'wals') sn.ph2Said = true;
+  }
   function stageUp(sn, room) {
     const D = DEF[sn.kind];
     sn.stage14++; sn.stagePend14 = false; sn.stageT14 = SHIELD;
     const nm = D.names && D.names[sn.stage14 - 2];
-    if (nm) UI.banner(nm[0], nm[1], 'curse');
+    if (nm) announce(sn, D, nm);
     for (let j = G.venom.length - 1; j >= 0; j--) if (!G.venom[j].friendly) G.venom.splice(j, 1);
     if (room.st14) room.st14.length = 0;
     burst(sn.x, sn.y, 34, D.col || sn.K.blood, { min: 80, max: 300, rmin: 1.4, rmax: 3.2, lmin: 0.4, lmax: 0.9, glow: true });
     addP({ kind: 'ring', x: sn.x, y: sn.y, vx: 0, vy: 0, r: sn.headR * 2, life: 0.5, col: D.col || '#ffffff', drag: 0 });
-    G.shake = Math.max(G.shake || 0, 10); flashLight(sn.x, sn.y, 240, 1, 0.4); Sfx.roar();
+    G.shake = Math.max(G.shake || 0, 10); flashLight(sn.x, sn.y, 240, 1, 0.4);
+    for (const k of D.sting || ['roar']) if (typeof Sfx[k] === 'function') Sfx[k]();
     sn.stun = 0;
     if (D.enter) D.enter(sn, room, sn.stage14);
     if (G.run) G.run.stages14 = (G.run.stages14 || 0) + 1;
