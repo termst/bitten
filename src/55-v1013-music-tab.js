@@ -21,6 +21,9 @@
       col: '#ff3a2a', acc: '#ffb43a', kind: 'hell', loop: true },
     { id: 'wals', name: 'Rotten Waltz', tag: 'Ultra Hard Remix', where: 'De Wals brings its own track. It moves in threes, and so does this.',
       col: '#9a5aff', acc: '#ffd23a', kind: 'wals' },
+    { id: 'galaxy', name: 'Rotten Waltz', tag: 'Starlight Remix', where: 'De Galaxyworm in De Ruimte. Played live: every stage of the fight changes the song, from a glass waltz to the singularity.',
+      col: '#8a3aff', acc: '#bfe0ff', kind: 'star', loop: true,
+      parts: StarWaltz.STAGES.slice(1).map((st, i) => ({ id: String(i + 1), name: st.name })) },
     { id: 'death', name: 'Game Over', tag: 'Epic Remix', where: 'The same chords, played when something finally eats you.',
       col: '#8a2a3a', acc: '#d8c8b0', kind: 'death', dur: window.__deathSong ? window.__deathSong.dur : 30 },
     { id: 'floors', name: 'Floor Hum', tag: 'Ambience', where: 'The low drone under every floor. Each floor hums in its own key.',
@@ -160,6 +163,17 @@
       c.fillStyle = '#1a0d00'; for (const s of [-1, 1]) circle(c, cx + s * 4 + 0.6, cy - 2, 1);
       c.fillStyle = '#f2e6cf'; c.font = `800 7px ${UIF}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(on ? String(1 + Math.floor(t * BR.BPM / 60) % 3) : '3', cx, cy + 5);
     },
+    galaxy(c, w, h, t, on, part) {
+      const cx = w * 0.5, cy = h * 0.5, sp = on ? t * (0.5 + 0.25 * (+part || 1)) : 0.4;
+      for (let k = 0; k < 3; k++) {
+        c.strokeStyle = k ? 'rgba(196,90,255,0.6)' : 'rgba(191,224,255,0.85)'; c.lineWidth = 2 - k * 0.4; c.beginPath();
+        for (let i = 0; i <= 40; i++) { const u = i / 40, a = sp + k * TAU / 3 + u * 4.2, r = 4 + u * 26; i ? c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r) : c.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+        c.stroke();
+      }
+      c.fillStyle = '#fff6d8'; circle(c, cx, cy, on ? 4 + Math.sin(t * 6) * 1.2 : 4);
+      for (let i = 0; i < 7; i++) { c.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(t * 2 + i)); c.fillStyle = '#ffffff'; circle(c, (i * 23) % w, (i * 37 + 9) % h, 0.9); }
+      c.globalAlpha = 1;
+    },
     death(c, w, h, t, on) {
       c.save(); c.translate(w * 0.48, h * 0.55 + (on ? Math.sin(t * 2) * 1.2 : 0)); drawCore(c, 19, false); c.restore();
       c.fillStyle = 'rgba(216,200,176,0.5)';
@@ -269,6 +283,7 @@
     if (was === 'death' && window.__deathSong) safe(() => window.__deathSong.stop());
     if (was === 'box') Sfx.stopMusic();
     if (was === 'floors') Sfx.stopDrone();
+    if (J.star) { J.star.stop(0.3); J.star = null; }
     J.cur = null; J.part = null;
     if (!keep) loud13();
     if (was && G.state === 'pause') Sfx.suspend();
@@ -328,6 +343,11 @@
       wait();
     } else if (S.kind === 'death' && window.__deathSong) { J.t0 = c.currentTime; J.off = 0; window.__deathSong.play(c); }
     else if (S.kind === 'box') { J.t0 = c.currentTime; Sfx.startMusic(); }
+    else if (S.kind === 'star') {
+      // the live boss track: a part picks a stage, no part walks through all four
+      J.t0 = c.currentTime; J.star = StarWaltz.create(c, Sfx.master, 0.6); J.starAuto = !part;
+      if (part) J.star.setStage(+part); else J.part = '1';
+    }
     else if (S.kind === 'drone') {
       J.t0 = c.currentTime; Sfx.startDrone(part || 'cellar');
     }
@@ -340,6 +360,12 @@
     const now = c.currentTime;
     if (J.t0 == null) { draw(C, now); return; }
     if (S.kind === 'box') safe(() => (Sfx.oldWaltz || Sfx.musicTick).call(Sfx));
+    if (S.kind === 'star' && J.star) safe(() => {
+      J.star.tick();
+      if (J.starAuto && J.star.bar >= (J.star.stage === 1 ? 8 : 16)) J.star.setStage(J.star.stage % 4 + 1);
+      const id = String(J.star.stage);
+      if (id !== J.part) { J.part = id; for (const b of C.el.querySelectorAll('[data-part]')) b.classList.toggle('on', b.dataset.part === id); }
+    });
     let pos = J.off + Math.max(0, now - J.t0) * (J.rate || 1);
     if (J.src && J.src.loop && J.loopB > J.loopA && pos > J.loopB) pos = J.loopA + ((pos - J.loopA) % (J.loopB - J.loopA));
     if (S.kind === 'remix') {

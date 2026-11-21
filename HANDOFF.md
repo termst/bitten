@@ -142,3 +142,18 @@ A rare floor (tier 4, `set: 'ruimte'`, boss `galaxy`). Every room is open space:
 * Low health prefetch of the Wals MP3 skipped: the death remix is synthesized, not the MP3.
 * Tests to rerun after any change: phase0.js, bot.js (single player must match seeded numbers:
   apple 38.7 kills / 12.3 dmg / 192 s, lucif 60/19.3/351, lucky 58/17/288 with --runs 3), coop.js, hz.js.
+
+## v14.3: boss stages, Starlight Remix
+
+* `src/85-v14-stages.js`: every boss fights in stages by health (`DEF[kind]`: `at` lines, names, per stage speed, `enter`, `tick`).
+  Each boss has its own stage names and attacks (strikes, rings, trails, pulls, partner shields, the Price War monopoly).
+  Shared rules: a stage line holds (damage stops at the line, 1.1 s shield, venom cleared), one hit takes at most 6%,
+  past 15% a second (more per apple) damage counts at 45%, long opening cooldowns are cut so no boss idles at the start.
+  Grub Mother 64 to 80 hp, Jaude 70 to 90. Stage state lives on the snake (`stage14`, `sc14`), strikes in `room.st14`.
+* De Galaxyworm: 4 stages (70/40/15%), hp 400. New: constellations (`fx14.cons`), comet dash, pulsar beams (a rock blocks),
+  the event horizon (`fx14.horizon`, stage 4). `galaxyStage14` sets each stage up.
+* `src/00-music-starwaltz.js` `StarWaltz`: the Rotten Waltz melody as a live scheduled boss track, 4 arrangements
+  (112 BPM 3/4 waltz up to 156 BPM). `src/84-v14-galaxy-track.js` drives it from the boss (stage, nova riser and impact,
+  finale on death). Audio only, no Math.random. Music tab card "Starlight Remix" with a part per stage.
+* Tests: `test/stages.js` (every boss, heavy fire, stages in order), `test/starwaltz.js` (level per stage), `test/ruimte.js` (4 stages).
+  `test/bot.js --runs 3` after this change: apple 54.3/19.0/253, lucif 66/21/358, lucky 45/14/186 (new reference numbers).

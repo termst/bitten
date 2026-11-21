@@ -1,5 +1,5 @@
 // Smoke test for De Ruimte (src/82-v14-ruimte.js). Forces the space floor, then plays a fight room, a supernova room,
-// the boss in all three phases and all eight space powerups with god mode on. Fails on any page error or error counter.
+// the boss in all four stages and all eight space powerups with god mode on. Fails on any page error or error counter.
 // Screenshots go to test/out/ruimte-*.png. Usage: NODE_PATH=$(npm root -g) node test/ruimte.js
 const { launch, ROOT } = require('./lib');
 const fakeClockInit = require('./fakeclock');
@@ -114,11 +114,20 @@ const OUT = path.join(ROOT, 'test', 'out');
     const boss = G.boss;
     const out = { kind: boss && boss.kind, state: G.state, phases: [] };
     if (!boss) return out;
-    for (const f of [0.9, 0.5, 0.2]) {
+    const M = B.galaxyTrack;
+    for (const f of [0.9, 0.6, 0.3, 0.1]) {
       boss.hp = boss.maxHp * f;
-      await window.__tick14(9000);
+      const seen = { cons: 0, horizon: 0, comet: 0, pulsar: 0 };
+      for (let i = 0; i < 45; i++) {
+        await window.__tick14(200);
+        const F = room.fx14 || {};
+        if ((F.cons || []).length) seen.cons++;
+        if (F.horizon) seen.horizon++;
+        if (boss.mode === 'comet') seen.comet++;
+        if (boss.mode === 'pulsar') seen.pulsar++;
+      }
       const F = room.fx14 || {};
-      out.phases.push({ f, ph: boss.ph14, mode: boss.mode, venom: G.venom.length, holes: (F.holes || []).length, meteors: (F.meteors || []).length, shocks: (F.shocks || []).length, kids: room.snakes.filter((s) => s !== boss && s.alive).length });
+      out.phases.push({ f, ph: boss.stage14, seen, music: M && M.inst ? M.inst.stage : null, mode: boss.mode, venom: G.venom.length, holes: (F.holes || []).length, meteors: (F.meteors || []).length, shocks: (F.shocks || []).length, kids: room.snakes.filter((s) => s !== boss && s.alive).length });
     }
     return out;
   });
@@ -126,7 +135,7 @@ const OUT = path.join(ROOT, 'test', 'out');
   res.bossNova = await step(async () => {
     const B = window.__bitten, G = B.G, boss = G.boss;
     if (!boss) return null;
-    boss.novaCd = 0; boss.mode = 'move';
+    boss.novaCd = 0; boss.pulsarCd = 99; boss.mode = 'move';
     for (let i = 0; i < 30; i++) { await window.__tick14(100); if (boss.mode === 'nova' && boss.charge14 > 0.7) break; }
     return { mode: boss.mode, charge: boss.charge14 };
   });
@@ -153,7 +162,7 @@ const OUT = path.join(ROOT, 'test', 'out');
   res.errors = await step(() => ({ n: window.__bitten.G.errors || 0, log: (window.__bitten.G.errorLog || []).slice(-5) }));
   res.page = errs.slice(0, 8);
   console.log(JSON.stringify(res, null, 1));
-  const ok = res.start.set === 'ruimte' && !res.page.length && !res.errors.n;
+  const ok = res.start.set === 'ruimte' && !res.page.length && !res.errors.n && res.boss.phases.map((p) => p.ph).join() === '1,2,3,4';
   console.log(ok ? 'RUIMTE OK' : 'RUIMTE FAILED');
   await b.close();
   process.exit(ok ? 0 : 1);
