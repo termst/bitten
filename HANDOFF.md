@@ -158,3 +158,11 @@ A rare floor (tier 4, `set: 'ruimte'`, boss `galaxy`). Every room is open space:
   finale on death). Audio only, no Math.random. Music tab card "Starlight Remix" with a part per stage.
 * Tests: `test/stages.js` (every boss, heavy fire, stages in order), `test/starwaltz.js` (level per stage), `test/ruimte.js` (4 stages).
   `test/bot.js --runs 3` after this change: apple 54.3/19.0/253, lucif 66/21/358, lucky 45/14/186 (new reference numbers).
+
+## Snake looks (src/87-v14-looks.js)
+
+`LOOK14` gives each kind a body segment shape (`seg`: oval, flat, bead, plate, hex, diamond, star), a pattern (`pat`),
+side parts (`spikes`, `legs`, `fins`, `wings`), a `tail` and head parts (`head`: horns, antennae, frill, ears, whiskers,
+crown, mohawk) plus `glow`. Colours are hex or `$key` for a colour of the kind. A new look is one table row.
+drawSnake in 06-draw.js calls `seg14` for every body circle. Visual only, no Math.random.
+Sheet of every kind: `node test/snakes.js [tag]` writes test/out/snakes-<tag>.png. Blocky kinds and V9_BODY kinds (bus, tellie, tvboss, jaude) keep their own draw.
