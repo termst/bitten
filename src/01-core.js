@@ -326,6 +326,28 @@ function livePlayers14() {
 function armed14(o) { if (!MP14.on || !G.player) return o.armed; const m = o.arm14; return m && m.has(G.player) ? m.get(G.player) : o.armed; }
 function setArmed14(o, v) { if (!MP14.on || !G.player) { o.armed = v; return; } (o.arm14 || (o.arm14 = new Map())).set(G.player, v); }
 function mpCount14() { return MP14.on && G.players ? G.players.length : 1; }
+/* v14.2 coop styles. 'split' (Coop): every apple has its own coins, contracts, pumps, chair and gym set.
+   'plus' (Coop Plus): one purse, every powerup goes to every apple, and loot is dealt as for one apple. */
+function coopStyle14() { return MP14.on && G.run ? G.run.coop14 || 'split' : ''; }
+function coopSplit14() { return coopStyle14() === 'split'; }
+function coopPlus14() { return coopStyle14() === 'plus'; }
+/* powerups a chest, treasure room or boss deals: one per apple, one in Coop Plus */
+function coopLoot14() { return coopPlus14() ? 1 : mpCount14(); }
+/* team rules the Game Maker can change (revive seconds, revive health, door wait, team scaling) */
+const CO14 = { revive: 3, reviveHp: 2, door: 3, scale: 1 };
+/* a field that every apple keeps for itself in a split run (pump used, chair done, gym set): one value per
+   apple, read and written through G.player. Not enumerable, so repairs and hashes skip it. */
+function perApple14(o, key) {
+  if (!o) return;
+  const d = Object.getOwnPropertyDescriptor(o, key);
+  if (d && d.get) return;
+  const base = o[key], m = new Map();
+  Object.defineProperty(o, key, {
+    configurable: true, enumerable: false,
+    get() { return G.player && m.has(G.player) ? m.get(G.player) : base; },
+    set(v) { if (G.player) m.set(G.player, v); },
+  });
+}
 /* run fn(P) for every apple that can be bitten (single player: just G.player, as before) */
 function forLive14(fn) {
   if (!MP14.on) { if (G.player) fn(G.player); return; }
@@ -350,6 +372,7 @@ function nearestLive14(x, y) {
 }
 /* B1 (v14.0): balance for n apples. n = 1 keeps every number as it was. */
 const MPB14 = { hp: [1, 1, 1.35, 1.65, 1.9], boss: [1, 1, 1.6, 2.1, 2.6], cycle: [1, 1, 1, 1.05, 1.1], drop: [1, 1, 1.5, 2, 2.5] };
-function mpSnakeHpK14() { return MP14.on ? MPB14.hp[Math.min(4, mpCount14())] : 1; }
-function mpBossHpK14() { return MP14.on ? MPB14.boss[Math.min(4, mpCount14())] : 1; }
+/* CO14.scale (Game Maker, team scaling) bends the extra health: 0.5 is half the bonus, 1.5 one and a half */
+function mpSnakeHpK14() { return MP14.on ? 1 + (MPB14.hp[Math.min(4, mpCount14())] - 1) * CO14.scale : 1; }
+function mpBossHpK14() { return MP14.on ? 1 + (MPB14.boss[Math.min(4, mpCount14())] - 1) * CO14.scale : 1; }
 function mpExtra14() { return MP14.on ? Math.min(3, mpCount14() - 1) : 0; }

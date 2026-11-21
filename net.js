@@ -19,7 +19,7 @@
   const B = window.__bitten = window.__bitten || {};
   const safe = (fn, fb) => { try { return fn(); } catch (e) { try { errNote14(e, 'net'); } catch (e2) { /* ignore */ } return fb; } };
   const T = (s) => (typeof sayF9 === 'function' ? sayF9(s) : s);
-  const PROTO = 'bitten-net-14.0-2';
+  const PROTO = 'bitten-net-14.0-3';
   const STEP = 1 / 60, CHECK = 60, MAXP = 4;
   const ID_PREFIX = 'bitten14-';
   const LINES = ['Host a game', 'Join', 'Room code', 'Leave', 'Copy invite link', 'Link copied', 'Waiting for players', 'Connecting',
@@ -329,6 +329,8 @@
     return p;
   };
   const pubMembers = () => S.members.map((m) => ({ slot: m.slot, name: m.name, char: m.char, look: m.look, via: m.via || '' }));
+  const maxP = () => Math.min(MAXP, safe(() => (B.gm14 ? B.gm14.max() : MAXP), MAXP) || MAXP);
+  const gmPub = () => safe(() => (B.gm14 ? B.gm14.pub() : null), null);
   const cleanName = (n, slot) => String(n || '').replace(/[<>&"]/g, '').trim().slice(0, 12) || 'P' + (slot + 1);
 
   /* ================================================================ host */
@@ -358,7 +360,7 @@
     if (m.t === 'hello') {
       if (m.v !== PROTO) { L.send({ t: 'no', why: 'This room runs another version of Bitten' }); setTimeout(() => L.close(), 300); return; }
       if (S.running) { L.send({ t: 'no', why: 'A run is already going in that room. Wait for the next one.' }); setTimeout(() => L.close(), 300); return; }
-      if (S.members.length >= MAXP) { L.send({ t: 'no', why: 'That room is full' }); setTimeout(() => L.close(), 300); return; }
+      if (S.members.length >= maxP()) { L.send({ t: 'no', why: 'That room is full' }); setTimeout(() => L.close(), 300); return; }
       let slot = 1; while (S.members.some((x) => x.slot === slot)) slot++;
       let nm = cleanName(m.name, slot);
       if (/^P\d$/.test(nm) || S.members.some((x) => x.name === nm)) nm = /^P\d$/.test(nm) ? 'P' + (slot + 1) : (nm.slice(0, 10) + ' ' + (slot + 1));
@@ -386,8 +388,8 @@
     mem.link = null;
   }
   function lobbyCast() {
-    const pub = pubMembers();
-    for (const m of S.members) if (m.link && m.link.open) m.link.send({ t: 'lobby', code: S.code, members: pub, you: m.slot, mode: onlineMode() });
+    const pub = pubMembers(), gm = gmPub();
+    for (const m of S.members) if (m.link && m.link.open) m.link.send({ t: 'lobby', code: S.code, members: pub, you: m.slot, mode: onlineMode(), gm });
     paint();
   }
   const ONLINE_MODES = () => Object.keys(MODES).filter((k) => k !== 'story' && k !== 'daily');
@@ -399,7 +401,8 @@
     if (S.members.length < 2) { safe(() => UI.banner(T('Needs at least two apples'), '')); return; }
     if (NET.live) endRun(false);
     for (const m of S.members) { m.away = false; m.in = null; m.dashN = -1; m.pingN = -1; }
-    const seed = (RAND14.real() * 4294967296) >>> 0;
+    const fixed = safe(() => (B.gm14 ? B.gm14.seedNum() : null), null);   /* v14.2: Game Maker seed */
+    const seed = fixed != null ? fixed : (RAND14.real() * 4294967296) >>> 0;
     const msg = { t: 'start', seed, mode: onlineMode(), members: pubMembers(), save: JSON.parse(JSON.stringify(Save.data)), opts: optsNow() };
     for (const m of S.members) if (m.link) m.link.send(msg);
     beginRun(msg);
@@ -429,7 +432,7 @@
   }
   function guestMsg(m) {
     if (!m || typeof m !== 'object') return;
-    if (m.t === 'lobby') { S.members = m.members; S.me = m.you; S.code = m.code; S.mode = m.mode; S.status = T('Waiting for the host'); paint(); return; }
+    if (m.t === 'lobby') { S.members = m.members; S.me = m.you; S.code = m.code; S.mode = m.mode; S.gm = m.gm || null; S.status = T('Waiting for the host'); paint(); return; }
     if (m.t === 'no') { S.err = T(m.why); S.status = ''; const L = S.link; S.link = null; S.role = null; safe(() => L && L.close()); paint(); return; }
     if (m.t === 'start') { S.members = m.members; beginRun(m); return; }
     if (m.t === 'b') {
@@ -437,7 +440,8 @@
       for (const x of m.L) {
         if (x[0] < NET.want) continue;                       // a repeat
         if (x[0] > NET.want) { const now = performance.now(); if (now - (NET.rsT || 0) > 400 && S.link) { NET.rsT = now; S.link.send({ t: 'rs', n: NET.want }); } break; }
-        NET.queue.push(x); NET.want++;
+        const ins = unpackIns(x[1], NET.lastIns); NET.lastIns = ins;
+        NET.queue.push([x[0], ins, x[2] || 0, x[3] || 0]); NET.want++;
       }
       return;
     }
@@ -464,17 +468,22 @@
     constructor(slot) { this.kind = 'net'; this.slot = slot; this.mx = 0; this.my = 0; this.aim = null; this.dq = 0; this.pq = 0; this.spot = null; }
     set(a) {
       if (!a) { this.mx = 0; this.my = 0; this.aim = null; this.spot = null; return; }
-      this.mx = a[0]; this.my = a[1];
-      this.aim = a[2] == null ? null : { x: a[2], y: a[3], touch: !!a[4] };
+      this.mx = a[0] || 0; this.my = a[1] || 0;
+      this.aim = a[2] == null ? null : { x: a[2], y: a[3] || 0, touch: !!a[4] };   /* trimmed: a missing entry is 0 */
       this.dq += a[5] | 0; this.pq += a[6] | 0;
-      this.spot = a[7] == null ? null : { x: a[7], y: a[8] };
+      this.spot = a[7] == null ? null : { x: a[7], y: a[8] || 0 };
     }
     moveVec() { return { x: this.mx, y: this.my }; }
     aimVec() { return this.aim ? { x: this.aim.x, y: this.aim.y, touch: this.aim.touch } : null; }
     dash() { if (this.dq > 0) { this.dq--; return true; } return false; }
     interact() { if (this.pq > 0) { this.pq--; return true; } return false; }
   }
-  const q3 = (v) => Math.round(v * 1000) / 1000;
+  /* inputs travel at 1/100 (direction) and whole pixels (mouse spot): plenty for play, half the characters */
+  const q2 = (v) => Math.round(v * 100) / 100;
+  const qpx = (v) => Math.round(v);
+  /* drop trailing nulls and zeros: NetSource.set reads a missing entry as null or 0 */
+  const trim = (a) => { let n = a.length; while (n > 0 && (a[n - 1] == null || a[n - 1] === 0)) n--; return n === a.length ? a : a.slice(0, n); };
+  const sameIn = (a, b) => { if (a === b) return true; if (!a || !b || a.length !== b.length) return false; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; };
   /* what my keyboard, mouse, touch sticks or gamepad do right now, for my apple */
   const kbm = B.input14 ? new B.input14.KeyboardMouseSource() : null;
   function sampleLocal() {
@@ -493,17 +502,22 @@
       for (const gp of pads) { const s = B.input14.padFor(gp.index); if (s.dash()) L.dashN++; if (s.interact()) L.pingN++; }
       if (L.pingQ) { L.pingQ = false; L.pingN++; }
       let sx = null, sy = null;
-      if (!Input.touchMode && Input.mouse && Input.mouse.down) { const k = View.s || 1; sx = q3((Input.mouse.x - View.ox) / k - WALL); sy = q3((Input.mouse.y - View.oy) / k - WALL); }
-      return [q3(mv.x || 0), q3(mv.y || 0), aim ? q3(aim.x) : null, aim ? q3(aim.y) : null, aim && aim.touch ? 1 : 0, L.dashN, L.pingN, sx, sy];
+      if (!Input.touchMode && Input.mouse && Input.mouse.down) { const k = View.s || 1; sx = qpx((Input.mouse.x - View.ox) / k - WALL); sy = qpx((Input.mouse.y - View.oy) / k - WALL); }
+      return [q2(mv.x || 0), q2(mv.y || 0), aim ? q2(aim.x) : null, aim ? q2(aim.y) : null, aim && aim.touch ? 1 : 0, L.dashN, L.pingN, sx, sy];
     });
   }
   /* turn a raw sample into one slot of a bundle: counters become edges since the last bundle */
   function bundleSlot(mem, raw) {
-    if (!raw || mem.away) return [0, 0, null, null, 0, 0, 0, null, null];
-    const dn = mem.dashN < 0 ? 0 : Math.max(0, Math.min(3, raw[5] - mem.dashN)), pn = mem.pingN < 0 ? 0 : Math.max(0, Math.min(3, raw[6] - mem.pingN));
-    mem.dashN = raw[5]; mem.pingN = raw[6];
-    return [raw[0], raw[1], raw[2], raw[3], raw[4], dn, pn, raw[7], raw[8]];
+    if (!raw || mem.away) return [];
+    const d5 = raw[5] | 0, d6 = raw[6] | 0;
+    const dn = mem.dashN < 0 ? 0 : Math.max(0, Math.min(3, d5 - mem.dashN)), pn = mem.pingN < 0 ? 0 : Math.max(0, Math.min(3, d6 - mem.pingN));
+    mem.dashN = d5; mem.pingN = d6;
+    return trim([raw[0] || 0, raw[1] || 0, raw[2], raw[3], raw[4] || 0, dn, pn, raw[7], raw[8]]);
   }
+  /* a slot that repeats the tick before travels as the number 1 (every peer runs the ticks in order, so the
+     tick before is always known). Bundles: [tick, slots] plus [events, repair] only when there are any. */
+  function packIns(ins, prev) { return ins.map((a, i) => (a && prev && sameIn(a, prev[i]) ? 1 : a)); }
+  function unpackIns(ins, prev) { return ins.map((a, i) => (a === 1 ? (prev ? prev[i] : null) : a)); }
 
   /* guests play on the host's save (unlocks, powerup pool, custom run, game options) so every peer builds the
      same run. Their own save comes back when the run ends; local look and sound settings stay their own. */
@@ -525,7 +539,7 @@
     else NET.keep = null;
     S.running = true;
     NET.tick = 0; NET.acc = 0; NET.queue = []; NET.events = []; NET.menu = false; NET.decider = -1; NET.hashes = new Map(); NET.hist = new Map(); NET.fixAt = -1; NET.needFix = false; NET.wantFix = false; NET.fixWait = 0;
-    NET.want = 0; NET.ring = []; NET.rsT = 0; NET.fixSaid = false; for (const m of S.members) { m.pend = null; m.sentT = 0; }
+    NET.want = 0; NET.ring = []; NET.rsT = 0; NET.lastIns = null; NET.inLast = null; NET.inSent = 0; NET.fixSaid = false; for (const m of S.members) { m.pend = null; m.sentT = 0; }
     NET.local = { dashN: 0, pingN: 0 };
     NET.srcs = msg.members.map((m) => new NetSource(m.slot));
     const C = B.coop14;
@@ -614,7 +628,9 @@
       if (fixHere) NET.needFix = false;
       simTick(b);
       if (fixHere) b[3] = fixBlob();
-      out.push(b);
+      const w = [n, packIns(ins, NET.lastIns)]; NET.lastIns = ins;
+      if (ev || b[3]) { w.push(ev); if (b[3]) w.push(b[3]); }
+      out.push(w);
     }
     if (!out.length) return;
     const R = NET.ring || (NET.ring = []); for (const b of out) R.push(b); if (R.length > 1500) R.splice(0, R.length - 1200);
@@ -622,7 +638,7 @@
       if (!m.link || !m.link.open || m.away) continue;
       if (!m.link.relay) { m.link.send({ t: 'b', L: out }); continue; }
       const P = m.pend || (m.pend = []); for (const b of out) P.push(b);
-      if (P.length >= 2 || P.some((b) => b[3])) m.link.send({ t: 'b', L: m.pend.splice(0) });
+      if (P.length >= 2 || P.some((b) => b.length > 3)) m.link.send({ t: 'b', L: m.pend.splice(0) });
     }
   }
   /* ---------------- guest loop: run the bundles that came in, a little faster when behind */
@@ -641,7 +657,12 @@
     const L = S.link;
     if (L && L.open) {
       const now = performance.now();
-      if (!L.relay || now - (NET.inT || 0) >= 30) { NET.inT = now; L.send({ t: 'in', d: sampleLocal() }); }
+      /* only when it changed (the host keeps the last one), plus a keep alive every 250 ms */
+      if (!L.relay || now - (NET.inT || 0) >= 30) {
+        const d = trim(sampleLocal());
+        if (!sameIn(d, NET.inLast) || now - (NET.inSent || 0) > 250) { NET.inSent = now; NET.inLast = d; L.send({ t: 'in', d }); }
+        NET.inT = now;
+      }
       if (!NET.pingT || now - NET.pingT > 2000) { NET.pingT = now; L.send({ t: 'p', ts: now }); }
     }
   }
@@ -664,22 +685,20 @@
     return h;
   }
   function checkpoint(n, fix) {
-    const H = NET.hist || (NET.hist = new Map());
-    H.set(n, stateHash()); if (H.size > 300) H.delete(H.keys().next().value);
+    const H = NET.hist || (NET.hist = new Map()), h0 = stateHash();
+    H.set(n, h0); if (H.size > 300) H.delete(H.keys().next().value);
     if (NET.dbg) { const D = NET.dbgSnap || (NET.dbgSnap = new Map()); D.set(n, JSON.stringify(fixBlob())); if (D.size > 80) D.delete(D.keys().next().value); }
     if (S.role === 'host') {
-      NET.hashes.set(n, stateHash());
+      NET.hashes.set(n, h0);
       if (NET.hashes.size > 30) NET.hashes.delete(NET.hashes.keys().next().value);
       return;
     }
     if (fix && fix.n === n) {
-      const h0 = stateHash();
       if (h0 !== fix.h) { safe(() => applyFix(fix)); NET.repairs++; if (stateHash() !== fix.h) NET.desync++; else if (!NET.fixSaid) { NET.fixSaid = true; safe(() => UI.banner(T('Out of sync, repaired'), '')); } }
       NET.wantFix = false;
       return;
     }
-    const h = stateHash();
-    if (S.link && S.link.open) S.link.send({ t: 'h', n, h });
+    if (S.link && S.link.open) S.link.send({ t: 'h', n, h: h0 });
   }
   /* own primitive fields of an object (numbers, booleans, strings), and x/y of points in arrays */
   function prims(o) {
@@ -734,6 +753,9 @@
       set(v) {
         if (NET.live && MODAL_STATES[v] && st === 'play') NET.decider = G.player && G.player.slot14 != null ? G.player.slot14 : 0;
         if (NET.live && v === 'play') NET.decider = -1;
+        /* couch: remember whose panel it is, clicks in it run for that apple (below) */
+        if (!NET.live && MP14.on && MODAL_STATES[v] && st === 'play') NET.couchOwner = G.player;
+        if (v === 'play' || v === 'menu') NET.couchOwner = null;
         st = v;
       },
     });
@@ -747,6 +769,16 @@
     try { inSim(() => el.click()); } finally { gameRandOff(); NET.replay = false; }
   }
   const modalRoot = (el) => { for (const id of Object.values(MODAL_STATES)) { const r = document.getElementById(id); if (r && r.contains(el)) return r; } return null; };
+  /* couch: a click or key in the sell or contract panel runs with that apple in context (its items, its purse) */
+  const couchCtx = (e) => {
+    const P = NET.couchOwner;
+    if (NET.live || !P || !MP14.on || !MODAL_STATES[G.state] || G.player === P) return;
+    if (e.type === 'click' && !modalRoot(e.target)) return;
+    const keep = G.player; G.player = P;
+    queueMicrotask(() => { if (G.player === P) G.player = keep; });
+  };
+  document.addEventListener('click', couchCtx, true);
+  window.addEventListener('keydown', couchCtx, true);
   document.addEventListener('click', (e) => {
     if (!NET.live || NET.replay) return;
     const root = modalRoot(e.target); if (!root) return;
@@ -911,12 +943,13 @@
       h += `</div>`;
       const mode = MODES[S.role === 'host' ? onlineMode() : S.mode] || MODES.arcade;
       h += `<div class="net14-row"><span class="net14-st">${T('Mode')}: <b>${esc(mode.name)}</b>${S.role === 'guest' && S.via ? ' · ' + T(S.via) : ''}${S.role === 'guest' && S.ping ? ` · ${T('ping')} ${S.ping} ms` : ''}</span></div>`;
-      if (S.role === 'host') h += `<div class="playfoot"><span class="ddesc">${S.members.length < 2 ? T('Waiting for players') : ''}</span><button class="btn primary" type="button" data-a="start"${S.members.length < 2 ? ' disabled' : ''}>${T('Start online run')}</button></div>`;
+      if (S.role === 'host') h += `<div class="playfoot"><span class="ddesc">${S.members.length < 2 ? T('Waiting for players') : `${S.members.length} / ${maxP()}`}</span><button class="btn primary" type="button" data-a="start"${S.members.length < 2 ? ' disabled' : ''}>${T('Start online run')}</button></div>`;
     }
     if (S.status && !(S.role === 'host' && S.members.length > 1)) h += `<div class="net14-st" aria-live="polite">${esc(S.status)}</div>`;
     if (S.err) h += `<div class="net14-err" role="alert">${esc(S.err)}</div>`;
     const foc = document.activeElement && p.contains(document.activeElement) ? (document.activeElement.dataset.a || document.activeElement.className) : null;
     p.innerHTML = h;
+    paintGM();
     for (const cv of p.querySelectorAll('canvas[data-c]')) safe(() => B.SKINS24.drawOn(cv, cv.dataset.c, +cv.dataset.l, 1.2, {}));
     const on = (sel, fn) => { const e = p.querySelector(sel); if (e) e.addEventListener('click', (ev) => { ev.preventDefault(); safe(() => Sfx.blip()); fn(); }); };
     on('[data-a="host"]', () => hostOpen());
@@ -945,6 +978,16 @@
       const f = p.querySelector(`.net14-me [data-k="${b.dataset.k}"][data-d="${b.dataset.d}"]`); if (f) f.focus();
     });
     if (foc) { const f = p.querySelector(`[data-a="${foc}"]`) || p.querySelector('.' + String(foc).split(' ')[0]); if (f && f.focus) f.focus({ preventScroll: true }); }
+  }
+  /* v14.2: the Game Maker sits under the lobby, outside the part paint() rebuilds. The host (or a player
+     about to host) edits it, a guest sees the host's settings. */
+  let gmBox = null;
+  function paintGM() {
+    const host = pane && pane.parentNode; if (!host || !B.gm14) return;
+    if (!gmBox || !host.contains(gmBox)) { gmBox = document.createElement('section'); host.appendChild(gmBox); }
+    if (S.role === 'guest') { gmBox.hidden = !S.gm; if (S.gm) B.gm14.mount(gmBox, { ro: S.gm }); return; }
+    gmBox.hidden = false;
+    B.gm14.mount(gmBox, { room: true, seed: true, onChange: () => { if (S.role === 'host') lobbyCast(); else paint(); } });
   }
   function openLobby() {
     const C = B.coop14; if (!C) return;

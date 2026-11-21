@@ -279,10 +279,10 @@
     const room = G.room, L = livePlayers14();
     for (const P of G.players) {
       if (!P.ghost14) continue;
-      const near = !room.locked && room.cleared !== false && L.some((Q) => dist(Q.x, Q.y, P.x, P.y) < 40);
+      const near = CO14.revive > 0 && !room.locked && room.cleared !== false && L.some((Q) => dist(Q.x, Q.y, P.x, P.y) < 40);
       P.rev14 = near ? (P.rev14 || 0) + dt : Math.max(0, (P.rev14 || 0) - dt * 2);
-      if (P.rev14 >= 3) {
-        P.ghost14 = false; P.dying = 0; P.rev14 = 0; P.hp = Math.min(P.maxHp, 2); P.inv = 2; P.hurtT = 0;
+      if (CO14.revive > 0 && P.rev14 >= CO14.revive) {
+        P.ghost14 = false; P.dying = 0; P.rev14 = 0; P.hp = Math.min(P.maxHp, CO14.reviveHp); P.inv = 2; P.hurtT = 0;
         P.bites.length = Math.max(0, P.maxHp - P.hp);
         floatText(P.x, P.y - 30, T('BACK IN'), P.color14 || '#fff', true);
         burst(P.x, P.y, 16, P.color14 || '#fff', { min: 40, max: 140, lmin: 0.4, lmax: 0.8, glow: true });
@@ -307,7 +307,7 @@
     if (DOOR.dir !== dir) { DOOR.dir = dir; DOOR.t = 0; }
     DOOR.touch = G.t;
     const all = L.every((Q) => Q === P || dist(Q.x, Q.y, dx, dy) < 70);
-    if (all || DOOR.t >= 3) { DOOR.dir = null; DOOR.t = 0; return gt0.apply(this, arguments); }
+    if (all || DOOR.t >= CO14.door) { DOOR.dir = null; DOOR.t = 0; return gt0.apply(this, arguments); }
     /* hold this apple in the doorway until the others come (or 3 s pass) */
     const k = P.r * 0.8 - 1, v = DOORV[dir];
     if (v[1] < 0) P.y = Math.max(P.y, -k); if (v[1] > 0) P.y = Math.min(P.y, RH + k); if (v[0] < 0) P.x = Math.max(P.x, -k); if (v[0] > 0) P.x = Math.min(P.x, RW + k);
@@ -338,7 +338,7 @@
       /* treasure rooms give 1 + (n - 1) powerups (B3) */
       if (room.type === 'treasure' && !room.mp14) {
         room.mp14 = true;
-        for (let i = 1; i < mpCount14(); i++) spawnItem(room, RW / 2 + (i % 2 ? 1 : -1) * 46 * Math.ceil(i / 2), RH / 2 + 40);
+        for (let i = 1; i < coopLoot14(); i++) spawnItem(room, RW / 2 + (i % 2 ? 1 : -1) * 46 * Math.ceil(i / 2), RH / 2 + 40);
       }
     });
     return r;
@@ -349,7 +349,7 @@
   Game.chestItems = function (room, ch) {
     const r = ci0.apply(this, arguments);
     if (!MP14.on) return r;
-    for (let k = 1; k < mpCount14(); k++) {
+    for (let k = 1; k < coopLoot14(); k++) {
       const before = room.pickups.length;
       ci0.call(this, room, Object.assign({}, ch, { y: ch.y + 48 * k }));
       for (let i = before; i < room.pickups.length; i++) if (room.pickups[i].grp) room.pickups[i].grp += '_p' + k;
@@ -359,7 +359,7 @@
   /* bosses leave one powerup per apple; each apple can take one */
   Hooks.layer('Game.clearRoom', 'v14 boss loot per apple', function (next, room) {
     const was = room.cleared, r = next.apply(this, [].slice.call(arguments, 1));
-    if (!MP14.on || was || !room || !(room.type === 'boss' || room.type === 'portal' || room.type === 'miniboss')) return r;
+    if (!MP14.on || coopPlus14() || was || !room || !(room.type === 'boss' || room.type === 'portal' || room.type === 'miniboss')) return r;
     safe(() => {
       const n = mpCount14(), have = room.type === 'boss' ? 0 : 1, grp = 'boss14_' + G.levelIdx + '_' + room.id;
       for (const p of room.pickups) if (p.kind === 'item' && !p.boss14) p.boss14 = grp;
@@ -400,14 +400,14 @@
         c.fillStyle = P.color14; c.fillRect(P.x - w / 2, P.y - 33, 2, 10);
         c.fillStyle = '#fff4ec'; c.fillText(name, P.x + 1, P.y - 23.5);
         // the revive ring
-        if (P.ghost14 && P.rev14 > 0) { c.strokeStyle = P.color14; c.lineWidth = 2.5; c.beginPath(); c.arc(P.x, P.y, 20, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, P.rev14 / 3)); c.stroke(); }
+        if (P.ghost14 && P.rev14 > 0) { c.strokeStyle = P.color14; c.lineWidth = 2.5; c.beginPath(); c.arc(P.x, P.y, 20, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, P.rev14 / (CO14.revive || 3))); c.stroke(); }
         c.restore();
       });
       // the door countdown
       if (DOOR.dir && DOOR.t > 0) {
         const [dx, dy] = doorPt(DOOR.dir), v = DOORV[DOOR.dir];
         c.save(); c.font = '800 14px "Barlow Condensed", "Arial Narrow", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillStyle = '#fff4ec'; c.fillText(String(Math.max(1, Math.ceil(3 - DOOR.t))), dx - v[0] * 24, dy - v[1] * 24);
+        c.fillStyle = '#fff4ec'; c.fillText(CO14.door >= 60 ? T('ALL') : String(Math.max(1, Math.ceil(CO14.door - DOOR.t))), dx - v[0] * 24, dy - v[1] * 24);
         c.restore();
       }
     };
@@ -452,6 +452,7 @@
       c.textAlign = 'right'; c.fillStyle = '#c8b8a8';
       const fx = (P.items ? P.items.length : 0) + (P.curses ? P.curses.length : 0) + (P.downs ? P.downs.length : 0);
       c.fillText(String(fx), x0 + w - 6 * k, y + h / 2 + 1);
+      if (coopSplit14()) { c.fillStyle = '#ffd84a'; c.fillText(String(P.coins14 || 0), x0 + w - 24 * k, y + h / 2 + 1); }   /* v14.2: own purse */
     });
     c.restore();
   }
@@ -578,6 +579,7 @@
     if (!UIc.tab) UIc.tab = touchOnly() && !connectedPads().length ? 'online' : 'couch';
     UI.hidePanels(); UIc.sec.hidden = false; UIc.sec.classList.remove('enter'); void UIc.sec.offsetWidth; UIc.sec.classList.add('enter');
     setTab(UIc.tab); paintCoop();
+    safe(() => B.gm14 && B.gm14.mount(UIc.sec.querySelector('.gm14-couch'), { seed: true }));
     setTimeout(() => { const b = UIc.sec.querySelector('[data-a="go"]'); if (b) b.focus({ preventScroll: true }); }, 60);
   }
   function closeCoop() { if (!UIc.sec || UIc.sec.hidden) return; UIc.sec.hidden = true; UI.show('menu'); safe(() => UI.refresh()); }
@@ -596,6 +598,7 @@
       <div class="co14-pane" data-pane="couch">
         <p class="co14-note">${T(touchOnly() ? 'Touch is one apple. Every gamepad is one more. Friends on their own phone or computer: use Online.' : 'Keyboard and mouse is one apple. Every gamepad is one more. Up to four, one screen, one room.')}</p>
         <div class="co14-slots"></div>
+        <section class="gm14-couch" aria-label="${T('Game Maker')}"></section>
         <div class="playfoot"><span class="co14-mode ddesc"></span><button class="btn primary" type="button" data-a="go">${T('Start')}</button></div>
       </div>
       <div class="co14-pane" data-pane="online" hidden></div>
@@ -618,8 +621,12 @@
     if (Coop.slots.length < 2) safe(() => UI.banner(T('Coop'), T('Nobody pressed A yet. You can still play alone.')));
     Coop.pending = Coop.slots.map((s) => ({ src: s.src, char: s.char, look: s.look, name: s.name }));
     UIc.sec.hidden = true;
-    const mode = Save.data.mode && MODES[Save.data.mode] && Save.data.mode !== 'story' ? Save.data.mode : 'arcade';
-    Game.startRun(false, mode);
+    const mode = Save.data.mode && MODES[Save.data.mode] && Save.data.mode !== 'story' && Save.data.mode !== 'daily' ? Save.data.mode : 'arcade';
+    /* v14.2: a Game Maker seed makes the same run every time */
+    const sd = Coop.slots.length > 1 && B.gm14 ? B.gm14.seedNum() : null;
+    if (sd == null) { Game.startRun(false, mode); return; }
+    const keepR = Math.random; Math.random = mulberry32((sd ^ 0x2c1b3c6d) >>> 0);
+    try { Game.startRun(false, mode); } finally { Math.random = keepR; }
   }
   /* the menu entry, next to the Map Maker */
   safe(() => {

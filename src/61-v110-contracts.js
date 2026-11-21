@@ -12,7 +12,10 @@
   const live = (room) => room.snakes.filter((s) => s.alive && !(s.dying > 0));
   const fmt = (v) => (v < 10 ? v.toFixed(1) : String(Math.ceil(v)));
   const pl = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-  let CUR = null, PEND = null, NEXT_ID = 1;
+  /* v14.2: in a split coop run every apple has its own contract and its own offer (P.ct14); otherwise one */
+  const CTS = { cur: null, pend: null };
+  const ctS = (P) => { P = P || G.player; return P && coopSplit14() ? P.ct14 || (P.ct14 = { cur: null, pend: null }) : CTS; };
+  let NEXT_ID = 1, OWNER = null;
   const fail = (C, why) => resolve(C, false, why);
 
   /* ------------------------------------------------------------------ the clauses */
@@ -581,7 +584,7 @@
     </article>`;
   }
   function open(room) {
-    const P = G.player;
+    const P = G.player; OWNER = P;
     OFF = offers(room, P);
     if (!OFF.length) return;
     G.run.ctFloorN24 = (G.run.ctFloorN24 || 0) + 1; G.run.ctCool24 = 1;
@@ -612,6 +615,7 @@
     safe(() => View.cv.focus({ preventScroll: true }));
   }
   function sign(i) {
+    if (OWNER && G.player !== OWNER && coopSplit14()) return withPlayer(OWNER, () => sign(i));
     if (busy) return;
     const o = OFF[i]; if (!o) return;
     const R = G.run, P = G.player, room = G.room;
@@ -626,16 +630,16 @@
     safe(() => { Sfx.noise(0.35, { filter: 'bandpass', f: 3400, q: 0.6, vol: 0.05, attack: 0.05 }); });
     setTimeout(() => safe(() => { Sfx.thud(); Sfx.tone(220, 0.12, { to: 160, vol: 0.06 }); }), 400);
     Save.data.settings.ctSeen24 = true; safe(() => Save.store());
-    setTimeout(() => {
+    setTimeout(() => withPlayer(P, () => {
       close();
       if (G.room !== room) return;
       const C = { id: NEXT_ID++, def: o.def, tier: o.t, t: 0, p: o.p, fine: o.fine, stake: o.stake, pay: o.pay, adv: o.adv, no: o.no, room, run: R, state: 'live',
         t0: G.t, bites: 0, h0: R.roomHits || 0, shots: 0, seeds: 0, hits: 0, kills: 0, lastK: 0, idle: 0, out: 0, close: 0, closeK: 0, next: 1, lx: P.x, ly: P.y, near: null };
-      CUR = C;
+      ctS().cur = C;
       safe(() => o.def.start && o.def.start(C, room, P));
       Meta.add('contracts');
       if (o.def.loan) floatText(P.x, P.y - 34, `+${o.adv} VOORSCHOT`, '#ffd84a', true);
-    }, 820);
+    }), 820);
   }
   sec.querySelector('.ct-none').addEventListener('click', (e) => { e.preventDefault(); decline(); });
   function decline() { if (busy) return; close(); safe(() => Sfx.tone(300, 0.1, { to: 220, vol: 0.04 })); }
@@ -695,7 +699,8 @@
       if (R.ctCool24 > 0) { R.ctCool24--; return; }
       if (Math.random() > (R.ctAny24 ? 0.32 : 0.6)) return;
       R.ctAny24 = true;
-      PEND = { room, run: R };
+      if (coopSplit14()) { for (const Q of livePlayers14()) ctS(Q).pend = { room, run: R }; }
+      else CTS.pend = { room, run: R };
     });
   };
   const OPTS_OFF = () => !!(Save.data && Save.data.settings && Save.data.settings.contracts === false);
@@ -705,58 +710,61 @@
   updatePlayer9 = function (P, dt, room, sp) {
     up0(P, dt, room, sp);
     safe(() => {
-      if (PEND) {
-        if (PEND.run !== G.run || PEND.room !== room) PEND = null;
-        else if (!G.trans && G.state === 'play' && !(P.dying > 0) && !CUR_LIVE()) { const r = PEND.room; PEND = null; open(r); return; }
+      if (ctS().pend) {
+        if (ctS().pend.run !== G.run || ctS().pend.room !== room) ctS().pend = null;
+        else if (!G.trans && G.state === 'play' && !(P.dying > 0) && !CUR_LIVE()) { const r = ctS().pend.room; ctS().pend = null; open(r); return; }
       }
-      const C = CUR; if (!C) return;
-      if (C.run !== G.run) { CUR = null; return; }
-      if (C.state !== 'live') { if (G.t - C.endT > 3.6) CUR = null; return; }
-      if (C.room !== room) { C.state = 'lost'; C.endT = G.t; CUR = null; return; }
+      const C = ctS().cur; if (!C) return;
+      if (C.run !== G.run) { ctS().cur = null; return; }
+      if (C.state !== 'live') { if (G.t - C.endT > 3.6) ctS().cur = null; return; }
+      if (C.room !== room) { C.state = 'lost'; C.endT = G.t; ctS().cur = null; return; }
       C.t += dt;
       const h = G.run.roomHits || 0;
       if (h > C.h0) { C.bites += h - C.h0; C.h0 = h; if (C.def.bite) C.def.bite(C); if (C.state !== 'live') return; }
       if (C.def.tick) C.def.tick(C, dt, P, room);
     });
   };
-  const CUR_LIVE = () => !!(CUR && CUR.state === 'live' && CUR.run === G.run);
+  const CUR_LIVE = (P) => { const C = ctS(P).cur; return !!(C && C.state === 'live' && C.run === G.run); };
   const fi0 = fire9;
-  fire9 = function (P, base) { fi0(P, base); safe(() => { if (CUR_LIVE() && P === G.player) { CUR.shots++; if (CUR.def.shot) CUR.def.shot(CUR); } }); };
+  fire9 = function (P, base) { fi0(P, base); safe(() => { const C = ctS(P).cur; if (CUR_LIVE(P)) { C.shots++; if (C.def.shot) C.def.shot(C); } }); };
   const sd0 = seed9;
-  seed9 = function (P, s, o) { sd0(P, s, o); if (CUR_LIVE() && P === G.player && s) { s.ct24 = CUR.id; CUR.seeds++; } };
+  seed9 = function (P, s, o) { sd0(P, s, o); const C = ctS(P).cur; if (CUR_LIVE(P) && s) { s.ct24 = C.id; C.seeds++; } };
   const ht0 = hit9;
-  hit9 = function (room, s, sn, dmg) { ht0(room, s, sn, dmg); if (CUR_LIVE() && s && s.ct24 === CUR.id && !s.ctHit24) { s.ctHit24 = true; CUR.hits++; } };
+  hit9 = function (room, s, sn, dmg) { ht0(room, s, sn, dmg); const P = (s && s.owner14) || G.player, C = ctS(P).cur; if (CUR_LIVE(P) && s && s.ct24 === C.id && !s.ctHit24) { s.ctHit24 = true; C.hits++; } };
   const ok0 = onKill9;
   onKill9 = function (sn, room, P) {
     ok0(sn, room, P);
-    safe(() => { if (!CUR_LIVE() || CUR.room !== room) return; CUR.kills++; if (CUR.def.kill) CUR.def.kill(CUR, sn, P || G.player); });
+    safe(() => { const Q = P || G.player, C = ctS(Q).cur; if (!CUR_LIVE(Q) || C.room !== room) return; C.kills++; if (C.def.kill) withPlayer(Q, () => C.def.kill(C, sn, Q)); });
   };
   const cl0 = clearRoom9;
   clearRoom9 = function (room) {
     cl0(room);
     safe(() => {
-      if (!CUR_LIVE() || CUR.room !== room) return;
-      const r = CUR.def.clear ? CUR.def.clear(CUR) : true;
-      resolve(CUR, r === true, r === true ? '' : r);
+      for (const P of coopSplit14() ? G.players : [G.player]) withPlayer(P, () => {
+        const C = ctS().cur;
+        if (!CUR_LIVE() || C.room !== room) return;
+        const r = C.def.clear ? C.def.clear(C) : true;
+        resolve(C, r === true, r === true ? '' : r);
+      });
     });
   };
   const hm0 = hurtMod9;
   hurtMod9 = function (sn, amount, fx, fy, isPoison) {
     amount = hm0(sn, amount, fx, fy, isPoison);
-    if (CUR_LIVE() && CUR.def.dmg && G.room === CUR.room) amount *= CUR.def.dmg(CUR);
+    if (CUR_LIVE() && ctS().cur.def.dmg && G.room === ctS().cur.room) amount *= ctS().cur.def.dmg(ctS().cur);
     return amount;
   };
   const sk0 = speedK9;
-  speedK9 = function (P, room) { let k = sk0(P, room); if (CUR_LIVE() && CUR.def.speed && room === CUR.room) k *= CUR.def.speed(CUR); return k; };
+  speedK9 = function (P, room) { let k = sk0(P, room); const C = ctS(P).cur; if (CUR_LIVE(P) && C.def.speed && room === C.room) k *= C.def.speed(C); return k; };
   const ss0 = snakeSpeed9;
-  snakeSpeed9 = function (sn, P) { let k = ss0(sn, P); if (CUR_LIVE() && CUR.fine && CUR.fine.id === 'haast' && !sn.isBoss) k *= 1.12; return k; };
+  snakeSpeed9 = function (sn, P) { let k = ss0(sn, P); if (CUR_LIVE() && ctS().cur.fine && ctS().cur.fine.id === 'haast' && !sn.isBoss) k *= 1.12; return k; };
   const rr0 = renderRoom;
-  renderRoom = function (c, L) { rr0(c, L); if (CUR && CUR.state === 'live' && G.room === CUR.room) safe(() => drawWorld(c, CUR)); };
+  renderRoom = function (c, L) { rr0(c, L); if (ctS().cur && ctS().cur.state === 'live' && G.room === ctS().cur.room) safe(() => drawWorld(c, ctS().cur)); };
   const rh0 = renderHUD;
   renderHUD = function (c, L) {
     rh0(c, L);
-    if (!CUR || G.state === 'pause' || G.room !== CUR.room) return;
-    safe(() => { c.save(); c.setTransform(View.dpr, 0, 0, View.dpr, 0, 0); drawSlip(c, CUR); c.restore(); });
+    if (!ctS().cur || G.state === 'pause' || G.room !== ctS().cur.room) return;
+    safe(() => { c.save(); c.setTransform(View.dpr, 0, 0, View.dpr, 0, 0); drawSlip(c, ctS().cur); c.restore(); });
   };
 
   /* ------------------------------------------------------------------ texts, guide, settings */
@@ -798,6 +806,6 @@
   });
 
   function force(id, t = 2, fineId) { const room = G.room, P = G.player; const o = build(CLID[id], t, ctxOf(room, P), FINE.find((f) => f.id === fineId) || null); OFF = [o]; G.state = 'contract'; sec.hidden = false; busy = false; sign(0); return o; }
-  Object.assign(window.__bitten || (window.__bitten = {}), { CT24: { force, CL, FINE, TIER, offers, open, sign, decline, resolve, get cur() { return CUR; }, get pend() { return PEND; }, drawBroker, seal, cardHTML, META, build, ctxOf } });
+  Object.assign(window.__bitten || (window.__bitten = {}), { CT24: { force, CL, FINE, TIER, offers, open, sign, decline, resolve, get cur() { return ctS().cur; }, get pend() { return ctS().pend; }, drawBroker, seal, cardHTML, META, build, ctxOf } });
 })();
 
