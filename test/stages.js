@@ -28,22 +28,22 @@ const path = require('path');
       const sn = new B.Snake(kind, 400, 260, { emerge: false, spawnTime: 0.2 });
       sn.maxHp = sn.hp = sn.K.hp * 2; room.snakes.push(sn); G.boss = sn;
       const D = B.STAGE14.DEF[kind], seen = [], e0 = G.errors || 0;
-      let t = 0, moved = 0; const x0 = sn.x, y0 = sn.y;
+      let t = 0, moved = 0, card = ''; const x0 = sn.x, y0 = sn.y;
       await tick(2000);
       moved = Math.round(Math.hypot(sn.x - x0, sn.y - y0));
       while (sn.alive && sn.dying <= 0 && t < 30000) {
         if (sn.canBeHit()) sn.hurt(sn.maxHp * 0.5, sn.x, sn.y);
-        if (seen[seen.length - 1] !== sn.stage14) seen.push(sn.stage14);
+        if (seen[seen.length - 1] !== sn.stage14) { seen.push(sn.stage14); if (sn.stage14 === 2) card = ['k', 't', 's'].map((c) => document.querySelector('#card .' + c).textContent).join(' | '); }
         await tick(100); t += 100;
       }
-      out[kind] = { stages: seen.join(''), want: D.at.length + 1, killMs: t, moved2s: moved, errors: (G.errors || 0) - e0, log: (G.errorLog || []).slice(-1) };
+      out[kind] = { card, stages: seen.join(''), want: D.at.length + 1, killMs: t, moved2s: moved, errors: (G.errors || 0) - e0, log: (G.errorLog || []).slice(-1) };
       sn.alive = false; room.snakes.length = 0; G.boss = null;
       for (let i = G.venom.length - 1; i >= 0; i--) G.venom.splice(i, 1);
     }
     return out;
   });
   let ok = !errs.length;
-  for (const k in res) { const r = res[k]; const good = r.stages === Array.from({ length: r.want }, (_, i) => i + 1).join('') && !r.errors; if (!good) ok = false; console.log(k.padEnd(10), JSON.stringify(r), good ? '' : '<-- FAIL'); }
+  for (const k in res) { const r = res[k]; const good = !!r.card && r.stages === Array.from({ length: r.want }, (_, i) => i + 1).join('') && !r.errors; if (!good) ok = false; console.log(k.padEnd(10), JSON.stringify(r), good ? '' : '<-- FAIL'); }
   console.log(errs.slice(0, 5), ok ? 'STAGES OK' : 'STAGES FAILED');
   await b.close(); process.exit(ok ? 0 : 1);
 })();
