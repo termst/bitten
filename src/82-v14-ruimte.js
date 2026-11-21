@@ -13,7 +13,7 @@
   const PLANET = { aarde: 1, mars: 1, neptunus: 1, pluto: 1, saturnus: 1 };
   const SPACE = { force: false, odds: 0.35, endlessOdds: 0.2 };
   const inSpace = () => !!(G.levelDef && G.levelDef.set === SET);
-  const spaceRoom = (room) => !!room && !SPECIAL9[room.type] && !clubRoom9(room) && room.type !== 'clownhq' && room.type !== 'quiet';
+  const spaceRoom = (room) => !!room && !SPECIAL9[room.type] && !clubRoom9(room) && room.type !== 'clownhq' && room.type !== 'quiet' && room.type !== 'brawl';
   const hash = (x) => { const s = Math.sin(x * 12.9898 + 4.1414) * 43758.5453; return s - Math.floor(s); };
   function fx14(room) { if (!room.fx14) room.fx14 = { shocks: [], holes: [], meteors: [], rings: [], cons: [], horizon: null, nova: null, novaT: null }; return room.fx14; }
 
