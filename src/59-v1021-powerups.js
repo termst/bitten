@@ -761,6 +761,12 @@
         S.force = !S.force;
         return S.force ? 'Your next Arcade run goes to De Ruimte on floor 2. Enter the code again to cancel.' : 'De Ruimte is back to chance.';
       },
+      DRAKEN() {
+        const S = window.__bitten && window.__bitten.DRAAK14;
+        if (!S) return 'Not a code.';
+        S.force = !S.force;
+        return S.force ? 'Your next Arcade run climbs to De Drakenhemel after floor 1. Enter the code again to cancel.' : 'De Drakenhemel is back to chance.';
+      },
       BRIE() {
         const again = A.on;
         A.on = true; wr(); unlockAll(); refreshTabs();

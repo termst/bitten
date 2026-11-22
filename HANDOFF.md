@@ -168,3 +168,18 @@ Variants pick from blinkSeed at spawn (no new random draws). Colours are hex, `$
 One clear idea per kind, every part outlined. A new look is one table row.
 drawSnake in 06-draw.js calls `seg14` for every body circle. Visual only, no Math.random.
 Sheet of every kind: `node test/snakes.js [tag]` writes test/out/snakes-<tag>.png. Blocky kinds and V9_BODY kinds (bus, tellie, tvboss, jaude) keep their own draw.
+
+## v14.5: De Drakenhemel (dragon sky floor)
+
+* `src/88-v14-draken.js`: floor set `draken` (FLOOR10.draken), open sky terrace arena. Dragons: Muntdraak `)` (coin rain,
+  missed coins drop as pickups), Neondraak `{` (sweeping neon breath, fire patches), Pareldraak `}` (bouncing pearl,
+  heals nearby dragons while holding it), Toorndraak `|` (fire fan, flies up and dives, untouchable while flying), Drakenjong `:`.
+  Boss De Zonnekeizer (`keizer14`, hp 380, stages Hofhouding, Middagzon, Eclips; beam stops at the first pillar).
+  Hazard `storm14` (gusts). Effects in `room.dk14`. Exposed as `window.__bitten.DRAAK14`.
+* Placement: `DRAAK14 = { force, odds 0.35 (arcade/daily, floor 2 to 4, never last), endlessOdds 0.18, itemOdds 0.07 }`.
+  Seeded via mulberry32, no extra Math.random outside the dragon content. Code `DRAKEN()` toggles force.
+* `src/89-v14-draken-reis.js`: boss exit before the dragon floor is a ladder; climb cut-away past every visited floor
+  (`G.run.path14`). After the Zonnekeizer a hole in the sky; fall cut-away down to the next floor. Trans kinds `climb14`, `fall14`.
+* `src/90-v14-draken-items.js`: 21 dragon powerups (`*_dk`). 45% of item rolls on the sky floor, elsewhere a 7% seeded swap.
+* Tests: `test/draken.js` (climb, fight, storm, all items, boss stages, beam, fall), `test/draken-preview.js` (dkp-*.png).
+  `test/bot.js --runs 3 --chars apple` with the dragon odds at 0 matches the build without these files (55.7/17.7/267).
