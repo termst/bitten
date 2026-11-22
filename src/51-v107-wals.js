@@ -262,11 +262,20 @@
   };
 
   /* ================================================================ Custom Run: your own floors, bosses and rules */
-  const MAX_STAGES = 20, MAX_START = 3;
+  const MAX_STAGES = 20, MAX_START = 5;
   const BASICS = ['cellar', 'halls', 'market', 'kamer', 'garden'];
-  const RARE_SETS = ['bus', 'rook', 'mega', 'arena', 'rave', 'court', 'metro', 'afgrond', 'ruimte'];
+  /* v14.6: every floor the game knows, read from the floor registries when asked (FLOOR10, RARE_STORY10),
+     so a floor added by a later file shows up here without touching this list. The old order goes first. */
+  const RARE_ORDER = ['bus', 'rook', 'mega', 'arena', 'rave', 'court', 'metro', 'afgrond', 'ruimte'];
+  const rareSets = () => {
+    const out = RARE_ORDER.slice();
+    const add = (k) => { if (!out.includes(k) && !BASICS.includes(k)) out.push(k); };
+    if (typeof RARE_STORY10 !== 'undefined') for (const k in RARE_STORY10) add(k);
+    if (typeof FLOOR10 !== 'undefined') for (const k in FLOOR10) add(k);
+    return out;
+  };
   const NO_PICK = {};
-  const PD = { apples: 0, coins: 0, hearts: 1, dmg: 1, fire: 1, pspeed: 1, speed: 1, bossHp: 1, noodles: 1, rooms: 0, loop: 0 };
+  const PD = { apples: 0, coins: 0, hearts: 1, dmg: 1, fire: 1, pspeed: 1, speed: 1, bossHp: 1, noodles: 1, rooms: 0, loop: 0, knok: 0 };
   const PG = [
     ['Rules', [
       ['apples', 'Extra apples', [[0, 'None'], [1, '+1'], [2, '+2'], [3, '+3'], [4, '+4']]],
@@ -284,6 +293,7 @@
     ['Run', [
       ['rooms', 'Rooms per floor', [[0, 'Floor default'], [5, '5'], [7, '7'], [9, '9'], [12, '12'], [14, '14']]],
       ['loop', 'After the last stage', [[0, 'Escape'], [1, 'Go on, harder each lap']]],
+      ['knok', 'Knokpit', [[-1, 'Never'], [0, 'Rare'], [1, 'Every floor']]],
     ]],
   ];
   const PRESETS = [['classic', 'Classic floors'], ['all', 'Every floor'], ['boss', 'Boss gauntlet'], ['reset', 'Reset all']];
@@ -299,8 +309,8 @@
     const k = BASICS.indexOf(set);
     return k > 0 && Math.max(B.level || 0, B.endless || 0) > k;
   }
-  const floorList = () => BASICS.concat(RARE_SETS).filter(floorBase);
-  const bossList = () => BOSS_ORDER10.filter((k) => BOSS_INFO[k] && !NO_PICK[k]);
+  const floorList = () => BASICS.concat(rareSets()).filter(floorBase);
+  const bossList = () => BOSS_ORDER10.concat(Object.keys(BOSS_INFO)).filter((k, i, a) => BOSS_INFO[k] && !NO_PICK[k] && a.indexOf(k) === i);
   function bossOpen(k) {
     const D = Save.data, B = D.best || {};
     if (D.seen['b:' + k] || (D.stats['boss_' + k] || 0) > 0 || (k === 'pricewar' && (D.stats.boss_pwblue || D.stats.boss_pwyellow))) return true;
@@ -312,7 +322,7 @@
   const bossName = (k) => (BOSS_INFO[k] && BOSS_INFO[k].title) || (KINDS[k] && KINDS[k].name) || k;
   function bossHome(kind) {
     for (const L of LEVELS) if (L.boss === kind) return L.set;
-    for (const s of RARE_SETS) { const d = floorBase(s); if (d && d.boss === kind) return s; }
+    for (const s of rareSets()) { const d = floorBase(s); if (d && d.boss === kind) return s; }
     return RUSH_SET[kind] || 'cellar';
   }
   const itemOpen = (id) => !!(ITEMS[id] && id !== 'golden' && Save.data.found && Save.data.found[id]);
@@ -335,7 +345,9 @@
       s = s && typeof s === 'object' ? s : {};
       const set = floorBase(s.set) && floorOpen(s.set) ? s.set : 'cellar';
       const boss = s.boss !== 'auto' && bosses.indexOf(s.boss) >= 0 && bossOpen(s.boss) ? s.boss : 'auto';
-      return { set, boss, arena: !!s.arena };
+      /* v14.6: a powerup for beating this stage's boss (exact, found ones only, or a random legendary) and a Knokpit on this floor */
+      const rw = s.rw === 'rare' || s.rw === 'rand' || (typeof s.rw === 'string' && itemOpen(s.rw)) ? s.rw : '';
+      return { set, boss, arena: !!s.arena, rw, kn: s.kn ? 1 : 0 };
     });
     if (!c.stages.length) c.stages = [{ set: 'cellar', boss: 'auto', arena: false }];
     c.items = (Array.isArray(c.items) ? c.items : []).filter((id, i, a) => typeof id === 'string' && itemOpen(id) && a.indexOf(id) === i).slice(0, MAX_START);
@@ -459,6 +471,11 @@
 .cust10 li.c10s .n{font:700 16px/1 var(--ui);font-variant-numeric:tabular-nums;color:var(--faint);text-align:center}
 .cust10 li.c10s .bs{grid-column:2}
 .cust10 li.c10s .ar{grid-column:3}
+.cust10 li.c10s .ex{grid-column:2/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;order:9}
+.cust10 li.c10s .kn{height:32px;border:1px solid var(--line);border-radius:2px;padding:0 8px;font:600 11px/32px var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.cust10 li.c10s .kn[aria-pressed="true"]{background:rgba(58,122,232,.22);border-color:#6ab4ff;color:#eaf4ff}
+.cust10 li.c10s .kn[hidden]{display:none}
+.cust10 option:disabled{color:#6f6157}
 .cust10 .ic{display:flex;gap:4px}
 .cust10 .ic button,.cust10 .ar{height:32px;border:1px solid var(--line);border-radius:2px;display:grid;place-items:center;color:var(--muted)}
 .cust10 .ic button{width:30px}
@@ -533,18 +550,28 @@
     }
     function paintStages() {
       const c = norm(), ol = $('c10st'); ol.innerHTML = '';
-      const floors = floorList().filter(floorOpen), bosses = bossList().filter(bossOpen);
+      /* v14.6: every floor and boss is listed; the ones you have not met yet show, locked */
+      const floors = floorList(), bosses = bossList();
+      const found = ITEM_IDS.filter(itemOpen).sort((a, b) => ITEMS[a].name.localeCompare(ITEMS[b].name));
       c.stages.forEach((s, i) => {
         const li = document.createElement('li'); li.className = 'c10s' + (s.arena ? ' arena' : '');
         li.style.setProperty('--sc', floorCol(s.set));
         li.innerHTML = `<span class="n">${i + 1}</span><select class="fl" aria-label="Stage ${i + 1} floor"></select>`
           + `<div class="ic"><button type="button" class="up" aria-label="Move stage ${i + 1} up">${ICON.up}</button><button type="button" class="dn" aria-label="Move stage ${i + 1} down">${ICON.dn}</button><button type="button" class="rm" aria-label="Remove stage ${i + 1}">${ICON.rm}</button></div>`
-          + `<select class="bs" aria-label="Stage ${i + 1} boss"></select><button type="button" class="ar" aria-pressed="${s.arena}">${s.arena ? 'Boss only' : 'Full floor'}</button>`;
-        const fl = li.querySelector('.fl'), bs = li.querySelector('.bs'), ar = li.querySelector('.ar');
-        for (const f of floors) fl.appendChild(opt(f, floorName(f), f === s.set));
+          + `<select class="bs" aria-label="Stage ${i + 1} boss"></select><button type="button" class="ar" aria-pressed="${s.arena}">${s.arena ? 'Boss only' : 'Full floor'}</button>`
+          + `<div class="ex"><select class="rw" aria-label="Stage ${i + 1} boss reward"></select><button type="button" class="kn" aria-pressed="${!!s.kn}" title="A Knokpit arena hangs off a fight room on this floor">${s.kn ? 'Knokpit on' : 'Knokpit'}</button></div>`;
+        const fl = li.querySelector('.fl'), bs = li.querySelector('.bs'), ar = li.querySelector('.ar'), rw = li.querySelector('.rw'), kn = li.querySelector('.kn');
+        for (const f of floors) { const op = floorOpen(f); fl.appendChild(opt(f, floorName(f) + (op ? '' : ' (locked)'), f === s.set, !op)); }
         const home = floorBase(s.set) && floorBase(s.set).boss;
         bs.appendChild(opt('auto', home ? `Boss: ${bossName(home)}` : 'The floor boss', s.boss === 'auto'));
-        for (const b of bosses) if (b !== home || s.boss === b) bs.appendChild(opt(b, bossName(b), b === s.boss));
+        for (const b of bosses) if (b !== home || s.boss === b) { const op = bossOpen(b); bs.appendChild(opt(b, bossName(b) + (op ? '' : ' (locked)'), b === s.boss, !op)); }
+        rw.appendChild(opt('', 'Boss reward: none extra', !s.rw));
+        rw.appendChild(opt('rare', 'Boss reward: random legendary', s.rw === 'rare'));
+        rw.appendChild(opt('rand', 'Boss reward: random powerup', s.rw === 'rand'));
+        for (const id of found) rw.appendChild(opt(id, 'Boss reward: ' + ITEMS[id].name + (ITEMS[id].rare ? ' ★' : ''), s.rw === id));
+        rw.addEventListener('change', () => { cur().rw = rw.value; commit(); summary(); Sfx.blip(); });
+        kn.hidden = s.arena;
+        kn.addEventListener('click', () => { const t = cur(); t.kn = t.kn ? 0 : 1; commit(); paint(); Sfx.blip(); });
         ar.title = s.arena ? 'Only the boss fight, after a powerup vote' : 'All rooms of the floor, then the boss';
         /* norm() rebuilds the stage objects, so always edit the live one */
         const cur = () => norm().stages[i];

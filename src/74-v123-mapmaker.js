@@ -179,7 +179,8 @@
   const P_ = (k, label, kind, opts, def) => ({ k, label, kind, opts, def });
   const ENT_PARAMS = {
     sn: [P_('k', 'Snake', 'snake', null, 'grub'), P_('g', 'Gold worm', 'seg', [[0, 'No'], [1, 'Yes']], 0), P_('tr', 'Trait', 'seg', TRAITS.map((t) => [t, TRAIT_LABEL[t]]), ''),
-      P_('say', 'Says when the fight starts', 'text', 50, ''), P_('die', 'Last words', 'text', 40, '')],
+      P_('say', 'Says when the fight starts', 'text', 50, ''), P_('die', 'Last words', 'text', 40, ''),
+      P_('vr', 'Colour', 'seg', [[0, 'Random'], [1, 'One'], [2, 'Two'], [3, 'Three'], [4, 'Four']], 0), P_('hp', 'Health', 'seg', [[0.5, '50%'], [1, '100%'], [1.5, '150%'], [2, '200%'], [3, '300%']], 1)],
     tp: [P_('ch', 'Color', 'col', null, 0)],
     jp: [P_('d', 'Direction', 'dir8', null, 6), P_('f', 'Power', 'seg', [[1, 'Short'], [2, 'Normal'], [3, 'Far']], 2)],
     sp: [P_('d', 'Direction', 'dir4', null, 0)],
@@ -1004,7 +1005,7 @@
     }
     if (R.lk && !isStart) room.sealed = true;
     // snakes in a room that does not fight by itself: it fights once you walk in
-    room.mkSn = sn.map((e) => ({ k: e.k, c: e.c, r: e.r, g: e.g, tr: e.tr, say: e.say || '', die: e.die || '' }));
+    room.mkSn = sn.map((e) => ({ k: e.k, c: e.c, r: e.r, g: e.g, tr: e.tr, say: e.say || '', die: e.die || '', vr: e.vr | 0, hp: e.hp || 1 }));
     room.mkR = R;
     room.spawns = [];
     if (combat && !['fight', 'boss', 'arena', 'miniboss', 'challenge', 'survival'].includes(type)) { room.mkGuard = true; room.cleared = false; }
@@ -1214,6 +1215,9 @@
       const champ = !!s.g || i === eliteI || (s.k !== 'rotter' && Math.random() < champP);
       const sn = safe(() => new Snake(s.k, x, y, { delay: 0.3 + i * 0.16, ang: Math.atan2(P.y - y, P.x - x), champ, trait: s.tr || null }));
       if (!sn) return;
+      /* v14.6: a colour of the kind (the PR 15 variants) and a health scale, both set by the maker */
+      if (s.vr && sn.K && sn.K.look14 && sn.K.look14.vars && sn.K.look14.vars.length > 1 && window.__bitten.lookVariant14) safe(() => window.__bitten.lookVariant14(sn, (s.vr - 1) % sn.K.look14.vars.length));
+      if (s.hp && s.hp !== 1) { sn.maxHp = Math.max(1, Math.round(sn.maxHp * s.hp)); sn.hp = sn.maxHp; }
       room.snakes.push(sn);
       if (s.say || s.die) { sn.mkSay = s.say; sn.mkDie = s.die; sn.mkSayAt = G.t + (sn.delay || 0) + (sn.spawnTime || 0.8) + 0.2; (room.mkTalk || (room.mkTalk = [])).push(sn); }
       if (s.tr && TRAIT_NAMES[s.tr]) {
@@ -4912,6 +4916,217 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
       return r;
     };
   });
+
+  /* ================================================================== 13. v14.6: every piece of the game, powerups per room and per floor, maps in coop
+     The catalog lists (SETS, SNAKES, MINIS, BOSSES, MODS, RTYPES) were written by hand and missed every floor, snake,
+     boss and room added after v12.6. refresh14() fills them from the game's own registries (FLOOR10, RARE_STORY10,
+     KINDS, BOSS_INFO, MOD_NAMES, CHAOS_ROOMS9) in place, so code that holds the arrays sees the new entries.
+     It runs once all files are loaded (src/91) and again when the Map Maker opens: a later file that registers
+     a floor, a snake or a room type shows up here without an edit. */
+  const EXTRA14 = {};
+  const XROOM = {
+    clownhq: ['Clini-Clown HQ', 'CLN', '#ff5ab4', 'The clowns’ hideout: a fight with a prize. Fixed layout.'],
+    brawl: ['De Knokpit', 'KNK', '#6a5ae8', 'Three brawler snakes, loot boxes and power pads. Fixed layout.'],
+  };
+  const NOT_PIECE = { noodle: 1 };
+  const NOT_MINI = { splitling: 1, rotling: 1, jong14: 1 };
+  const NO_MOD = { swarm: 1 };
+  function refresh14() {
+    const fl = [];
+    if (typeof RARE_STORY10 !== 'undefined') fl.push(...Object.keys(RARE_STORY10));
+    if (typeof FLOOR10 !== 'undefined') fl.push(...Object.keys(FLOOR10));
+    for (const k of fl) if (!SETS.includes(k) && safe(() => !!floorDef10(k), false)) SETS.push(k);
+    for (const k in KINDS) {
+      const K = KINDS[k];
+      if (!K || K.boss || NOT_PIECE[k] || SNAKES.includes(k) || !K.name) continue;
+      SNAKES.push(k); if (!NOT_MINI[k]) MINIS.push(k);
+    }
+    if (typeof V9_SPAWN === 'object') for (const ch in V9_SPAWN) if (!SPAWN_CH[ch]) SPAWN_CH[ch] = V9_SPAWN[ch];
+    for (const k of (typeof BOSS_ORDER10 !== 'undefined' ? BOSS_ORDER10 : []).concat(Object.keys(BOSS_INFO))) if (BOSS_INFO[k] && k !== 'jaude' && !BOSSES.includes(k)) BOSSES.push(k);
+    if (typeof MOD_NAMES === 'object') for (const k in MOD_NAMES) if (!NO_MOD[k] && !MODS.some((m) => m[0] === k)) MODS.push([k, String(MOD_NAMES[k])]);
+    for (const t of new Set(typeof CHAOS_ROOMS9 !== 'undefined' ? CHAOS_ROOMS9 : [])) {
+      if (RT[t] || t === 'chaosboss') continue;
+      const x = XROOM[t] || [t[0].toUpperCase() + t.slice(1), t.slice(0, 3).toUpperCase(), '#a08aff', 'A room from the game, built like the game builds it. Fixed layout.'];
+      RTYPES.push([t, x[0], x[1], x[2], x[3]]);
+      RT[t] = { id: t, name: x[0], code: x[1], col: x[2], desc: x[3] };
+      EXTRA14[t] = 1; FIXED[t] = 1;
+    }
+    return { floors: SETS.length, snakes: SNAKES.length, bosses: BOSSES.length, mods: MODS.length - 1, rooms: RTYPES.length, items: ITEM_IDS.length };
+  }
+  safe(() => { const ro = Maker.reopen; Maker.reopen = function () { safe(refresh14); return ro.apply(this, arguments); }; });
+
+  /* rooms the game builds itself (Knokpit, Clini-Clown HQ and whatever comes later), and the spike trap modifier */
+  safe(() => {
+    const gl1 = generateLevel;
+    generateLevel = function (def, rng) {
+      const map = gl1.apply(this, arguments);
+      if (G.mode === 'map' && RTM.cur && def && def.mapF != null && map && map.rooms) for (const rm of map.rooms) safe(() => {
+        const R = rm.mkR; if (!R) return;
+        if (EXTRA14[R.t] && rm !== map.start) {
+          const seal = rm.sealed;
+          chaosRoom9(rm, R.t, def, Math.random);
+          rm.mkR = R; rm.mkSn = []; rm.mkE = rm.mkE || []; rm.mkGuard = false;
+          if (seal) rm.sealed = true;
+          rm.dirty = true; rm.ver = (rm.ver || 0) + 1;
+        }
+        if (rm.type === 'fight' && rm.mod === 'spikes' && typeof placeSpikes === 'function') placeSpikes(rm, Math.random);
+      });
+      return map;
+    };
+  });
+
+  /* ---- room powerup lists (R.pl) and floor boss rewards (F.brw) in the map and the share code */
+  const BRW_MAX = 3;
+  const cleanIds = (list, max, extra) => (Array.isArray(list) ? list : []).filter((id, i, a) => typeof id === 'string' && (ITEMS[id] || (extra && (id === 'rand' || id === 'rare'))) && (extra || a.indexOf(id) === i)).slice(0, max);
+  safe(() => {
+    const cr1 = cleanRoom;
+    cleanRoom = function (R) {
+      const o = cr1.apply(this, arguments);
+      if (o) { const p = R && R.pl; o.pl = { m: p && (p.m === 'only' || p.m === 'ban') ? p.m : '', ids: cleanIds(p && p.ids, 120) }; }
+      return o;
+    };
+    const cf1 = cleanFloor;
+    cleanFloor = function (F) { const o = cf1.apply(this, arguments); if (o) o.brw = cleanIds(F && F.brw, BRW_MAX, true); return o; };
+    const nr1 = newRoom;
+    newRoom = function () { const o = nr1.apply(this, arguments); o.pl = { m: '', ids: [] }; return o; };
+    const nf1 = newFloor;
+    newFloor = function () { const o = nf1.apply(this, arguments); o.brw = []; return o; };
+    const cp1 = compact;
+    compact = function (M) {
+      const o = cp1.apply(this, arguments);
+      M.floors.forEach((F, fi) => {
+        const f = o.floors[fi]; if (!f) return;
+        if (F.brw && F.brw.length) f.brw = F.brw.slice();
+        F.rooms.forEach((R, ri) => { const r = f.rooms[ri]; if (r && R.pl && R.pl.m && R.pl.ids.length) r.pl = { m: R.pl.m, ids: R.pl.ids.slice() }; });
+      });
+      return o;
+    };
+  });
+
+  /* ---- the editor: Powerups in this room (Room pane), Boss reward (Floor pane) */
+  function roomPoolSection(R) {
+    if (!R.pl) R.pl = { m: '', ids: [] };
+    const P0 = R.pl, sec = el('div', 'mk-sec');
+    sec.appendChild(el('h4', 'mk-h', 'Powerups in this room'));
+    const upd = (fn) => { pushUndo(); fn(); changed(); };
+    sec.appendChild(field('Random powerups here come from', seg([['', 'The map pool'], ['only', 'Only these'], ['ban', 'Not these']], P0.m, (v) => upd(() => { P0.m = v; }))));
+    if (P0.m) {
+      const chips = el('div', 'mk-items');
+      for (const id of P0.ids) {
+        const b = el('button', 'mk-it'); b.type = 'button'; b.title = 'Remove ' + ITEMS[id].name;
+        b.appendChild(canvasIcon(30, (c, s) => { c.translate(s / 2, s / 2); drawItemIcon(c, id, s * 0.8, 1); }));
+        b.appendChild(el('span', null, esc(ITEMS[id].name)));
+        b.addEventListener('click', (e) => { e.preventDefault(); upd(() => { P0.ids = P0.ids.filter((x) => x !== id); }); });
+        chips.appendChild(b);
+      }
+      sec.appendChild(chips);
+      sec.appendChild(btn('gold', IC.plus + (P0.ids.length ? 'Change the list' : 'Pick powerups'), 'Choose the powerups of this room', () => pickMany(P0.ids, (ids) => upd(() => { P0.ids = ids; }))));
+    }
+    sec.appendChild(el('p', 'mk-p', P0.m === 'only' ? 'Chests, rewards, pots and drops in this room only roll these. Dragon and space powerups work on any floor here.'
+      : P0.m === 'ban' ? 'These never roll in this room.' : 'This room rolls like the rest of the map. Pick a list to give it its own powerups.'));
+    return sec;
+  }
+  function bossRewardSection(F) {
+    if (!F.brw) F.brw = [];
+    const sec = el('div', 'mk-sec mk-rw');
+    sec.appendChild(el('h4', 'mk-h', 'Boss reward'));
+    const upd = (fn) => { pushUndo(); fn(); changed(); };
+    F.brw.forEach((id, i) => {
+      const line = el('div', 'mk-rwl');
+      line.appendChild(el('span', 'mk-p', `Drop ${i + 1}`));
+      line.appendChild(itemBtn(id, (v) => upd(() => { F.brw[i] = v; })));
+      line.appendChild(btn('ic red', IC.trash, 'Remove this drop', () => upd(() => { F.brw.splice(i, 1); })));
+      sec.appendChild(line);
+    });
+    if (F.brw.length < BRW_MAX) sec.appendChild(btn('gold', IC.plus + 'Add a boss drop', 'A powerup that drops when the floor boss dies', () => upd(() => { F.brw.push('rare'); })));
+    sec.appendChild(el('p', 'mk-p', 'Lands next to the boss loot when the floor boss dies. Exact, random or a random legendary. Up to three.'));
+    return sec;
+  }
+  safe(() => {
+    const rr1 = renderRoomPane;
+    renderRoomPane = function () {
+      const r = rr1.apply(this, arguments);
+      safe(() => {
+        const pane = $('mkPaneRoom'); if (!pane || !Maker.M) return;
+        const top = pane.scrollTop, sec = roomPoolSection(R_());
+        const doors = pane.querySelector('.mk-doors'), h = doors && doors.previousElementSibling;
+        if (h) pane.insertBefore(sec, h); else pane.appendChild(sec);
+        pane.scrollTop = top;
+      });
+      return r;
+    };
+    const rf1 = renderFloor;
+    renderFloor = function () {
+      const r = rf1.apply(this, arguments);
+      safe(() => {
+        const pane = $('mkPaneFloor'); if (!pane || !Maker.M) return;
+        const top = pane.scrollTop; pane.appendChild(bossRewardSection(F_())); pane.scrollTop = top;
+      });
+      return r;
+    };
+    HELP.splice(4, 0, ['Every piece', [
+      ['All of the game', 'Every floor, snake, boss, room type and modifier of the game is in here, also the dragon sky, space, the Knokpit and the clowns. New ones show up by themselves.'],
+      ['Snake colour and health', 'Select a snake: pick one of its colours and scale its health from 50% to 300%.'],
+      ['Powerups per room', 'Room, Powerups in this room. Only these, or not these, for every random roll in that room.'],
+      ['Boss reward', 'Floor, Boss reward. Up to three powerups that drop when the floor boss dies.'],
+      ['Play together', 'Coop, Game Maker, mode Map: pick a map and play it with up to four apples, on one screen or online.'],
+    ]]);
+  });
+
+  /* ---- online coop: a note or a choice is answered by the apple that found it, for the whole team
+     Pop freezes Game.update until it is answered. Online every peer runs that freeze in the same tick, and the
+     answer travels as an 'act' event through the host (net.js), so every peer unfreezes in the same tick too. */
+  safe(() => {
+    const live = () => typeof NET14 !== 'undefined' && NET14.live;
+    const net = () => window.__bitten.net14;
+    const nameOf = (slot) => { const P = G.players && G.players[slot]; return (P && P.name14) || 'P' + (slot + 1); };
+    function popWho() {
+      const o = Pop.cur, h = $('mkPopH'); if (!o || !h || !net()) return;
+      const mine = (o.slot | 0) === net().S.me;
+      h.textContent = mine ? (o.opts && o.opts.length > 1 ? 'You choose for the whole team. Keys 1 and 2 work too.' : 'Tap, Enter or Space to go on, for the whole team.') : `${nameOf(o.slot | 0)} is reading. The run waits.`;
+    }
+    const ps0 = popShow;
+    popShow = function (o) { if (o && live() && o.slot == null) o.slot = G.player && G.player.slot14 != null ? G.player.slot14 : 0; return ps0.apply(this, arguments); };
+    const pn0 = popNext;
+    popNext = function () { const r = pn0.apply(this, arguments); if (live() && Pop.on && Pop.cur) { NET14.decider = Pop.cur.slot | 0; safe(popWho); } return r; };
+    const pk0 = popPick;
+    popPick = function (i) {
+      if (!live()) return pk0.apply(this, arguments);
+      const o = Pop.cur; if (!o) return;
+      if (NET14.replay) {
+        Pop.tm = -1e9; Pop.typed = Pop.full.length;
+        const r = pk0.call(this, i);
+        if (!Pop.on) NET14.decider = -1;
+        return r;
+      }
+      if ((o.slot | 0) !== net().S.me) { safe(() => UI.banner(`${nameOf(o.slot | 0)} is choosing`, '')); return; }
+      if (performance.now() - Pop.tm < 260 || popSkip()) return;
+      const b = $('mkPopO').children[i]; if (!b || !net().act) return;
+      net().act({ r: 'mkPop', i: [...Pop.el.querySelectorAll('*')].indexOf(b) });
+    };
+    /* the apple that has to answer left: the last answer is taken for it, in the same tick everywhere */
+    Sched.every('step', 'v14.6 pop away', () => {
+      const o = Pop.cur; if (!o || !live()) return;
+      const P = G.players && G.players[o.slot | 0];
+      if (P && !P.away14) return;
+      const n = o.opts && o.opts.length ? o.opts.length : 1;
+      NET14.replay = true; try { popPick(n - 1); } finally { NET14.replay = false; }
+    }, () => Pop.on);
+  });
+
+  /* ---- a map played in coop goes back to the coop screen, not into the Map Maker */
+  safe(() => {
+    const ro1 = Maker.reopen;
+    Maker.reopen = function () { if (RTM.back === 'coop') { RTM.cur = null; RTM.back = 'hub'; return; } return ro1.apply(this, arguments); };
+    const mb1 = mapButtons;
+    mapButtons = function (on) {
+      const r = mb1.apply(this, arguments);
+      if (on && RTM.back === 'coop') for (const id of ['btnQuit', 'btnOverMenu', 'btnWinMenu']) { const b = UI.el[id]; if (b) b.textContent = S9('Menu'); }
+      return r;
+    };
+  });
+  Object.assign(MK, { refresh14, EXTRA14, cleanFloor: (F, i) => cleanFloor(F, i), cleanMapNow: (M) => cleanMap(M), compactNow: (M) => compact(M), Pop });
+
   Object.assign(MK, { validate, edit, showHub, showEditor, playMap, toast, previewRoom, drawEditor, tileAtlas, paintBrushIcon, applyAt, setTool, pickBrush, selectRoom, addRoom, setType, goFloor, layoutCanvas });
 })();
 
