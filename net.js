@@ -19,7 +19,7 @@
   const B = window.__bitten = window.__bitten || {};
   const safe = (fn, fb) => { try { return fn(); } catch (e) { try { errNote14(e, 'net'); } catch (e2) { /* ignore */ } return fb; } };
   const T = (s) => (typeof sayF9 === 'function' ? sayF9(s) : s);
-  const PROTO = 'bitten-net-14.0-4';
+  const PROTO = 'bitten-net-14.6-1';
   const STEP = 1 / 60, CHECK = 60, MAXP = 4;
   const ID_PREFIX = 'bitten14-';
   const LINES = ['Host a game', 'Join', 'Room code', 'Leave', 'Copy invite link', 'Link copied', 'Waiting for players', 'Connecting',
@@ -28,7 +28,9 @@
     'Needs at least two apples', 'Waiting for the host', 'The host starts the next run', 'Back to the lobby', 'left the game',
     'joined', 'Host', 'You', 'Online play needs the game served over http or https.', 'Share the code or the link. Up to four apples, one room, the host picks the mode.',
     'is choosing', 'Out of sync, repaired', 'Online', 'Mode', 'ping', 'Looking for the room', 'No direct link, trying the relay', 'relay', 'direct',
-    'Share invite', 'Could not connect. Check the internet connection and try again.'];
+    'Share invite', 'Could not connect. Check the internet connection and try again.', 'More', 'Share level', 'Pick a level to share',
+    'Level shared', 'shared a level', 'Save', 'Saved', 'Saved to your maps. Play it in the Map Maker.', 'Play together', 'No maps yet. Build one in the Map Maker.',
+    'Levels from the lobby', 'Close', 'Examples', 'Your maps', 'Too fast, wait a moment'];
   safe(() => { for (const s of LINES) if (!TEXT_LIT9.messages.includes(s)) TEXT_LIT9.messages.push(s); });
 
   /* ================================================================ rng with a readable state (repairs) */
@@ -379,6 +381,13 @@
     if (m.t === 'p') { L.send({ t: 'P', ts: m.ts }); return; }
     if (m.t === 'leave') { if (S.running) markAway(mem); return; }
     if (m.t === 'bye') { guestGone(L); }
+    if (m.t === 'map') {                                   /* v14.6: a level shared by a guest goes to everyone else */
+      const now = performance.now();
+      if (now - (mem.mapT || -1e9) < 3000 || !okMap(m.map)) return;
+      mem.mapT = now;
+      for (const x of S.members) if (x !== mem && x.link && x.link.open) x.link.send({ t: 'map', from: mem.name, map: m.map });
+      gotMap(mem.name, m.map);
+    }
   }
   function markAway(mem) { if (mem.away) return; mem.away = true; NET.events.push({ k: 'away', s: mem.slot }); safe(() => UI.banner(mem.name + ' ' + T('left the game'), '')); }
   function guestGone(L) {
@@ -447,6 +456,51 @@
     }
     if (m.t === 'lobbyback') { if (NET.live) { endRun(false); safe(() => Game.toMenu()); openLobby(); } return; }
     if (m.t === 'P') { S.ping = Math.round(performance.now() - m.ts); return; }
+    if (m.t === 'map') { if (okMap(m.map)) gotMap(cleanName(m.from, 0), m.map); return; }
+  }
+  /* ================================================================ v14.6: share a level with the lobby
+     Anyone in the lobby can send one of their maps (More, Share level). It travels as the Map Maker's compact
+     form; every other player gets a card to save it to their own maps, and the host can pick it for the team. */
+  const MKA = () => B.MK123;
+  const okMap = (o) => !!(o && typeof o === 'object' && Array.isArray(o.floors) && o.floors.length && JSON.stringify(o).length < 240000);
+  function gotMap(from, map) {
+    S.inbox = (S.inbox || []).filter((x) => !x.saved || x.t > performance.now() - 6e5).slice(-7);
+    S.inbox.push({ from, map, name: String(map.name || 'Untitled map').slice(0, 40), t: performance.now(), saved: false, k: (S.inboxN = (S.inboxN || 0) + 1) });
+    safe(() => UI.banner(from + ' ' + T('shared a level'), String(map.name || '')));
+    safe(() => Sfx.pickup());
+    paint();
+  }
+  function shareMap(M) {
+    if (!S.role) return;
+    const now = performance.now();
+    if (now - (S.shareT || -1e9) < 3000) { safe(() => UI.banner(T('Too fast, wait a moment'), '')); return; }
+    const obj = safe(() => MKA().compactNow(M), null); if (!okMap(obj)) return;
+    S.shareT = now;
+    const from = myProfile().name;
+    if (S.role === 'host') { for (const x of S.members) if (x.link && x.link.open) x.link.send({ t: 'map', from, map: obj }); }
+    else if (S.link) S.link.send({ t: 'map', map: obj });
+    S.pick = false; S.more = false;
+    safe(() => UI.banner(T('Level shared'), String(M.name || '')));
+    paint();
+  }
+  function saveShared(it) {
+    const M = safe(() => { const o = JSON.parse(JSON.stringify(it.map)); delete o.id; return MKA().cleanMapNow(o); }, null);
+    if (!M) return;
+    if (safe(() => MKA().Store.put(M), false) !== false) { it.saved = true; safe(() => UI.banner(T('Saved'), T('Saved to your maps. Play it in the Map Maker.'))); }
+    paint();
+  }
+  function playShared(it) {
+    if (S.role !== 'host' || !B.gm14) return;
+    const M = safe(() => { const o = JSON.parse(JSON.stringify(it.map)); delete o.id; return MKA().cleanMapNow(o); }, null);
+    if (!M) return;
+    B.gm14.pickMap(M); Save.data.mode = 'map'; safe(() => Save.store());
+    lobbyCast();
+  }
+  function shareList() {
+    const out = [];
+    safe(() => { const St = MKA().Store; St.load(); for (const it of St.list) out.push([it.id, it.map, 0]); });
+    safe(() => { for (const M of MKA().EXAMPLES()) out.push([M.id, M, 1]); });
+    return out;
   }
   function sendMe() {
     const p = myProfile();
@@ -944,6 +998,18 @@
 #coop14 .net14 input.nm{letter-spacing:.02em;text-transform:none;width:11em;font-size:15px}
 #coop14 .net14-code{font:800 34px/1 var(--ui);letter-spacing:.24em;color:#fff4ec}
 #coop14 .net14-st{font:600 13px/1.3 var(--ui);color:var(--muted)}
+#coop14 .net14-more{border:1px dashed var(--line);border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:8px}
+#coop14 .net14-maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;max-height:240px;overflow:auto}
+#coop14 .net14-maps small,#coop14 .net14-inbox small{grid-column:1/-1;font:600 10px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+#coop14 .net14-maps button{all:unset;box-sizing:border-box;cursor:pointer;border:1px solid var(--line);border-radius:3px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;background:rgba(0,0,0,.18);min-width:0}
+#coop14 .net14-maps button:hover,#coop14 .net14-maps button:focus-visible{border-color:var(--apple)}
+#coop14 .net14-maps b{font:700 15px/1.1 var(--ui);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#coop14 .net14-maps span{font:500 12px/1.2 var(--ui);color:var(--faint)}
+#coop14 .net14-inbox{display:flex;flex-direction:column;gap:6px}
+#coop14 .net14-in{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid rgba(227,165,74,.45);background:rgba(227,165,74,.08);border-radius:4px;padding:6px 8px}
+#coop14 .net14-in>span{flex:1 1 10em;display:flex;flex-direction:column;gap:2px;min-width:0}
+#coop14 .net14-in b{font:700 15px/1.1 var(--ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#coop14 .net14-in em{font:500 12px/1 var(--ui);color:var(--faint);font-style:normal}
 #coop14 .net14-err{font:700 13px/1.3 var(--ui);color:#ff8a7a}
 #coop14 .net14-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
 #coop14 .net14-m{border:1px solid var(--line);border-radius:4px;padding:8px;display:grid;grid-template-columns:48px 1fr;gap:4px 8px;align-items:center;position:relative}
@@ -989,7 +1055,31 @@
     } else {
       h += `<div class="net14-row"><span class="net14-code" aria-label="${T('Room code')}">${esc(S.code || '·····')}</span>`;
       if (S.code) h += `<button class="btn" type="button" data-a="link">${T(canShare() ? 'Share invite' : 'Copy invite link')}</button>`;
-      h += `<button class="btn" type="button" data-a="leave">${T('Leave')}</button></div>`;
+      h += `<button class="btn" type="button" data-a="leave">${T('Leave')}</button>`;
+      if (MKA()) h += `<button class="btn" type="button" data-a="more" aria-expanded="${!!S.more}">${T('More')}</button>`;
+      h += `</div>`;
+      if (S.more && MKA()) {
+        h += `<div class="net14-more"><div class="net14-row"><button class="btn" type="button" data-a="sharelv" aria-expanded="${!!S.pick}">${T('Share level')}</button></div>`;
+        if (S.pick) {
+          const L = shareList();
+          h += `<p class="co14-note">${T('Pick a level to share')}</p><div class="net14-maps">`;
+          let last = -1;
+          for (const [id, M, ex] of L) {
+            if (ex !== last) { h += `<small>${T(ex ? 'Examples' : 'Your maps')}</small>`; last = ex; }
+            const rooms = M.floors.reduce((n, F) => n + F.rooms.length, 0);
+            h += `<button type="button" data-share="${esc(id)}"><b>${esc(M.name)}</b><span>${M.floors.length} · ${rooms} rooms</span></button>`;
+          }
+          if (!L.length) h += `<p class="co14-note">${T('No maps yet. Build one in the Map Maker.')}</p>`;
+          h += `</div>`;
+        }
+        h += `</div>`;
+      }
+      const inbox = (S.inbox || []);
+      if (inbox.length) {
+        h += `<div class="net14-inbox"><small>${T('Levels from the lobby')}</small>`;
+        for (const it of inbox) h += `<div class="net14-in"><span><b>${esc(it.name)}</b><em>${esc(it.from)}</em></span><button class="btn" type="button" data-save="${it.k}"${it.saved ? ' disabled' : ''}>${T(it.saved ? 'Saved' : 'Save')}</button>${S.role === 'host' ? `<button class="btn primary" type="button" data-play="${it.k}">${T('Play together')}</button>` : ''}<button class="btn" type="button" data-drop="${it.k}" aria-label="${T('Close')}">&times;</button></div>`;
+        h += `</div>`;
+      }
       h += `<div class="net14-list">`;
       for (const m of S.members) {
         const tag = m.slot === 0 ? T('Host') : '', you = m.slot === S.me ? T('You') : '';
@@ -1011,6 +1101,13 @@
     on('[data-a="join"]', () => { const v = p.querySelector('input.cd'); S.joinCode = v ? v.value : ''; guestJoin(S.joinCode); });
     on('[data-a="leave"]', () => { leave(); S.err = ''; paint(); });
     on('[data-a="start"]', () => hostStart());
+    on('[data-a="more"]', () => { S.more = !S.more; if (!S.more) S.pick = false; paint(); });
+    on('[data-a="sharelv"]', () => { S.pick = !S.pick; paint(); });
+    for (const b of p.querySelectorAll('[data-share]')) b.addEventListener('click', (e) => { e.preventDefault(); const hit = shareList().find((x) => x[0] === b.dataset.share); if (hit) shareMap(hit[1]); });
+    const itemOf = (k) => (S.inbox || []).find((x) => String(x.k) === k);
+    for (const b of p.querySelectorAll('[data-save]')) b.addEventListener('click', (e) => { e.preventDefault(); const it = itemOf(b.dataset.save); if (it) saveShared(it); });
+    for (const b of p.querySelectorAll('[data-play]')) b.addEventListener('click', (e) => { e.preventDefault(); const it = itemOf(b.dataset.play); if (it) playShared(it); });
+    for (const b of p.querySelectorAll('[data-drop]')) b.addEventListener('click', (e) => { e.preventDefault(); S.inbox = (S.inbox || []).filter((x) => String(x.k) !== b.dataset.drop); paint(); });
     on('[data-a="link"]', () => {
       const u = new URL(location.href); u.search = ''; u.hash = ''; u.searchParams.set('join', S.code); if (localMode()) u.searchParams.set('net', 'local'); else if (relayMode()) u.searchParams.set('net', 'relay');
       const done = () => safe(() => UI.banner(T('Link copied'), u.toString()));
@@ -1051,7 +1148,14 @@
     paint();
   }
   NET.paintLobby = paint;
-  B.net14 = { paintLobby: paint, S, NET, host: hostOpen, join: guestJoin, leave, start: hostStart, openLobby, stateHash, NetSource, PROTO };
+  /* v14.6: an answer from outside the modal panels (the Map Maker's notes and choices): the host runs it as an
+     event, a guest sends it to the host, which takes it only from the apple that is choosing (NET.decider) */
+  function act(a) {
+    if (!NET.live || !a) return;
+    if (S.role === 'host') NET.events.push({ k: 'act', s: S.me, a });
+    else if (S.link) S.link.send({ t: 'act', a });
+  }
+  B.net14 = { paintLobby: paint, S, NET, host: hostOpen, join: guestJoin, leave, start: hostStart, openLobby, stateHash, NetSource, PROTO, act, shareMap, gotMap, saveShared };
 
   /* ?join=CODE opens the lobby and joins */
   safe(() => {

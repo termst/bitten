@@ -183,3 +183,25 @@ Sheet of every kind: `node test/snakes.js [tag]` writes test/out/snakes-<tag>.pn
 * `src/90-v14-draken-items.js`: 21 dragon powerups (`*_dk`). 45% of item rolls on the sky floor, elsewhere a 7% seeded swap.
 * Tests: `test/draken.js` (climb, fight, storm, all items, boss stages, beam, fall), `test/draken-preview.js` (dkp-*.png).
   `test/bot.js --runs 3 --chars apple` with the dragon odds at 0 matches the build without these files (55.7/17.7/267).
+
+## v14.6: one catalog, Custom Run and Map Maker complete, maps in coop, share a level
+
+* `src/91-v14-catalog.js` loads after all content. `B.CAT14` lists floors, bosses, snakes, room types, modifiers and powerups
+  from the registries (FLOOR10, RARE_STORY10, LEVELS, BOSS_INFO, KINDS, TPL/TPL10/CHAOS_ROOMS9, MOD_NAMES, ITEM_IDS).
+  New content that registers there shows up in Custom Run and the Map Maker without edits.
+* Custom Run (src/51): floors come from `rareSets()` (registries), bosses from BOSS_ORDER10 plus BOSS_INFO. Locked floors and
+  bosses are listed, disabled. Per stage: a boss reward powerup (`rw`: exact found one, `rand`, `rare`) and a Knokpit toggle (`kn`).
+  Rule `knok` (-1 never, 0 rare, 1 every floor). Start powerups 3 to 5. Runtime in 91 (`placeExtras9` wrapper, clearRoom layer).
+* Map Maker (src/74 section 13): `refresh14()` fills SETS, SNAKES, MINIS, BOSSES, MODS, RTYPES in place (also on open).
+  Room types from CHAOS_ROOMS9 it did not know (Knokpit `brawl`, Clini-Clown HQ `clownhq`) are fixed layout rooms built by
+  `chaosRoom9` in a `generateLevel` wrapper. Snake pieces: colour variant `vr` (0 random) and health `hp`. Room powerup list
+  `R.pl {m: only|ban, ids}` and floor boss reward `F.brw` (up to 3), both in the share code. Use `MK.cleanMapNow`/`compactNow`
+  (the plain `MK.cleanMap`/`compact` are the v12.3 originals without later fields). The pool picker in 91 lets an "only" list
+  roll dragon and space powerups off their floor.
+* Coop maps: Game Maker mode `map` with a map picker (`gm14.map`, compact form, travels in the host save). RTM.back `coop`
+  returns to the menu, not the editor. Extra apples get the map rules. Online, a note or choice freezes every peer in the same
+  tick; only the apple that found it answers, through `B.net14.act` as an `act` event (NET.decider). If it leaves, the last answer is taken.
+* Share level (net.js, PROTO bitten-net-14.6-1): lobby More, Share level sends a map (`{t:'map'}`, host relays guest shares,
+  3 s rate limit, 240 KB cap). Receivers get a card: Save (to their maps, solo play later), host also Play together.
+* Tests: `test/catalog.js`, `test/netmap.js [secs] [shotdir]`. `test/bot.js --runs 3 --a <main build>` identical 3/3 for every character.
+  phase0 "first load under 3 MB" already failed on main (3.22 MB), now 3.25 MB.

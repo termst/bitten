@@ -19,7 +19,8 @@
     'Revive time', 'Revive health', 'Door wait', 'Team scaling', 'Coin drops', 'Max apples', 'Seed', 'Random', 'Off', 'Half apple',
     'One apple', 'Full', 'No wait', 'Everyone', 'Light', 'Normal', 'Heavy', 'Auto', 'Reset', 'Set by the host', 'ALL',
     'Same seed, same mode: the same run. Empty: a new run every time.', 'Custom Run: stages, rules and start powerups from the builder below.',
-    'Custom Run: the host builds the stages.', 'changed', 'Locked'];
+    'Custom Run: the host builds the stages.', 'changed', 'Locked', 'Map', 'Pick a map', 'Your maps', 'Examples', 'No map picked yet.',
+    'A map from the Map Maker, for the whole team. Its own rules, powerups and rooms count; the team rules below too.', 'The host picks the map.'];
   safe(() => { for (const s of LINES) if (!TEXT_LIT9.messages.includes(s)) TEXT_LIT9.messages.push(s); });
 
   /* ---------------------------------------------------------------- the settings */
@@ -41,7 +42,22 @@
     return out;
   };
   const PD = () => (B.cust10 && B.cust10.PD) || {};
-  const coopModes = () => MODE_IDS.filter((k) => k !== 'story' && k !== 'daily' && MODES[k]);
+  /* v14.6: Map is a coop mode too: a map from the Map Maker, played by the whole team */
+  const coopModes = () => MODE_IDS.filter((k) => k !== 'story' && k !== 'daily' && MODES[k]).concat(MODES.map && B.MK123 ? ['map'] : []);
+  const MK = () => B.MK123;
+  /* every map you can pick: your own, then the examples. Each entry: [id, map] */
+  function mapChoices() {
+    const out = [];
+    safe(() => { const S = MK().Store; S.load(); for (const it of S.list) out.push([it.id, it.map, 0]); });
+    safe(() => { for (const M of MK().EXAMPLES()) out.push([M.id, M, 1]); });
+    return out;
+  }
+  /* the picked map travels in the host save (online guests play on it), as the compact share form */
+  function pickMap(M) { const c = cfg(); c.map = safe(() => Object.assign(MK().compactNow(M), { id: M.id }), null); }
+  function mapNow() {
+    const c = cfg(); if (!c.map || typeof c.map !== 'object') return null;
+    return safe(() => MK().cleanMapNow(JSON.parse(JSON.stringify(c.map))), null);
+  }
 
   function cfg() {
     const D = Save.data;
@@ -63,17 +79,24 @@
   function pub() {
     const c = cfg();
     return { mode: modeNow(), diff: diffNow(), style: c.style, p: Object.assign({}, c.p), co: Object.assign({}, c.co), max: c.max, seed: c.seed ? 1 : 0,
-      cust: modeNow() === 'custom' ? safe(() => String(window.customSummary10()).replace(/<[^>]+>/g, ''), '') : '' };
+      cust: modeNow() === 'custom' ? safe(() => String(window.customSummary10()).replace(/<[^>]+>/g, ''), '') : '',
+      map: modeNow() === 'map' && c.map ? String(c.map.name || '').slice(0, 40) : '' };
   }
   const seedNum = () => { const s = cfg().seed; return s ? hashStr('bitten-gm-' + s.toLowerCase()) : null; };
 
   /* ---------------------------------------------------------------- the run */
   const CO_DEF = { revive: 3, reviveHp: 2, door: 3, scale: 1 };
-  Hooks.layer('Game.startRun', 'v14.2 game maker', function (next) {
+  Hooks.layer('Game.startRun', 'v14.2 game maker', function (next, story, mode) {
     const q = B.coop14 && B.coop14.pending, multi = !!(q && q.length >= 2);
     const c = multi ? cfg() : null;
     Object.assign(CO14, CO_DEF);
     if (c) for (const k of Object.keys(CO_DEF)) CO14[k] = c.co[k];
+    /* v14.6: a coop Map run plays the Game Maker's map; with no map picked it is an Arcade run */
+    if (mode === 'map' && multi) {
+      const M = mapNow(), R = MK() && MK().RTM;
+      if (M && R) { R.cur = M; R.back = 'coop'; R.startRoom = null; R.tpTo = null; R.test = false; }
+      else { const a = [].slice.call(arguments, 1); a[1] = 'arcade'; return next.apply(this, a); }
+    }
     const r = next.apply(this, [].slice.call(arguments, 1));
     safe(() => {
       if (!c || !MP14.on || !G.run || G.mode === 'story') { Object.assign(CO14, CO_DEF); return; }
@@ -87,6 +110,15 @@
           if (cu.pspeed !== 1) P.speed *= cu.pspeed;
           if (cu.fire !== 1) P.fireDelay /= cu.fire;
           if (cu.apples) { P.maxHp = Math.min(20, P.maxHp + cu.apples * 2); P.hp = P.maxHp; }
+        }
+      } else if (G.mode === 'map') {
+        /* the map's own rules reached apple 1 only (the other apples did not exist yet) */
+        const ru = safe(() => MK().RTM.cur.rules, null);
+        if (ru) for (const P of L.slice(1)) {
+          if (ru.dm !== 1) P.dmg *= ru.dm;
+          if (ru.ps !== 1) P.speed *= ru.ps;
+          if (ru.fr !== 1) P.fireDelay /= ru.fr;
+          if (ru.ap) { P.maxHp = Math.min(20, P.maxHp + ru.ap * 2); P.hp = P.maxHp; P.bites.length = 0; }
         }
       } else {
         const p = c.p;
@@ -185,6 +217,12 @@
 .gm14.ro button{cursor:default}
 .gm14.ro .sg button:not([aria-checked="true"]){opacity:.55}
 .gm14 .gm14-cust>.cust10{border:0;padding:0;background:none}
+.gm14 .gm14-maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;max-height:260px;overflow:auto}
+.gm14 .gm14-maps .gm14-mh{grid-column:1/-1;font:600 10px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:4px 0 0}
+.gm14 .gm14-maps button{border:1px solid var(--line);border-radius:3px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;background:rgba(0,0,0,.18);min-width:0}
+.gm14 .gm14-maps button b{font:700 15px/1.1 var(--ui);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gm14 .gm14-maps button span{font:500 12px/1.2 var(--ui);color:var(--faint)}
+.gm14 .gm14-maps button[aria-checked="true"]{border-color:var(--apple);background:rgba(215,38,61,.16)}
 @media (max-width:420px){.gm14 .gm14-sty{grid-template-columns:1fr}}`;
   let cssOn = false;
   const esc = (s) => String(s == null ? '' : s).replace(/[<>&"]/g, '');
@@ -203,7 +241,23 @@
       + `<p class="cn">${esc(DIFFS[diff] ? DIFFS[diff].desc : '')}</p></div>`;
     h += `<div class="c10sec"><div class="c10t">${T('Coop style')}</div><div class="gm14-sty" role="radiogroup" aria-label="${T('Coop style')}">`
       + STYLES.map(([k, n, d]) => `<button type="button" role="radio" data-g="style" data-v="${k}" aria-checked="${c.style === k}"${ro ? ' disabled' : ''}><b>${T(n)}</b><span>${T(d)}</span></button>`).join('') + '</div></div>';
-    if (mode === 'custom') h += `<div class="c10sec gm14-cust"><div class="c10t">${T('Run rules')}</div><p class="cn">${ro ? `${T('Custom Run: the host builds the stages.')} ${esc(c.cust || '')}` : T('Custom Run: stages, rules and start powerups from the builder below.')}</p></div>`;
+    if (mode === 'map') {
+      h += `<div class="c10sec gm14-map"><div class="c10t">${T('Map')}</div>`;
+      if (ro) h += `<p class="cn">${T('The host picks the map.')} <b>${esc(c.map || T('No map picked yet.'))}</b></p>`;
+      else {
+        const cur = cfg().map, list = mapChoices();
+        h += `<p class="cn">${T('A map from the Map Maker, for the whole team. Its own rules, powerups and rooms count; the team rules below too.')}</p><div class="gm14-maps" role="radiogroup" aria-label="${T('Pick a map')}">`;
+        let lastEx = -1;
+        for (const [id, M, ex] of list) {
+          if (ex !== lastEx) { h += `<small class="gm14-mh">${T(ex ? 'Examples' : 'Your maps')}</small>`; lastEx = ex; }
+          const rooms = M.floors.reduce((n, F) => n + F.rooms.length, 0);
+          h += `<button type="button" role="radio" data-map="${esc(id)}" aria-checked="${!!(cur && cur.id === id)}"><b>${esc(M.name)}</b><span>${M.floors.length > 1 ? M.floors.length + ' floors, ' : ''}${rooms} rooms${M.author ? ' · ' + esc(M.author) : ''}</span></button>`;
+        }
+        h += '</div>';
+        if (!cur) h += `<p class="cn">${T('No map picked yet.')}</p>`;
+      }
+      h += '</div>';
+    } else if (mode === 'custom') h += `<div class="c10sec gm14-cust"><div class="c10t">${T('Run rules')}</div><p class="cn">${ro ? `${T('Custom Run: the host builds the stages.')} ${esc(c.cust || '')}` : T('Custom Run: stages, rules and start powerups from the builder below.')}</p></div>`;
     else h += `<div class="c10sec"><div class="c10t">${T('Run rules')}</div>` + ruleRows().map(([k, n, opts]) => seg('p.' + k, n, opts, c.p[k], PD()[k])).join('') + '</div>';
     h += `<div class="c10sec"><div class="c10t">${T('Team')}</div>` + TEAM.filter(([k]) => k !== 'coin' || c.style === 'split').map(([k, n, opts, d]) => seg('co.' + k, n, opts, c.co[k], d)).join('') + '</div>';
     if (o.room || o.seed || ro) {
@@ -228,6 +282,11 @@
       else if (g.startsWith('co.')) C.co[g.slice(3)] = num;
       done();
     });
+    for (const b of el.querySelectorAll('[data-map]')) b.addEventListener('click', (e) => {
+      e.preventDefault();
+      const hit = mapChoices().find((x) => x[0] === b.dataset.map); if (!hit) return;
+      pickMap(hit[1]); done();
+    });
     const sd = el.querySelector('.gm14-seed');
     if (sd) sd.addEventListener('change', () => { cfg().seed = sd.value; safe(() => Save.store()); if (o.onChange) safe(o.onChange); });
     const rs = el.querySelector('[data-a="gmreset"]');
@@ -237,5 +296,5 @@
     if (cb && U) { cb.appendChild(U.box); U.box.hidden = false; safe(() => U.paint()); }
     else if (U && el.contains(U.box)) U.home();
   }
-  B.gm14 = { cfg, pub, mount, seedNum, max: () => cfg().max, STYLES, TEAM };
+  B.gm14 = { cfg, pub, mount, seedNum, max: () => cfg().max, STYLES, TEAM, pickMap, mapNow, mapChoices };
 })();
