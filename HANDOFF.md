@@ -220,3 +220,16 @@ Sheet of every kind: `node test/snakes.js [tag]` writes test/out/snakes-<tag>.pn
   screen shake off), rainbow wash, intro countdown, hype meter. Music: `Doot67` (same file), live trap track from the beat clock
   with a formant robot voice. Audio and drawing use no game random.
 * Tests: `test/six67.js` (intro, pads, mode, all stages, win, loot), `test/six67-clip.js outdir` (preview mp4).
+## v14.4 difficulty curve (src/92-v14-curve.js)
+
+Problem: floors 1 and 2 were the wall (full rooms, no powerups yet), from floor 3 a stacked apple melted bosses before their stages.
+* Early relief (arcade, daily, endless, story; not rush, chaos, custom or map maker floors): snake HP x0.75 floor 1, x0.85 floor 2,
+  one snake less per fight and per wave (never below 2 on floor 1, 3 on floor 2), max 1 trait on floor 1, venom x0.9 / x0.96,
+  the first won fight on floor 1 and on floor 2 drops a powerup. Floor 1 boss HP x0.85, floor 2 boss at least x0.9.
+* Power meter: damage to normal snakes per second of fighting, 12 s moving average (`G.run.c14.ema`). Floor 1 is the yardstick,
+  R = meter / floor 1 average. Snakes from floor 3: HP x clamp(sqrt(R / expect[floor]), 1, 1.5), expect = 1, 1.6, 3, 4.5, 6.
+  `enemyPowerK` carries it, `bossHpK` keeps the old threat only.
+* Bosses: at first sight their HP is lifted to meter x 1.2 x target seconds (30, 34, 38, 42 on floors 2 to 5, minis half), max 3x.
+* Sim state only, lockstep safe (`test/net.js 15 2 --bot` PASS). Flags: `window.__bitten.CURVE14.CFG`, `CURVE14.state()`.
+* Report: `node test/curve.js --runs 12 --par 5 [--cfg '{"on":false}']`. 3 chars x 3 difficulties, pooled (off 72 runs, on 108 runs):
+  floor 1 damage 2.5 to 1.5 apples, floor 1 boss 34 s to 25 s, boss fight floor 3 21 to 35 s, floor 4 18 to 31 s, floor 5 17 to 43 s.
