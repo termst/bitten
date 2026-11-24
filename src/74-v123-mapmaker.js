@@ -4927,6 +4927,7 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   const XROOM = {
     clownhq: ['Clini-Clown HQ', 'CLN', '#ff5ab4', 'The clowns’ hideout: a fight with a prize. Fixed layout.'],
     brawl: ['De Knokpit', 'KNK', '#6a5ae8', 'Three brawler snakes, loot boxes and power pads. Fixed layout.'],
+    hype67: ['SIX SEVEN', '67', '#ff8a1a', 'The hidden 67 stage: a rhythm boss on a neon dance floor. Fixed layout.'],
   };
   const NOT_PIECE = { noodle: 1 };
   const NOT_MINI = { splitling: 1, rotling: 1, jong14: 1 };

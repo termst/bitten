@@ -206,6 +206,20 @@ Sheet of every kind: `node test/snakes.js [tag]` writes test/out/snakes-<tag>.pn
 * Tests: `test/catalog.js`, `test/netmap.js [secs] [shotdir]`. `test/bot.js --runs 3 --a <main build>` identical 3/3 for every character.
   phase0 "first load under 3 MB" already failed on main (3.22 MB), now 3.25 MB.
 
+## v14.7: SIX SEVEN, a hidden rhythm boss (src/90-v14-zz67.js)
+
+* Room type `hype67` hung off a fight room from floor 2 (`H67.CFG`: odds 0.14, chaos 0.3, endless 0.1; own mulberry32 from
+  run seed and floor, so floors without it draw nothing extra). Codes `67` and `SIXSEVEN` toggle `force`. `CFG.next` (tests)
+  turns the fight room next to the start into the stage. Also a boss in Custom Run, Boss Rush chaos and the Map Maker (`BOSS_TPL10.six67`).
+* Boss `six67` (hp 240, 85 stage rules via its own `DEF` entry and wrap): DOOT DOOT 140 BPM, HANDS UP (66%) 150 BPM, SIX SEVEEEN (33%) 164 BPM.
+* Beat clock `room.h67.beat` advances in `updateRoom9` (simulation, dt > 0 only). Every attack lands on a beat: hand slams
+  (`H.hands[i].s`, shadow for 2 beats), row and column lasers (`H.lines`, 4 beat warning), 67 meteors (`H.rocks`), digit venom
+  (`kind 'g67'`). Gold pads (`H.pads`): stand on one when the beat hits for hype. Hits give a little hype.
+  Outside SIX SEVEN MODE the boss takes 60% (`HURT10.six67`); full hype starts the mode: 6.7 s, 2.2x, boss dances.
+* Screen effects in a `renderRoom` wrapper (`post`): beat zoom, camera rock in stage 3 and the mode (off with reduced motion or
+  screen shake off), rainbow wash, intro countdown, hype meter. Music: `Doot67` (same file), live trap track from the beat clock
+  with a formant robot voice. Audio and drawing use no game random.
+* Tests: `test/six67.js` (intro, pads, mode, all stages, win, loot), `test/six67-clip.js outdir` (preview mp4).
 ## v14.4 difficulty curve (src/92-v14-curve.js)
 
 Problem: floors 1 and 2 were the wall (full rooms, no powerups yet), from floor 3 a stacked apple melted bosses before their stages.
