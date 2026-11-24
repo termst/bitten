@@ -275,6 +275,7 @@
     return out;
   };
   const NO_PICK = {};
+  const hidden = () => (window.__bitten && window.__bitten.HIDDEN14) || [];
   const PD = { apples: 0, coins: 0, hearts: 1, dmg: 1, fire: 1, pspeed: 1, speed: 1, bossHp: 1, noodles: 1, rooms: 0, loop: 0, knok: 0 };
   const PG = [
     ['Rules', [
@@ -293,7 +294,7 @@
     ['Run', [
       ['rooms', 'Rooms per floor', [[0, 'Floor default'], [5, '5'], [7, '7'], [9, '9'], [12, '12'], [14, '14']]],
       ['loop', 'After the last stage', [[0, 'Escape'], [1, 'Go on, harder each lap']]],
-      ['knok', 'Knokpit', [[-1, 'Never'], [0, 'Rare'], [1, 'Every floor']]],
+ /* v14.8: one row per hidden room (Knokpit, SIX SEVEN, ...) is added from window.__bitten.HIDDEN14 by src/99 */
     ]],
   ];
   const PRESETS = [['classic', 'Classic floors'], ['all', 'Every floor'], ['boss', 'Boss gauntlet'], ['reset', 'Reset all']];
@@ -347,7 +348,9 @@
       const boss = s.boss !== 'auto' && bosses.indexOf(s.boss) >= 0 && bossOpen(s.boss) ? s.boss : 'auto';
       /* v14.6: a powerup for beating this stage's boss (exact, found ones only, or a random legendary) and a Knokpit on this floor */
       const rw = s.rw === 'rare' || s.rw === 'rand' || (typeof s.rw === 'string' && itemOpen(s.rw)) ? s.rw : '';
-      return { set, boss, arena: !!s.arena, rw, kn: s.kn ? 1 : 0 };
+      const o = { set, boss, arena: !!s.arena, rw, kn: s.kn ? 1 : 0 };
+      for (const h of hidden()) o[h.sk] = s[h.sk] ? 1 : 0;
+      return o;
     });
     if (!c.stages.length) c.stages = [{ set: 'cellar', boss: 'auto', arena: false }];
     c.items = (Array.isArray(c.items) ? c.items : []).filter((id, i, a) => typeof id === 'string' && itemOpen(id) && a.indexOf(id) === i).slice(0, MAX_START);
@@ -559,8 +562,8 @@
         li.innerHTML = `<span class="n">${i + 1}</span><select class="fl" aria-label="Stage ${i + 1} floor"></select>`
           + `<div class="ic"><button type="button" class="up" aria-label="Move stage ${i + 1} up">${ICON.up}</button><button type="button" class="dn" aria-label="Move stage ${i + 1} down">${ICON.dn}</button><button type="button" class="rm" aria-label="Remove stage ${i + 1}">${ICON.rm}</button></div>`
           + `<select class="bs" aria-label="Stage ${i + 1} boss"></select><button type="button" class="ar" aria-pressed="${s.arena}">${s.arena ? 'Boss only' : 'Full floor'}</button>`
-          + `<div class="ex"><select class="rw" aria-label="Stage ${i + 1} boss reward"></select><button type="button" class="kn" aria-pressed="${!!s.kn}" title="A Knokpit arena hangs off a fight room on this floor">${s.kn ? 'Knokpit on' : 'Knokpit'}</button></div>`;
-        const fl = li.querySelector('.fl'), bs = li.querySelector('.bs'), ar = li.querySelector('.ar'), rw = li.querySelector('.rw'), kn = li.querySelector('.kn');
+          + `<div class="ex"><select class="rw" aria-label="Stage ${i + 1} boss reward"></select>${hidden().map((h) => `<button type="button" class="kn hr" data-h="${h.sk}" aria-pressed="${!!s[h.sk]}" title="${h.title}">${s[h.sk] ? h.label + ' on' : h.label}</button>`).join('')}</div>`;
+        const fl = li.querySelector('.fl'), bs = li.querySelector('.bs'), ar = li.querySelector('.ar'), rw = li.querySelector('.rw');
         for (const f of floors) { const op = floorOpen(f); fl.appendChild(opt(f, floorName(f) + (op ? '' : ' (locked)'), f === s.set, !op)); }
         const home = floorBase(s.set) && floorBase(s.set).boss;
         bs.appendChild(opt('auto', home ? `Boss: ${bossName(home)}` : 'The floor boss', s.boss === 'auto'));
@@ -570,8 +573,10 @@
         rw.appendChild(opt('rand', 'Boss reward: random powerup', s.rw === 'rand'));
         for (const id of found) rw.appendChild(opt(id, 'Boss reward: ' + ITEMS[id].name + (ITEMS[id].rare ? ' ★' : ''), s.rw === id));
         rw.addEventListener('change', () => { cur().rw = rw.value; commit(); summary(); Sfx.blip(); });
-        kn.hidden = s.arena;
-        kn.addEventListener('click', () => { const t = cur(); t.kn = t.kn ? 0 : 1; commit(); paint(); Sfx.blip(); });
+        for (const kn of li.querySelectorAll('.hr')) {
+          kn.hidden = s.arena;
+          kn.addEventListener('click', () => { const t = cur(), k = kn.dataset.h; t[k] = t[k] ? 0 : 1; commit(); paint(); Sfx.blip(); });
+        }
         ar.title = s.arena ? 'Only the boss fight, after a powerup vote' : 'All rooms of the floor, then the boss';
         /* norm() rebuilds the stage objects, so always edit the live one */
         const cur = () => norm().stages[i];
@@ -652,8 +657,13 @@
         const last = c.stages[c.stages.length - 1];
         c.stages.push({ set: last ? last.set : 'cellar', boss: 'auto', arena: false }); commit(); paint(); Sfx.blip();
       });
+      buildRules();
+      $('c10note').textContent = 'Floors, bosses and powerups open up as you meet them. Wins here do not count as escapes or character wins. Kills, bosses and powerups still count.';
+    }
+    /* v14.8: rebuilt when a rule row is added later (src/99 adds one per hidden room) */
+    function buildRules() {
       const SHORT = { 'Floor default': 'Auto', 'Go on, harder each lap': 'Loop, harder each lap' };
-      const g = $('c10g'); g.className = 'c10rules'; g.style.cssText = 'display:flex;flex-direction:column;gap:14px';
+      const g = $('c10g'); g.className = 'c10rules'; g.style.cssText = 'display:flex;flex-direction:column;gap:14px'; g.textContent = '';
       for (const [title, rows] of PG) {
         const sec = document.createElement('div'); sec.className = 'c10sec'; sec.dataset.g = title;
         sec.innerHTML = `<div class="c10t">${title}<button type="button" class="rs" hidden></button></div>`;
@@ -672,12 +682,11 @@
         }
         g.appendChild(sec);
       }
-      $('c10note').textContent = 'Floors, bosses and powerups open up as you meet them. Wins here do not count as escapes or character wins. Kills, bosses and powerups still count.';
     }
     function paint() { summary(); paintStages(); paintRules(); paintItems(); }
     build();
     /* v14.2: the Game Maker borrows this builder for a Custom Run in coop; home() puts it back */
-    (window.__bitten || (window.__bitten = {})).custUI10 = { box, paint, home: () => { if (box.parentNode !== inner) inner.insertBefore(box, foot); } };
+    (window.__bitten || (window.__bitten = {})).custUI10 = { box, paint, buildRules, home: () => { if (box.parentNode !== inner) inner.insertBefore(box, foot); } };
 
     const pp0 = UI.paintPlay;
     UI.paintPlay = function () {

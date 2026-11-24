@@ -750,5 +750,19 @@
     c.fillStyle = K.eye; for (const s of [-1, 1]) circle(c, H * 0.75, s * H * 0.35, H * 0.12);
   };
 
+  /* v14.8: one registry for every feature (src/91, src/99): Custom Run, Game Maker, Admin, Map Maker and the guide read these */
+  {
+    const B = window.__bitten || (window.__bitten = {});
+    (B.HIDDEN14 || (B.HIDDEN14 = [])).push({ id: TYPE, sk: 'kn', rk: 'knok', label: 'Knokpit', title: 'A Knokpit arena hangs off a fight room on this floor', cfg: KNOK });
+    (B.ROOMINFO14 || (B.ROOMINFO14 = {}))[TYPE] = { name: 'De Knokpit', code: 'KNK', col: '#6a5ae8', hung: 1,
+      desc: 'Three brawler snakes, loot boxes and power pads. Fixed layout.',
+      guide: 'A rare arena off a fight room from floor 2. Three brawler snakes with a super each, bushes to hide in, loot boxes and three power pads. Win it for a Mega Box.' };
+    const G14 = {
+      lucha14: ['Big, De Knokpit', 'A luchador. Punch combo up close, charges at you, and his super Vliegende Plons leaps onto where you stand. Trait Taai: below half health he takes 30% less damage.'],
+      hagel14: ['Medium, De Knokpit', 'A shotgun: five pellets at short range, and her super Hagelbui fires twelve with knockback. Trait Rolletje: rolls sideways when your seeds come close.'],
+      kogel14: ['Medium, De Knokpit', 'Two revolvers, six shot bursts from far away, super Kogelregen. Trait Scherpschutter: aims where you are going, not where you are.'],
+    };
+    for (const k in G14) KINDS[k].guide14 = G14[k];
+  }
   Object.assign(window.__bitten || (window.__bitten = {}), { KNOK14: { KNOK, TPLS, BRAWLERS, RAR, buildKnok, startKnok, addDrop, rollRar, brk: (room, o) => breakObstacle(room, o), err: () => ERR14 } });
 })();

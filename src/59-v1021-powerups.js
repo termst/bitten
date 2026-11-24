@@ -685,7 +685,9 @@
       for (const a of ACHS) { if (!D.ach[a.id]) D.ach[a.id] = Date.now(); if (a.reward && CHARS[a.reward]) D.unlocks[a.reward] = true; }
       for (const id of Object.keys(ITEMS)) if (id !== 'golden') D.found[id] = true;
       D.floorsSeen = D.floorsSeen || {};
-      for (const f of FLOORS) { D.floorsSeen[f] = true; D.seen['f:' + f] = true; }
+      /* v14.8: every floor the catalog knows (dragon sky, space, rare floors and whatever comes later) */
+      const fls = FLOORS.concat((() => { try { return window.__bitten.CAT14.floors(); } catch (e) { return []; } })());
+      for (const f of fls) { D.floorsSeen[f] = true; D.seen['f:' + f] = true; }
       for (const k of Object.keys(BOSS_INFO)) D.seen['b:' + k] = true;
       for (const k of BOSS_ORDER10) D.seen['b:' + k] = true;
       D.stats.storyWins = Math.max(1, D.stats.storyWins || 0); D.stats.story2Wins = Math.max(1, D.stats.story2Wins || 0);
