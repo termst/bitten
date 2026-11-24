@@ -4945,9 +4945,11 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     if (typeof V9_SPAWN === 'object') for (const ch in V9_SPAWN) if (!SPAWN_CH[ch]) SPAWN_CH[ch] = V9_SPAWN[ch];
     for (const k of (typeof BOSS_ORDER10 !== 'undefined' ? BOSS_ORDER10 : []).concat(Object.keys(BOSS_INFO))) if (BOSS_INFO[k] && k !== 'jaude' && !BOSSES.includes(k)) BOSSES.push(k);
     if (typeof MOD_NAMES === 'object') for (const k in MOD_NAMES) if (!NO_MOD[k] && !MODS.some((m) => m[0] === k)) MODS.push([k, String(MOD_NAMES[k])]);
-    for (const t of new Set(typeof CHAOS_ROOMS9 !== 'undefined' ? CHAOS_ROOMS9 : [])) {
+    const C14 = window.__bitten && window.__bitten.CAT14;
+    for (const t of new Set(C14 ? C14.rooms() : typeof CHAOS_ROOMS9 !== 'undefined' ? CHAOS_ROOMS9 : [])) {
       if (RT[t] || t === 'chaosboss') continue;
-      const x = XROOM[t] || [t[0].toUpperCase() + t.slice(1), t.slice(0, 3).toUpperCase(), '#a08aff', 'A room from the game, built like the game builds it. Fixed layout.'];
+      const ri = C14 && C14.info(t);
+      const x = XROOM[t] || (ri && [ri.name, ri.code, ri.col, ri.desc]) || [t[0].toUpperCase() + t.slice(1), t.slice(0, 3).toUpperCase(), '#a08aff', 'A room from the game, built like the game builds it. Fixed layout.'];
       RTYPES.push([t, x[0], x[1], x[2], x[3]]);
       RT[t] = { id: t, name: x[0], code: x[1], col: x[2], desc: x[3] };
       EXTRA14[t] = 1; FIXED[t] = 1;
@@ -4965,7 +4967,8 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
         const R = rm.mkR; if (!R) return;
         if (EXTRA14[R.t] && rm !== map.start) {
           const seal = rm.sealed;
-          chaosRoom9(rm, R.t, def, Math.random);
+          const C14 = window.__bitten && window.__bitten.CAT14;
+          if (C14) C14.build(rm, R.t, def, Math.random); else chaosRoom9(rm, R.t, def, Math.random);
           rm.mkR = R; rm.mkSn = []; rm.mkE = rm.mkE || []; rm.mkGuard = false;
           if (seal) rm.sealed = true;
           rm.dirty = true; rm.ver = (rm.ver || 0) + 1;

@@ -233,3 +233,17 @@ Problem: floors 1 and 2 were the wall (full rooms, no powerups yet), from floor 
 * Sim state only, lockstep safe (`test/net.js 15 2 --bot` PASS). Flags: `window.__bitten.CURVE14.CFG`, `CURVE14.state()`.
 * Report: `node test/curve.js --runs 12 --par 5 [--cfg '{"on":false}']`. 3 chars x 3 difficulties, pooled (off 72 runs, on 108 runs):
   floor 1 damage 2.5 to 1.5 apples, floor 1 boss 34 s to 25 s, boss fight floor 3 21 to 35 s, floor 4 18 to 31 s, floor 5 17 to 43 s.
+
+## v14.8: every content piece in every feature (src/99-v14-sync.js)
+Rule from the owner: a new room, boss, snake or floor must show up at once in the Admin panel, Map Maker, Custom Run,
+Game Maker and the guide. Register content once, at its source, and the features follow:
+- floors `FLOOR10` / `RARE_STORY10`; bosses `BOSS_INFO` + `BOSS_ORDER10` + `CHAOS_BOSSES9`; snakes `KINDS`
+  (guide card text in `KINDS[k].guide14 = [size, text]`); fight modifiers `MOD_NAMES`.
+- room types `CHAOS_ROOMS9` (or `TPL`) plus `window.__bitten.ROOMINFO14[type] = { name, code, col, desc, hung, nolink, guide }`.
+  `CAT14.build(room, type, def, rng)` (src/91) builds any type, Admin and Map Maker both use it.
+- a rare hidden room hung off a fight room: also push `{ id, sk, rk, label, title, cfg }` to `window.__bitten.HIDDEN14`.
+  Custom Run then gets a per stage toggle (`sk`) and a Never/Rare/Every floor rule (`rk`), the Game Maker the same rule.
+- src/99 loads last (keep it the highest number) and fills Admin room types and modifiers, the Custom Run rules,
+  guide cards and room entries, and the Map Maker catalog. `B.SYNC14.audit()` lists anything still missing.
+- Test: `node test/sync.js` (audit empty, new content flows in, Admin builds every room, a map with every extra room plays,
+  SIX SEVEN per stage and rules, Unlock everything opens every floor).

@@ -18,12 +18,44 @@
 
   /* ---------------------------------------------------------------- the catalog */
   const uniq = (a) => a.filter((k, i) => a.indexOf(k) === i);
+  /* v14.8: room info for every feature. Content files register their own room (B.ROOMINFO14[type]) and hidden
+     rooms (B.HIDDEN14); the rooms below came before that. hung: one door only, nolink: no other room opens into it. */
+  const RI = B.ROOMINFO14 || (B.ROOMINFO14 = {});
+  const HID = B.HIDDEN14 || (B.HIDDEN14 = []);
+  const RI0 = {
+    secret: { name: 'Secret room', code: 'SEC', col: '#7a6a5a', hung: 1, nolink: 1, desc: 'Behind a cracked wall in the game: a Rot Eater and its loot. Fixed layout.' },
+    spook: { name: 'Het Kelderspook', code: 'SPK', col: '#a8c8ff', hung: 1, nolink: 1, desc: 'A secret room with the ghost boss inside. Fixed layout.' },
+    portal: { name: 'Portal (Ender Wyrm)', code: 'PRT', col: '#9a5ad8', hung: 1, nolink: 1, desc: 'The block world behind the portal, with the Ender Wyrm. Fixed layout.' },
+    club: { name: 'Club (DJ Manu-Beau)', code: 'CLB', col: '#3ad8ff', hung: 1, nolink: 1, desc: 'The club behind a door: DJ Manu-Beau and his beat. Fixed layout.' },
+    hellclub: { name: 'Hellclub', code: 'HEL', col: '#ff3a2a', hung: 1, nolink: 1, desc: 'The club gone to hell: Manu-Beau as a devil. Fixed layout.' },
+    clownhq: { name: 'Clini-Clown HQ', code: 'CLN', col: '#ff5ab4', hung: 1, desc: 'The clowns’ hideout: a fight with a prize. Fixed layout.' },
+    quiet: { name: 'Prikkelarme Kamer', code: 'QUI', col: '#9a8acf', hung: 1, desc: 'A beanbag that heals and washes off one downgrade. Fixed layout.' },
+    vault: { name: 'Vault', code: 'VLT', col: '#c9a000', hung: 1, nolink: 1, desc: 'Barred shut, a key opens it. Two powerups and gold.' },
+  };
+  for (const k in RI0) if (!RI[k]) RI[k] = RI0[k];
+  /* build a room of any type the way the game builds it (Admin and the Map Maker use this) */
+  function buildRoom(room, type, def, rng) {
+    rng = rng || Math.random;
+    if (type === 'secret' || type === 'spook') { resetRoom9(room); room.type = 'secret'; room.spook10 = type === 'spook'; room.build(type === 'spook' ? TPL10.spook : TPL.secret, def); room.cleared = false; }
+    else if (type === 'portal') { resetRoom9(room); room.type = 'portal'; room.theme = 'craft'; room.build(TPL.portal, def); room.cleared = false; }
+    else if (type === 'vault') { resetRoom9(room); room.type = 'vault'; room.build(TPL.vault, def); room.cleared = true; }
+    else if (type === 'club' || type === 'hellclub') {
+      resetRoom9(room); room.type = type;
+      const door = Object.keys(room.doors)[0] || 's';
+      room.theme = type === 'club' ? 'club' : 'hell'; room.clubDoor = door;
+      room.build(clubTemplate(door), def); room.sconces = []; room.tubes = null; room.cleared = false;
+    } else chaosRoom9(room, type, def, rng);
+    return room;
+  }
   const CAT14 = {
     floors: () => uniq(LEVELS.map((L) => L.set).concat(typeof RARE_STORY10 !== 'undefined' ? Object.keys(RARE_STORY10) : [], Object.keys(FLOOR10)))
       .filter((k) => SET_LEVEL[k] != null || safe(() => !!floorDef10(k), false)),
     bosses: () => uniq(BOSS_ORDER10.concat(Object.keys(BOSS_INFO))).filter((k) => BOSS_INFO[k]),
     snakes: () => Object.keys(KINDS).filter((k) => KINDS[k] && !KINDS[k].boss && KINDS[k].name),
-    rooms: () => uniq(Object.keys(TPL).concat(typeof TPL10 !== 'undefined' ? Object.keys(TPL10) : [], CHAOS_ROOMS9)).filter((t) => t !== 'chaosboss'),
+    rooms: () => uniq(Object.keys(TPL).concat(typeof TPL10 !== 'undefined' ? Object.keys(TPL10) : [], CHAOS_ROOMS9, Object.keys(RI))).filter((t) => t !== 'chaosboss'),
+    info: (t) => RI[t] || null,
+    hidden: () => HID.slice(),
+    build: buildRoom,
     mods: () => Object.keys(MOD_NAMES),
     items: () => ITEM_IDS.filter((id) => ITEMS[id]),
   };
@@ -71,18 +103,26 @@
     return r;
   });
 
-  /* ---------------------------------------------------------------- Custom Run: the Knokpit per stage and as a rule */
+  /* ---------------------------------------------------------------- Custom Run and Game Maker: every hidden room (B.HIDDEN14:
+     the Knokpit, SIX SEVEN, whatever comes later) per stage and as a rule. Each entry: id (room type), sk (stage flag),
+     rk (rule key), label, cfg (its flags: force and *Odds) */
   safe(() => {
-    const K = B.KNOK14 && B.KNOK14.KNOK; if (!K) return;
     const pe1 = placeExtras9;
     placeExtras9 = function () {
       const c = G.mode === 'custom' && G.run && G.run.cust;
-      if (!c) return pe1.apply(this, arguments);
-      const st = custStage(), rule = c.p && c.p.knok;
-      const keep = { force: K.force, odds: K.odds, chaosOdds: K.chaosOdds };
-      if ((st && st.kn) || rule === 1) K.force = true;
-      else if (rule === -1) { K.force = false; K.odds = 0; K.chaosOdds = 0; }
-      try { return pe1.apply(this, arguments); } finally { Object.assign(K, keep); }
+      const gm = !c && G.run && G.mode !== 'story' && G.mode !== 'map' && typeof MP14 !== 'undefined' && MP14.on && Save.data.gm14 && Save.data.gm14.p;
+      const p = c ? c.p : gm;
+      if (!p) return pe1.apply(this, arguments);
+      const st = c ? custStage() : null, keep = [];
+      for (const h of HID) {
+        const K = h.cfg; if (!K) continue;
+        const rule = p[h.rk], was = {};
+        for (const k in K) if (k === 'force' || /Odds$|^odds$/.test(k)) was[k] = K[k];
+        keep.push([K, was]);
+        if ((st && st[h.sk]) || rule === 1) K.force = true;
+        else if (rule === -1) for (const k in was) K[k] = k === 'force' ? false : 0;
+      }
+      try { return pe1.apply(this, arguments); } finally { for (const [K, was] of keep) Object.assign(K, was); }
     };
   });
 

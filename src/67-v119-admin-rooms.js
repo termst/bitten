@@ -60,7 +60,8 @@
       const door = Object.keys(room.doors)[0] || 's';
       room.theme = type === 'club' ? 'club' : 'hell'; room.clubDoor = door;
       room.build(clubTemplate(door), def); room.sconces = []; room.tubes = null; room.cleared = false;
-    } else {
+    } else if (type !== 'chaosboss' && window.__bitten.CAT14) window.__bitten.CAT14.build(room, type, def, rng);
+    else {
       chaosRoom9(room, type, def, rng);
       if (type === 'chaosboss' && sel.boss) room.chaosBoss = sel.boss;
     }
@@ -228,6 +229,6 @@
     safe(() => section(body));
     return a0 ? a0.apply(this, arguments) : undefined;
   };
-  Object.assign(window.__bitten, { V119: { TYPES, sel, place, make, goTo, roomAt, section } });
+  Object.assign(window.__bitten, { V119: { TYPES, MODS, CODE, HUNG, NOLINK, sel, place, make, goTo, roomAt, section } });
 })();
 

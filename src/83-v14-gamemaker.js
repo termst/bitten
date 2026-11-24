@@ -38,7 +38,9 @@
   const ruleRows = () => {
     const C = B.cust10; if (!C || !C.PG) return [];
     const out = [];
-    for (const [, rows] of C.PG) for (const r of rows) if (RULE_KEYS.includes(r[0])) out.push(r);
+    /* v14.8: plus a rule per hidden room (Knokpit, SIX SEVEN, ...) from window.__bitten.HIDDEN14 */
+    const hk = (B.HIDDEN14 || []).map((h) => h.rk);
+    for (const [, rows] of C.PG) for (const r of rows) if (RULE_KEYS.includes(r[0]) || hk.includes(r[0])) out.push(r);
     return out;
   };
   const PD = () => (B.cust10 && B.cust10.PD) || {};

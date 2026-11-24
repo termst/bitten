@@ -865,5 +865,12 @@
     const modes = document.querySelector('#tab-modes ul.rooms9');
     if (modes) modes.insertAdjacentHTML('beforeend', `<li><i style="background:${COL6}" aria-hidden="true"></i><b>SIX SEVEN</b><span>A rare hidden stage off a fight room from floor 2. Neon floor, speakers, a crowd of hands, and a boss that fights on the beat. Code 67 puts one on every floor.</span></li>`);
   });
+  /* v14.8: one registry for every feature (src/91, src/99) */
+  {
+    const B = window.__bitten || (window.__bitten = {});
+    (B.HIDDEN14 || (B.HIDDEN14 = [])).push({ id: TYPE, sk: 'h67', rk: 'h67', label: 'SIX SEVEN', title: 'The hidden 67 stage hangs off a fight room on this floor', cfg: CFG });
+    (B.ROOMINFO14 || (B.ROOMINFO14 = {}))[TYPE] = { name: 'SIX SEVEN', code: '67', col: '#ff8a1a', hung: 1,
+      desc: 'The hidden 67 stage: a rhythm boss on a neon dance floor. Fixed layout.' };
+  }
   Object.assign(window.__bitten || (window.__bitten = {}), { H67: { CFG, TYPE, KIND, BPM, makeH, startMode, start67, build67, Doot67, track: M, err: () => ERR14 } });
 })();
