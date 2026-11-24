@@ -767,6 +767,13 @@
         S.force = !S.force;
         return S.force ? 'Your next Arcade run climbs to De Drakenhemel after floor 1. Enter the code again to cancel.' : 'De Drakenhemel is back to chance.';
       },
+      SIXSEVEN() {
+        const S = window.__bitten && window.__bitten.H67;
+        if (!S) return 'Not a code.';
+        S.CFG.force = !S.CFG.force;
+        return S.CFG.force ? 'SIX SEVEN. Every floor from now on hides the 67 stage next to a fight room. Enter the code again to cancel.' : 'The 67 stage is back to chance.';
+      },
+      67() { return CODES.SIXSEVEN(); },
       BRIE() {
         const again = A.on;
         A.on = true; wr(); unlockAll(); refreshTabs();
