@@ -5132,5 +5132,1156 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   Object.assign(MK, { refresh14, EXTRA14, cleanFloor: (F, i) => cleanFloor(F, i), cleanMapNow: (M) => cleanMap(M), compactNow: (M) => compact(M), Pop });
 
   Object.assign(MK, { validate, edit, showHub, showEditor, playMap, toast, previewRoom, drawEditor, tileAtlas, paintBrushIcon, applyAt, setTool, pickBrush, selectRoom, addRoom, setType, goFloor, layoutCanvas });
-})();
 
+  /* ================================================================== 14. v14.9: Map Maker Pro
+     Editor: line, outline and circle shapes, brush size 1 to 3, an area tool (select, copy, cut, move, flip, rotate,
+     delete, fill), stamps (paste mode, a stamp library in this browser, built in stamps).
+     Rooms: snake waves (a snake piece's Wave), room events (when X happens, do Y), room rules (darkness, snake health,
+     beat the clock). Floors: a floor generator and Fill empty rooms. Map: an overview and test settings.
+     Everything new travels in the share code (compact / cleanRoom wrappers) and so in coop maps. */
+  const PRO = MK.PRO = { size: 1, area: null, clip: null, lastCopy: '', stamp: null, test: { god: 0, coins: 0, keys: 0 } };
+  const PSTORE = 'bitten.mkStamps14', TSTORE = 'bitten.mkTest14';
+  const lsGet = (k, d) => safe(() => { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }, d);
+  const lsSet = (k, v) => safe(() => { localStorage.setItem(k, JSON.stringify(v)); return true; }, false);
+  Object.assign(PRO.test, lsGet(TSTORE, {}));
+
+  /* ---- the data: new fields in rooms and snake pieces */
+  ENT_PARAMS.sn.push(P_('wv', 'Wave', 'seg', [[1, 'First'], [2, 'Second'], [3, 'Third']], 1));
+  const EV_MAX = 6;
+  const EV_WHEN = [['enter', 'You walk in'], ['clear', 'The room is clear'], ['time', 'Seconds in the room'], ['kills', 'Snakes killed'], ['wave', 'A wave starts'], ['hurt', 'You drop to half health'], ['flip', 'Gates of a color flip']];
+  const EV_N = { time: [[3, '3 s'], [5, '5 s'], [10, '10 s'], [20, '20 s'], [30, '30 s'], [60, '60 s']], kills: [[1, '1'], [2, '2'], [3, '3'], [5, '5'], [8, '8'], [12, '12']], wave: [[2, 'Second'], [3, 'Third']] };
+  const EV_DO = [['shout', 'Shout a line'], ['gates', 'Flip gates'], ['snakes', 'Let snakes out'], ['heal', 'Heal'], ['coins', 'Give coins'], ['item', 'Drop a powerup'], ['key', 'Drop a key'], ['lights', 'Set the lights'], ['open', 'Unlock locked rooms'], ['boom', 'Explosion']];
+  const EV_A = {
+    heal: [[1, 'Half apple'], [2, 'One apple'], [4, 'Two apples']],
+    coins: [[5, '5'], [10, '10'], [25, '25'], [50, '50']],
+    item: [['rand', 'Random'], ['rare', 'Legendary']],
+    lights: [[0, 'Bright'], [1, 'Dim'], [2, 'Dark'], [3, 'Pitch black']],
+    snakes: [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [6, '6']],
+  };
+  const RDARK = [[-1, 'Floor'], [0, 'Bright'], [1, 'Dim'], [2, 'Dark'], [3, 'Pitch']];
+  const RSH = [[0.5, '50%'], [0.75, '75%'], [1, '100%'], [1.5, '150%'], [2, '200%'], [3, '300%']];
+  const RTB = [[0, 'Off'], [15, '15 s'], [20, '20 s'], [30, '30 s'], [45, '45 s'], [60, '60 s']];
+  function newEv() { return { w: 'enter', n: 0, d: 'shout', a: 0, k: 'grub', txt: 'Here they come' }; }
+  function cleanEv(e) {
+    if (!e || typeof e !== 'object') return null;
+    const o = newEv();
+    o.w = pickOpt(e.w, EV_WHEN, 'enter');
+    o.d = pickOpt(e.d, EV_DO, 'shout');
+    o.n = o.w === 'flip' ? clampN(e.n, 0, 3, 0) | 0 : EV_N[o.w] ? pickOpt(e.n, EV_N[o.w], EV_N[o.w][0][0]) : 0;
+    o.a = o.d === 'gates' ? clampN(e.a, 0, 3, 0) | 0 : EV_A[o.d] ? pickOpt(e.a, EV_A[o.d], EV_A[o.d][0][0]) : 0;
+    o.k = SNAKES.includes(e.k) ? e.k : 'grub';
+    o.txt = strN(e.txt, 40);
+    return o;
+  }
+  function evDefaults(o) {
+    if (EV_N[o.w] && !EV_N[o.w].some((x) => x[0] === o.n)) o.n = EV_N[o.w][0][0];
+    if (o.w === 'flip') o.n = clampN(o.n, 0, 3, 0) | 0;
+    if (EV_A[o.d] && !EV_A[o.d].some((x) => x[0] === o.a)) o.a = EV_A[o.d][o.d === 'heal' || o.d === 'coins' ? 1 : 0][0];
+    if (o.d === 'gates') o.a = clampN(o.a, 0, 3, 0) | 0;
+    return o;
+  }
+  safe(() => {
+    const nr = newRoom;
+    newRoom = function () { const o = nr.apply(this, arguments); o.ev = []; o.dk = -1; o.sh = 1; o.tb = 0; return o; };
+    const cr = cleanRoom;
+    cleanRoom = function (R) {
+      const o = cr.apply(this, arguments);
+      if (o && R) {
+        o.ev = (Array.isArray(R.ev) ? R.ev : []).slice(0, EV_MAX).map(cleanEv).filter(Boolean);
+        o.dk = clampN(R.dk, -1, 3, -1) | 0;
+        o.sh = pickOpt(R.sh, RSH, 1);
+        o.tb = pickOpt(R.tb, RTB, 0);
+      }
+      return o;
+    };
+    const cp = compact;
+    compact = function (M) {
+      const o = cp.apply(this, arguments);
+      M.floors.forEach((F, fi) => F.rooms.forEach((R, ri) => {
+        const r = o.floors[fi] && o.floors[fi].rooms[ri]; if (!r) return;
+        if (R.ev && R.ev.length) r.ev = R.ev.map((e) => Object.assign({}, e));
+        if (R.dk != null && R.dk !== -1) r.dk = R.dk;
+        if (R.sh && R.sh !== 1) r.sh = R.sh;
+        if (R.tb) r.tb = R.tb;
+      }));
+      return o;
+    };
+  });
+  const evOf = (R) => (R.ev || (R.ev = []));
+
+  /* ---- cells for shapes */
+  function rectCells(a, hollow) {
+    const c0 = Math.min(a.c0, a.c1), c1 = Math.max(a.c0, a.c1), r0 = Math.min(a.r0, a.r1), r1 = Math.max(a.r0, a.r1), out = [];
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (!hollow || r === r0 || r === r1 || c === c0 || c === c1) out.push([c, r]);
+    return out;
+  }
+  function ovalCells(a, filled) {
+    const c0 = Math.min(a.c0, a.c1), c1 = Math.max(a.c0, a.c1), r0 = Math.min(a.r0, a.r1), r1 = Math.max(a.r0, a.r1);
+    const cx = (c0 + c1 + 1) / 2, cy = (r0 + r1 + 1) / 2, rx = (c1 - c0 + 1) / 2, ry = (r1 - r0 + 1) / 2;
+    const ins = (c, r) => c >= c0 && c <= c1 && r >= r0 && r <= r1 && ((c + 0.5 - cx) / rx) ** 2 + ((r + 0.5 - cy) / ry) ** 2 <= 1.0001;
+    const out = [];
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+      if (!ins(c, r)) continue;
+      if (filled || !ins(c - 1, r) || !ins(c + 1, r) || !ins(c, r - 1) || !ins(c, r + 1)) out.push([c, r]);
+    }
+    return out.length ? out : [[c0, r0]];
+  }
+  function shapeCells(st) {
+    const s = st.shape;
+    if (st.tool === 'line') return lineCells(s.c0, s.r0, s.c1, s.r1);
+    if (st.tool === 'ring') return rectCells(s, true);
+    return ovalCells(s, !!st.filled);
+  }
+  const SHAPES = { line: 1, ring: 1, oval: 1 };
+
+  /* ---- brush size: a square of cells around the one under the pointer */
+  safe(() => {
+    const ap = applyAt;
+    applyAt = function (c, r, tool) {
+      const st = Maker.stroke, n = PRO.size | 0;
+      if (n <= 1 || PRO.inFill || !st || st.box || st.tool === 'move') return ap.apply(this, arguments);
+      const o = n === 2 ? 0 : -1;
+      for (let dr = 0; dr < n; dr++) for (let dc = 0; dc < n; dc++) ap.call(this, c + o + dc, r + o + dr, tool);
+    };
+    const fa = fillAt;
+    fillAt = function () { PRO.inFill = true; try { return fa.apply(this, arguments); } finally { PRO.inFill = false; } };
+  });
+
+  /* ---- the clipboard: a block of cells with their pieces */
+  function grabArea(R, a) {
+    const c0 = Math.min(a.c0, a.c1), c1 = Math.max(a.c0, a.c1), r0 = Math.min(a.r0, a.r1), r1 = Math.max(a.r0, a.r1);
+    const w = c1 - c0 + 1, h = r1 - r0 + 1;
+    let g = '';
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) g += R.g[r * GW + c];
+    const e = R.e.filter((x) => x.c >= c0 && x.c <= c1 && x.r >= r0 && x.r <= r1).map((x) => Object.assign({}, x, { c: x.c - c0, r: x.r - r0 }));
+    return { w, h, g, e };
+  }
+  function clearCells(R, cells) {
+    const set = new Set(cells.map(([c, r]) => r * GW + c));
+    let any = false;
+    for (const k of set) if (R.g[k] !== '.') { R.g = R.g.slice(0, k) + '.' + R.g.slice(k + 1); any = true; }
+    const n = R.e.length; R.e = R.e.filter((x) => !set.has(x.r * GW + x.c));
+    return any || R.e.length !== n;
+  }
+  // put a clip into the room with its top left on (c, r). Opaque: empty cells of the clip rub out what is there.
+  function placeClip(R, F, clip, c, r, opaque) {
+    let n = 0, blocked = 0;
+    for (let y = 0; y < clip.h; y++) for (let x = 0; x < clip.w; x++) {
+      const cc = c + x, rr = r + y;
+      if (cc < 0 || rr < 0 || cc >= GW || rr >= GH) continue;
+      const ch = clip.g[y * clip.w + x] || '.', e = clip.e.find((q) => q.c === x && q.r === y);
+      if (!opaque && ch === '.' && !e) continue;
+      const solid = SOLID_TILE(ch) || (e && ENTS[e.t] && ENTS[e.t].solid && e.t !== 'gt');
+      if (solid && mouthAt(F, R, cc, rr)) { blocked++; continue; }
+      const k = rr * GW + cc, old = entAt(R, cc, rr);
+      if (old) R.e.splice(R.e.indexOf(old), 1);
+      if (R.g[k] !== ch) R.g = R.g.slice(0, k) + (GRID_OK.includes(ch) ? ch : '.') + R.g.slice(k + 1);
+      if (e && R.e.length < LIMITS.ents) {
+        const ne = cleanEnt(Object.assign({}, e, { c: cc, r: rr }));
+        if (ne) { R.e.push(ne); if (R.g[k] !== '.') R.g = R.g.slice(0, k) + '.' + R.g.slice(k + 1); }
+      }
+      n++;
+    }
+    if (blocked) toast('Kept the doorway clear.');
+    return n;
+  }
+  function flipClip(clip, x) {
+    const g = [], e = [];
+    for (let r = 0; r < clip.h; r++) for (let c = 0; c < clip.w; c++) {
+      const sc = x ? clip.w - 1 - c : c, sr = x ? r : clip.h - 1 - r;
+      let ch = clip.g[sr * clip.w + sc];
+      if (x && ch === '>') ch = '<'; else if (x && ch === '<') ch = '>';
+      g.push(ch);
+    }
+    for (const q of clip.e) {
+      // flipEnt mirrors in a full room: shift back into the clip
+      const f = flipEnt(q, x);
+      if (x) f.c = clip.w - 1 - q.c; else f.r = clip.h - 1 - q.r;
+      e.push(f);
+    }
+    return { w: clip.w, h: clip.h, g: g.join(''), e, n: clip.n };
+  }
+  const ROT8 = (d) => (d + 2) % 8;
+  function rotClip(clip) {
+    const w = clip.h, h = clip.w, g = [];
+    for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
+      // new (c, r) comes from old (r, h_old - 1 - c)
+      let ch = clip.g[(clip.h - 1 - c) * clip.w + r];
+      if (ch === '>' || ch === '<') ch = '.';
+      g.push(ch);
+    }
+    const e = clip.e.map((q) => {
+      const n = Object.assign({}, q, { c: clip.h - 1 - q.r, r: q.c });
+      if ((q.t === 'jp' || q.t === 'sp') && q.d != null) n.d = ROT8(q.d);
+      if (q.t === 'tt' && q.d != null && q.d < 8) n.d = ROT8(q.d);
+      if (q.t === 'fb') n.a = ROT8(q.a || 0);
+      if (q.t === 'sw') n.ax = q.ax === 'v' ? 'h' : 'v';
+      return n;
+    });
+    return { w, h, g: g.join(''), e, n: clip.n };
+  }
+  const areaNorm = (a) => ({ c0: Math.min(a.c0, a.c1), c1: Math.max(a.c0, a.c1), r0: Math.min(a.r0, a.r1), r1: Math.max(a.r0, a.r1) });
+  function areaCopy(cut) {
+    const R = R_(), a = PRO.area; if (!a) return;
+    PRO.clip = grabArea(R, a); PRO.lastCopy = 'area';
+    if (cut) { if (FIXED[R.t]) { toast('This room has a fixed layout.'); return; } pushUndo(); clearCells(R, rectCells(a)); changed(); }
+    toast(cut ? 'Cut. Ctrl V or Paste to put it down.' : 'Copied. Ctrl V or Paste to put it down.');
+    renderInspector();
+  }
+  function areaDelete() {
+    const R = R_(), a = PRO.area; if (!a || FIXED[R.t]) return;
+    pushUndo(); if (clearCells(R, rectCells(a))) changed(); else { Maker.undo.pop(); syncUndo(); }
+  }
+  function areaFill() {
+    const R = R_(), a = PRO.area; if (!a || FIXED[R.t]) return;
+    Maker.stroke = { tool: 'brush', saved: false, changed: false, box: true };
+    for (const [c, r] of rectCells(a)) applyAt(c, r, 'brush');
+    const st = Maker.stroke; Maker.stroke = null;
+    if (st.changed || st.saved) changed();
+  }
+  function areaTransform(fn) {
+    const R = R_(), F = F_(), a = PRO.area; if (!a || FIXED[R.t]) return;
+    const clip = fn(grabArea(R, a));
+    pushUndo();
+    clearCells(R, rectCells(a));
+    placeClip(R, F, clip, a.c0, a.r0, true);
+    PRO.area = { c0: a.c0, r0: a.r0, c1: Math.min(GW - 1, a.c0 + clip.w - 1), r1: Math.min(GH - 1, a.r0 + clip.h - 1) };
+    changed();
+  }
+  function areaMove(dc, dr) {
+    const a = PRO.area; if (!a) return;
+    if (a.c0 + dc < 0 || a.r0 + dr < 0 || a.c1 + dc >= GW || a.r1 + dr >= GH) return;
+    const R = R_(), F = F_(); if (FIXED[R.t]) return;
+    const clip = grabArea(R, a);
+    pushUndo();
+    clearCells(R, rectCells(a));
+    placeClip(R, F, clip, a.c0 + dc, a.r0 + dr, true);
+    PRO.area = { c0: a.c0 + dc, r0: a.r0 + dr, c1: a.c1 + dc, r1: a.r1 + dr };
+    changed();
+  }
+  function startStamp(clip) {
+    if (!clip) return;
+    PRO.stamp = JSON.parse(JSON.stringify(clip));
+    PRO.area = null;
+    Maker.tool = 'stamp'; Maker.sel = null;
+    syncTools(); renderInspector();
+    toast('Stamp: click to put it down. Esc to stop.');
+  }
+  const stampAnchor = (c, r) => ({ c: c - Math.floor((PRO.stamp.w - 1) / 2), r: r - Math.floor((PRO.stamp.h - 1) / 2) });
+  function putStamp(c, r) {
+    const R = R_(), F = F_(), S = PRO.stamp; if (!S) return;
+    if (FIXED[R.t]) { toast('This room has a fixed layout.'); return; }
+    const a = stampAnchor(c, r);
+    pushUndo();
+    const n = placeClip(R, F, S, a.c, a.r, false);
+    if (!n) { Maker.undo.pop(); syncUndo(); return; }
+    changed();
+  }
+
+  /* ---- the stamp library: built in ones and your own, kept in this browser */
+  const ST_IN = [
+    { n: 'Pillar ring', rows: ['.###.', '#...#', '#...#', '#...#', '.###.'] },
+    { n: 'Treasure nook', rows: ['###', '#X#', '#.#'] },
+    { n: 'Lever and gates', rows: ['..', '..', '..'], e: [{ t: 'lv', c: 0, r: 1, ch: 0 }, { t: 'gt', c: 1, r: 0, ch: 0 }, { t: 'gt', c: 1, r: 1, ch: 0 }, { t: 'gt', c: 1, r: 2, ch: 0 }] },
+    { n: 'Fire bar post', rows: ['#.#', '...', '#.#'], e: [{ t: 'fb', c: 1, r: 1, n: 4, s: 2, w: 1, a: 0 }] },
+    { n: 'Spike hall', rows: ['.....', '.....', '.....'], e: [0, 1, 2, 3, 4].flatMap((c) => [0, 1, 2].map((r) => ({ t: 'sk', c, r, g: (c + r) % 2 }))) },
+    { n: 'Saw lane', rows: ['#.....#'], e: [{ t: 'sw', c: 3, r: 0, ax: 'h', s: 2 }] },
+    { n: 'Nest den', rows: ['o.o', '...', 'o.o'], e: [{ t: 'ns', c: 1, r: 1, k: 'grub', n: 3, s: 2 }] },
+    { n: 'Teleport pair', rows: ['.....'], e: [{ t: 'tp', c: 0, r: 0, ch: 1 }, { t: 'tp', c: 4, r: 0, ch: 1 }] },
+    { n: 'Keg corner', rows: ['##', '#.'], e: [{ t: 'bx', c: 1, r: 1 }] },
+    { n: 'Acid pool', rows: ['.....', '.....', '.....'], e: [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [1, 2], [2, 2], [3, 2]].map(([c, r]) => ({ t: 'ac', c, r })) },
+  ].map((s) => ({ n: s.n, w: s.rows[0].length, h: s.rows.length, g: s.rows.join(''), e: (s.e || []).map((q) => Object.assign(entDefaults(q.t), q)), builtin: 1 }));
+  function cleanClip(s) {
+    if (!s || typeof s !== 'object') return null;
+    const w = clampN(s.w, 1, GW, 0) | 0, h = clampN(s.h, 1, GH, 0) | 0; if (!w || !h) return null;
+    let g = ''; for (let i = 0; i < w * h; i++) { const ch = String(s.g || '')[i] || '.'; g += GRID_OK.includes(ch) ? ch : '.'; }
+    const e = (Array.isArray(s.e) ? s.e : []).map((q) => { const c = clampN(q && q.c, 0, w - 1, -1) | 0, r = clampN(q && q.r, 0, h - 1, -1) | 0; if (c < 0 || r < 0) return null; const x = cleanEnt(Object.assign({}, q, { c: 0, r: 0 })); return x ? Object.assign(x, { c, r }) : null; }).filter(Boolean);
+    return { n: strN(s.n, 24) || 'Stamp', w, h, g, e };
+  }
+  const myStamps = () => (lsGet(PSTORE, []) || []).map(cleanClip).filter(Boolean).slice(0, 30);
+  function saveStamp(clip, name) {
+    const list = myStamps();
+    if (list.length >= 30) { toast('Thirty stamps is the most. Delete one first.'); return false; }
+    list.unshift(Object.assign({}, cleanClip(clip), { n: strN(name, 24) || 'Stamp ' + (list.length + 1) }));
+    if (!lsSet(PSTORE, list)) { toast('Could not save: storage full.'); return false; }
+    toast('Saved to your stamps'); return true;
+  }
+  function deleteStamp(i) { const list = myStamps(); list.splice(i, 1); lsSet(PSTORE, list); }
+  function paintClip(c, s, clip, set) {
+    c.fillStyle = '#17110e'; c.fillRect(0, 0, s, s);
+    const cw = Math.min((s - 4) / clip.w, (s - 4) / clip.h), ox = (s - cw * clip.w) / 2, oy = (s - cw * clip.h) / 2;
+    const at = safe(() => tileAtlas(set), null);
+    for (let i = 0; i < clip.w * clip.h; i++) {
+      const ch = clip.g[i], x = ox + (i % clip.w) * cw, y = oy + Math.floor(i / clip.w) * cw;
+      c.fillStyle = 'rgba(236,226,212,.06)'; c.fillRect(x + 0.3, y + 0.3, cw - 0.6, cw - 0.6);
+      if (ch === '.') continue;
+      if (at && at[ch]) c.drawImage(at[ch], x - cw * 0.1, y - cw * 0.2, cw * 1.2, cw * 1.2);
+      else { c.fillStyle = SOLID_TILE(ch) ? 'rgba(236,226,212,.6)' : 'rgba(236,226,212,.25)'; c.fillRect(x, y, cw, cw); }
+    }
+    for (const q of clip.e) {
+      const x = ox + (q.c + 0.5) * cw, y = oy + (q.r + 0.5) * cw;
+      c.fillStyle = q.t === 'sn' ? '#ff4a5a' : ENTS[q.t].cat === 'traps' ? '#ff9a2a' : ENTS[q.t].cat === 'loot' ? '#ffd84a' : q.ch != null ? CH_COLS[q.ch] : '#7cc4ff';
+      c.beginPath(); c.arc(x, y, Math.max(1.5, cw * 0.3), 0, TAU); c.fill();
+    }
+  }
+
+  /* ---- tools on the canvas */
+  IC.line = SVG('<path d="M5 19L19 5"/><circle cx="5" cy="19" r="1.6" fill="currentColor"/><circle cx="19" cy="5" r="1.6" fill="currentColor"/>');
+  IC.ring = SVG('<rect x="4.5" y="5.5" width="15" height="13" rx="1"/>');
+  IC.oval = SVG('<ellipse cx="12" cy="12" rx="8" ry="6.5"/>');
+  IC.area = SVG('<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" /><path d="M9 12h6M12 9v6" stroke-dasharray="1.5 2"/>');
+  IC.stamp = SVG('<path d="M9 4h6v5l3 3v3H6v-3l3-3z"/><path d="M5 19h14"/>');
+  IC.size = SVG('<rect x="4" y="13" width="5" height="5"/><rect x="11" y="6" width="9" height="12"/>');
+  IC.gen = SVG('<path d="M4 20l6-6M14 4l1.2 2.8L18 8l-2.8 1.2L14 12l-1.2-2.8L10 8l2.8-1.2zM18 14l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z"/>');
+  IC.bolt = SVG('<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>');
+  IC.gear = SVG('<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>');
+  IC.rot = SVG('<path d="M19 12a7 7 0 1 1-2-5"/><path d="M17 3v4h-4"/>');
+  TOOLS.splice(4, 0, ['line', 'Line', 'L'], ['ring', 'Outline', 'O'], ['oval', 'Circle', 'C']);
+  TOOLS.splice(TOOLS.findIndex((t) => t[0] === 'move'), 0, ['area', 'Area', 'M']);
+  CATS.push(['stamps', 'Stamps']);
+
+  safe(() => {
+    const od = onDown;
+    onDown = function (e) {
+      if (!Maker.M) return od.apply(this, arguments);
+      const tool = e.button === 2 ? 'erase' : Maker.tool;
+      const isMine = SHAPES[Maker.tool] || Maker.tool === 'area' || Maker.tool === 'stamp';
+      if (!isMine) return od.apply(this, arguments);
+      const p = cellFrom(e);
+      if (!p.inside) return od.apply(this, arguments);
+      e.preventDefault && e.preventDefault();
+      try { Maker.cv.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      const R = R_();
+      if (Maker.tool === 'stamp') {
+        if (e.button === 2) { PRO.stamp = null; setTool('brush'); return; }
+        putStamp(p.c, p.r); return;
+      }
+      if (Maker.tool === 'area') {
+        const a = PRO.area;
+        if (a && p.c >= a.c0 && p.c <= a.c1 && p.r >= a.r0 && p.r <= a.r1 && !FIXED[R.t]) { Maker.stroke = { tool: 'area', drag: { c: p.c, r: p.r }, saved: false, changed: false }; return; }
+        PRO.area = null;
+        Maker.stroke = { tool: 'area', mark: { c0: p.c, r0: p.r, c1: p.c, r1: p.r }, saved: false, changed: false };
+        renderInspector();
+        return;
+      }
+      if (FIXED[R.t]) { toast('This room has a fixed layout.'); return; }
+      Maker.stroke = { tool: Maker.tool, shape: { c0: p.c, r0: p.r, c1: p.c, r1: p.r }, erase: tool === 'erase', filled: !!e.shiftKey, saved: false, changed: false };
+    };
+    const om = onMove;
+    onMove = function (e) {
+      const st = Maker.stroke;
+      if (!st || !(st.shape || st.mark || st.drag)) return om.apply(this, arguments);
+      const p = cellFrom(e);
+      const hv = p.inside ? { c: p.c, r: p.r } : null;
+      if (!Maker.hover || !hv || hv.c !== Maker.hover.c || hv.r !== Maker.hover.r) { Maker.hover = hv; renderCrumb(); }
+      const c = clamp(p.c, 0, GW - 1), r = clamp(p.r, 0, GH - 1);
+      if (st.shape) { st.shape.c1 = c; st.shape.r1 = r; st.filled = !!e.shiftKey; }
+      else if (st.mark) { st.mark.c1 = c; st.mark.r1 = r; }
+      else if (st.drag && (c !== st.drag.c || r !== st.drag.r)) {
+        const dc = c - st.drag.c, dr = r - st.drag.r, a = PRO.area;
+        if (a.c0 + dc >= 0 && a.r0 + dr >= 0 && a.c1 + dc < GW && a.r1 + dr < GH) { areaMove(dc, dr); st.drag = { c, r }; }
+      }
+    };
+    const ou = onUp;
+    onUp = function () {
+      const st = Maker.stroke;
+      if (!st || !(st.shape || st.mark || st.drag)) return ou.apply(this, arguments);
+      Maker.stroke = null;
+      if (st.mark) { PRO.area = areaNorm(st.mark); renderInspector(); return; }
+      if (st.drag) { renderInspector(); return; }
+      const cells = shapeCells(st);
+      Maker.stroke = { tool: st.erase ? 'erase' : 'brush', saved: false, changed: false };
+      for (const [c, r] of cells) applyAt(c, r, st.erase ? 'erase' : 'brush');
+      const s2 = Maker.stroke; Maker.stroke = null;
+      if (s2.changed || s2.saved) changed();
+    };
+    const stl = setTool;
+    setTool = function (id) {
+      if (id !== 'area') PRO.area = null;
+      if (id !== 'stamp') PRO.stamp = null;
+      return stl.apply(this, arguments);
+    };
+    const sy = syncTools;
+    syncTools = function () {
+      const r = sy.apply(this, arguments);
+      safe(() => {
+        const sb = $('mkTools') && $('mkTools').querySelector('[data-size]');
+        if (sb) { sb.querySelector('.tl').textContent = 'Size ' + PRO.size; sb.classList.toggle('on', PRO.size > 1); }
+        if (Maker.cv && (Maker.tool === 'area' || Maker.tool === 'stamp')) Maker.cv.style.cursor = Maker.tool === 'area' ? 'cell' : 'copy';
+      });
+      return r;
+    };
+    const pb = pickBrush;
+    pickBrush = function (b) {
+      if (b && b.k === 'stamp') { startStamp(b.clip); return; }
+      const keep = Maker.tool;
+      const r = pb.apply(this, arguments);
+      if (SHAPES[keep]) { Maker.tool = keep; syncTools(); }
+      return r;
+    };
+  });
+  safe(() => { const ed = edit; edit = function () { PRO.area = null; PRO.stamp = null; if (Maker.tool === 'stamp') Maker.tool = 'brush'; return ed.apply(this, arguments); }; MK.edit = edit; Maker.edit = edit; });
+  function cycleSize() { PRO.size = PRO.size >= 3 ? 1 : PRO.size + 1; syncTools(); toast(`Brush size ${PRO.size}`); }
+
+  /* ---- drawing the new tools on the canvas */
+  function shade(c, cells, col) { c.fillStyle = col; for (const [x, y] of cells) c.fillRect(x * T + 1, y * T + 1, T - 2, T - 2); }
+  function drawClipGhost(c, clip, cc, rr, set, t) {
+    const at = safe(() => tileAtlas(set), null);
+    c.globalAlpha = 0.5;
+    for (let i = 0; i < clip.w * clip.h; i++) {
+      const ch = clip.g[i], x = cc + (i % clip.w), y = rr + Math.floor(i / clip.w);
+      if (ch === '.' || x < 0 || y < 0 || x >= GW || y >= GH) continue;
+      if (at && at[ch]) c.drawImage(at[ch], x * T - 3, y * T - 7, T + 6, T + 6);
+    }
+    for (const q of clip.e) {
+      const x = cc + q.c, y = rr + q.r; if (x < 0 || y < 0 || x >= GW || y >= GH) continue;
+      const px = (x + 0.5) * T, py = (y + 0.5) * T;
+      safe(() => {
+        if (q.t === 'sn') { const sp = snakeSprite(q.k, q.g); c.drawImage(sp, px - 18, py - 18, 36, 36); }
+        else if (q.t !== 'sw' && q.t !== 'fb') ART[q.t](c, px, q.t === 'pd' ? py + 4 : py, Object.assign({}, q, { c: x, r: y }), t, 'icon');
+        else { c.fillStyle = '#ff9a2a'; c.beginPath(); c.arc(px, py, 8, 0, TAU); c.fill(); }
+      });
+    }
+    c.globalAlpha = 1;
+    c.strokeStyle = '#7cc4ff'; c.lineWidth = 1.5; c.setLineDash([5, 4]);
+    c.strokeRect(cc * T + 0.75, rr * T + 0.75, clip.w * T - 1.5, clip.h * T - 1.5); c.setLineDash([]);
+  }
+  function drawWaves(c, R) {
+    for (const e of R.e) {
+      if (e.t !== 'sn' || !(e.wv > 1)) continue;
+      const x = (e.c + 0.5) * T - 13, y = (e.r + 0.5) * T + 12;
+      c.fillStyle = 'rgba(10,6,5,0.85)'; c.fillRect(x - 6, y - 5.5, 12, 11);
+      c.strokeStyle = e.wv === 2 ? '#7cc4ff' : '#c08aff'; c.lineWidth = 1; c.strokeRect(x - 5.5, y - 5, 11, 10);
+      label(c, x, y + 0.5, String(e.wv), e.wv === 2 ? '#7cc4ff' : '#c08aff', 7.5);
+    }
+  }
+  safe(() => {
+    const de = drawEnts;
+    drawEnts = function (c, R) { const r = de.apply(this, arguments); safe(() => drawWaves(c, R)); return r; };
+    const dov = drawOverlay;
+    drawOverlay = function (c, R, F, t) {
+      const st = Maker.stroke, h = Maker.hover;
+      // the original draws a one cell ghost at the pointer; the new tools draw their own
+      const keepH = Maker.hover;
+      if ((st && (st.shape || st.mark || st.drag)) || Maker.tool === 'stamp' || Maker.tool === 'area') Maker.hover = null;
+      try { dov.apply(this, arguments); } finally { Maker.hover = keepH; }
+      if (st && st.shape) {
+        const cells = shapeCells(st), all = [];
+        for (const [x, y] of cells) for (const m of mirrorCells(x, y)) all.push(m);
+        shade(c, all, st.erase ? 'rgba(232,58,80,0.3)' : 'rgba(227,165,74,0.32)');
+      }
+      const a = st && st.mark ? areaNorm(st.mark) : PRO.area;
+      if (a) {
+        c.fillStyle = 'rgba(124,196,255,0.12)'; c.fillRect(a.c0 * T, a.r0 * T, (a.c1 - a.c0 + 1) * T, (a.r1 - a.r0 + 1) * T);
+        c.strokeStyle = '#7cc4ff'; c.lineWidth = 1.6; c.setLineDash([6, 4]); c.lineDashOffset = -(t * 14) % 10;
+        c.strokeRect(a.c0 * T + 0.8, a.r0 * T + 0.8, (a.c1 - a.c0 + 1) * T - 1.6, (a.r1 - a.r0 + 1) * T - 1.6);
+        c.setLineDash([]); c.lineDashOffset = 0;
+        label(c, a.c0 * T + 16, a.r0 * T - 7 < 4 ? a.r0 * T + 9 : a.r0 * T - 7, `${a.c1 - a.c0 + 1}x${a.r1 - a.r0 + 1}`, '#7cc4ff', 8);
+      }
+      if (Maker.tool === 'stamp' && PRO.stamp && h && h.c >= 0) { const an = stampAnchor(h.c, h.r); drawClipGhost(c, PRO.stamp, an.c, an.r, F.set, t); }
+      if (h && h.c >= 0 && PRO.size > 1 && (Maker.tool === 'brush' || Maker.tool === 'erase') && !(st && st.box)) {
+        const o = PRO.size === 2 ? 0 : -1, cells = [];
+        for (let dr = 0; dr < PRO.size; dr++) for (let dc = 0; dc < PRO.size; dc++) { const x = h.c + o + dc, y = h.r + o + dr; if (x >= 0 && y >= 0 && x < GW && y < GH) cells.push([x, y]); }
+        shade(c, cells, Maker.tool === 'erase' ? 'rgba(232,58,80,0.18)' : 'rgba(227,165,74,0.16)');
+      }
+      if (h && h.c >= 0 && (SHAPES[Maker.tool] || Maker.tool === 'area') && !st) { c.strokeStyle = Maker.tool === 'area' ? '#7cc4ff' : '#e3a54a'; c.lineWidth = 1.6; c.strokeRect(h.c * T + 1, h.r * T + 1, T - 2, T - 2); }
+    };
+  });
+
+  /* ---- keys */
+  safe(() => {
+    const ok = onKey;
+    onKey = function (e) {
+      if (!Maker.open) return ok.apply(this, arguments);
+      const tag = (e.target && e.target.tagName) || '';
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      const live = !typing && Maker.view === 'editor' && $('mkDlg').hidden;
+      if (live) {
+        const k = (e.key || '').toLowerCase(), mod = e.ctrlKey || e.metaKey;
+        if (k === 'escape' && (PRO.area || Maker.tool === 'stamp')) { e.stopPropagation(); e.preventDefault(); PRO.area = null; if (Maker.tool === 'stamp') setTool('brush'); renderInspector(); return; }
+        if (mod && k === 'c' && PRO.area) { e.stopPropagation(); e.preventDefault(); areaCopy(false); return; }
+        if (mod && k === 'x' && PRO.area) { e.stopPropagation(); e.preventDefault(); areaCopy(true); return; }
+        if (mod && k === 'v' && PRO.clip && PRO.lastCopy === 'area') { e.stopPropagation(); e.preventDefault(); startStamp(PRO.clip); return; }
+        if (mod && k === 'a') { e.stopPropagation(); e.preventDefault(); setTool('area'); PRO.area = { c0: 0, r0: 0, c1: GW - 1, r1: GH - 1 }; renderInspector(); return; }
+        if (mod && k === 'c') PRO.lastCopy = 'room';
+        if (!mod && !e.altKey) {
+          const mine = { l: 'line', o: 'ring', c: 'oval', m: 'area' };
+          if (mine[k]) { e.stopPropagation(); e.preventDefault(); setTool(mine[k]); return; }
+          if (k === 's') { e.stopPropagation(); e.preventDefault(); cycleSize(); return; }
+          if ((k === 'delete' || k === 'backspace') && PRO.area) { e.stopPropagation(); e.preventDefault(); areaDelete(); return; }
+          const arrows = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
+          if (arrows[k] && PRO.area) { e.stopPropagation(); e.preventDefault(); areaMove(arrows[k][0], arrows[k][1]); return; }
+          if (Maker.tool === 'stamp' && PRO.stamp && (k === 'x' || k === 'y' || k === 'r')) {
+            e.stopPropagation(); e.preventDefault();
+            PRO.stamp = k === 'x' ? flipClip(PRO.stamp, true) : k === 'y' ? flipClip(PRO.stamp, false) : rotClip(PRO.stamp);
+            renderInspector(); return;
+          }
+        }
+      }
+      return ok.apply(this, arguments);
+    };
+  });
+
+  /* ---- the toolbar: a size button */
+  safe(() => {
+    const b0 = build;
+    build = function () {
+      const was = Maker.built;
+      const r = b0.apply(this, arguments);
+      if (!was) safe(() => {
+        const tools = $('mkTools'), g = tools.querySelector('[data-mir="g"]');
+        const sb = btn('', IC.size + '<span class="tl">Size 1</span><kbd>S</kbd>', 'Brush size (S)', cycleSize); sb.dataset.size = '1';
+        tools.insertBefore(sb, g ? g.nextSibling : null);
+        const R = $('mkTopR'), test = R.querySelector('.mk-btn.pri');
+        const ts = btn('ic', IC.gear, 'Test settings', openTestSettings); ts.id = 'mkTestSet';
+        R.insertBefore(ts, test);
+        const st = document.createElement('style'); st.id = 'mk149css'; st.textContent = CSS14; document.head.appendChild(st);
+        syncTools();
+      });
+      return r;
+    };
+  });
+
+  /* ---- the palette: Stamps */
+  function stampBrushes() {
+    return ST_IN.map((s, i) => ({ k: 'stamp', clip: s, name: s.n, id: 'st:b' + i, builtin: 1 }))
+      .concat(myStamps().map((s, i) => ({ k: 'stamp', clip: s, name: s.n, id: 'st:m' + i, mine: i })));
+  }
+  safe(() => {
+    const fp = fillPal;
+    fillPal = function () {
+      if (Maker.cat !== 'stamps' || Maker.q) return fp.apply(this, arguments);
+      const pal = $('mkPal'); if (!pal) return;
+      pal.textContent = '';
+      const set = F_().set;
+      if (PRO.clip) {
+        const b = el('button', 'mk-br mk-stb'); b.type = 'button'; b.title = 'The clipboard';
+        b.appendChild(canvasIcon(42, (c, s) => paintClip(c, s, PRO.clip, set)));
+        b.appendChild(el('span', null, 'Clipboard'));
+        b.addEventListener('click', (ev) => { ev.preventDefault(); startStamp(PRO.clip); });
+        pal.appendChild(b);
+      }
+      for (const s of stampBrushes()) {
+        const b = el('button', 'mk-br mk-stb' + (s.mine != null ? ' mine' : '')); b.type = 'button'; b.title = s.name;
+        b.appendChild(canvasIcon(42, (c, sz) => paintClip(c, sz, s.clip, set)));
+        b.appendChild(el('span', null, esc(s.name)));
+        b.addEventListener('click', (ev) => { ev.preventDefault(); startStamp(Object.assign({}, s.clip, { n: s.name, mine: s.mine })); });
+        pal.appendChild(b);
+      }
+      pal.appendChild(el('p', 'mk-p mk-stp', 'Make your own: Area tool (M), drag over a part of a room, Save as stamp. Stamps live in this browser.'));
+    };
+  });
+
+  /* ---- the inspector card for the area and the stamp */
+  safe(() => {
+    const ri = renderInspector;
+    renderInspector = function () {
+      const r = ri.apply(this, arguments);
+      safe(() => {
+        const box = $('mkIns'); if (!box) return;
+        if (Maker.tool === 'area') { box.textContent = ''; box.appendChild(areaCard()); }
+        else if (Maker.tool === 'stamp' && PRO.stamp) { box.textContent = ''; box.appendChild(stampCard()); }
+        else if (SHAPES[Maker.tool]) box.appendChild(el('div', 'mk-note', Maker.tool === 'line' ? 'Line: drag from one tile to another. Paints with the brush, right drag rubs out.'
+          : Maker.tool === 'ring' ? 'Outline: drag a box, only its edge gets painted. Right drag rubs out.' : 'Circle: drag a box, the ring inside it gets painted. Hold Shift for a filled one.'));
+      });
+      return r;
+    };
+  });
+  function areaCard() {
+    const a = PRO.area, card = el('div', 'mk-card');
+    const hd = el('div', 'hd');
+    hd.appendChild(el('span', 'mk-ic', IC.area));
+    hd.appendChild(el('div', null, `<small>Area tool</small><b>${a ? `${a.c1 - a.c0 + 1} x ${a.r1 - a.r0 + 1} tiles from ${colName(a.c0)}${a.r0 + 1}` : 'Drag over the room'}</b>`));
+    card.appendChild(hd);
+    if (!a) { card.appendChild(el('p', null, 'Drag a box over the room to select tiles and pieces. Then copy, cut, move, flip, turn or save it as a stamp. Ctrl A takes the whole room.')); return card; }
+    const acts = el('div', 'mk-acts');
+    acts.append(
+      btn('', IC.copy + 'Copy', 'Copy (Ctrl C)', () => areaCopy(false)),
+      btn('', IC.erase + 'Cut', 'Cut (Ctrl X)', () => areaCopy(true)),
+      btn('', IC.trash + 'Delete', 'Delete (Del)', areaDelete),
+      btn('', IC.fill + 'Fill', 'Fill with the brush', areaFill),
+      btn('', IC.flipX + 'Flip', 'Flip left and right', () => areaTransform((cl) => flipClip(cl, true))),
+      btn('', IC.flipY + 'Flip', 'Flip top and bottom', () => areaTransform((cl) => flipClip(cl, false))),
+    );
+    card.appendChild(acts);
+    const a2 = el('div', 'mk-acts'); a2.style.marginTop = '6px';
+    a2.append(btn('gold', IC.stamp + 'Save as stamp', 'Save as a stamp in your library', () => {
+      const clip = grabArea(R_(), a);
+      const body = el('div'); const inp = el('input', 'mk-in'); inp.maxLength = 24; inp.value = 'My stamp'; body.appendChild(field('Name', inp));
+      body.appendChild(el('p', 'mk-p', 'Stamps live in this browser and show under Paint, Stamps.'));
+      dlg('Save as stamp', body, [btn('', 'Cancel', 'Cancel', closeDlg), btn('pri', IC.check + 'Save', 'Save', () => { if (saveStamp(clip, inp.value.trim())) { closeDlg(); if (Maker.cat === 'stamps') fillPal(); } })]);
+      setTimeout(() => { inp.focus(); inp.select(); }, 30);
+    }), btn('', IC.stamp + 'Stamp it', 'Use as a stamp brush', () => startStamp(grabArea(R_(), a))));
+    card.appendChild(a2);
+    card.appendChild(el('p', 'mk-p mk-small', 'Drag inside the box or use the arrow keys to move it. Esc lets go.'));
+    return card;
+  }
+  function stampCard() {
+    const S = PRO.stamp, card = el('div', 'mk-card');
+    const hd = el('div', 'hd');
+    hd.appendChild(canvasIcon(44, (c, s) => paintClip(c, s, S, F_().set)));
+    hd.appendChild(el('div', null, `<small>Stamp, ${S.w} x ${S.h}</small><b>${esc(S.n || 'Clipboard')}</b>`));
+    card.appendChild(hd);
+    card.appendChild(el('p', null, 'Click to put it down, as often as you like. Empty tiles of the stamp leave the room alone. Right click or Esc stops.'));
+    const acts = el('div', 'mk-acts');
+    acts.append(
+      btn('', IC.flipX + 'Flip', 'Flip left and right (X)', () => { PRO.stamp = flipClip(PRO.stamp, true); renderInspector(); }),
+      btn('', IC.flipY + 'Flip', 'Flip top and bottom (Y)', () => { PRO.stamp = flipClip(PRO.stamp, false); renderInspector(); }),
+      btn('', IC.rot + 'Turn', 'Turn a quarter (R)', () => { PRO.stamp = rotClip(PRO.stamp); renderInspector(); }),
+    );
+    if (S.mine != null) acts.appendChild(btn('red', IC.trash + 'Delete', 'Delete from your stamps', () => { deleteStamp(S.mine); setTool('brush'); Maker.cat = 'stamps'; fillPal(); toast('Stamp deleted'); }));
+    card.appendChild(acts);
+    return card;
+  }
+
+  /* ---- the room pane: Room rules and Events */
+  function roomRulesSection(R) {
+    const sec = el('div', 'mk-sec');
+    sec.appendChild(el('h4', 'mk-h', 'Room rules'));
+    const upd = (k, v) => { pushUndo(); R[k] = v; changed(); };
+    sec.appendChild(row('Darkness', seg(RDARK, R.dk == null ? -1 : R.dk, (v) => upd('dk', v))));
+    sec.appendChild(row('Snake health', seg(RSH, R.sh || 1, (v) => upd('sh', v))));
+    sec.appendChild(row('Beat the clock', seg(RTB, R.tb || 0, (v) => upd('tb', v))));
+    const waves = R.e.filter((e) => e.t === 'sn' && e.wv > 1).length;
+    sec.appendChild(el('p', 'mk-p', `${R.tb ? `Clear the fight within ${R.tb} seconds for a free powerup. ` : ''}${waves ? `${waves} snake${waves === 1 ? '' : 's'} wait for a later wave. ` : ''}Waves: select a snake and set its Wave. The next wave comes when the last one is dead.`));
+    return sec;
+  }
+  function evLine(R, ev, i) {
+    const box = el('div', 'mk-ev');
+    const upd = (fn) => { pushUndo(); fn(); evDefaults(ev); changed(); };
+    const hd = el('div', 'mk-ev-hd');
+    hd.appendChild(el('b', null, `Event ${i + 1}`));
+    hd.appendChild(btn('ic red', IC.trash, 'Remove this event', () => upd(() => { R.ev.splice(i, 1); })));
+    box.appendChild(hd);
+    box.appendChild(field('When', selectOf(EV_WHEN, ev.w, (v) => upd(() => { ev.w = v; }))));
+    if (EV_N[ev.w]) box.appendChild(row(ev.w === 'time' ? 'After' : ev.w === 'kills' ? 'Count' : 'Wave', seg(EV_N[ev.w], ev.n, (v) => upd(() => { ev.n = v; }))));
+    if (ev.w === 'flip') box.appendChild(row('Color', seg(CH_NAMES.map((n, k) => [k, n, `<i style="background:${CH_COLS[k]}"></i>`]), ev.n | 0, (v) => upd(() => { ev.n = v; }))));
+    box.appendChild(field('Do', selectOf(EV_DO, ev.d, (v) => upd(() => { ev.d = v; }))));
+    if (ev.d === 'shout') {
+      const t = el('input', 'mk-in'); t.maxLength = 40; t.value = ev.txt || ''; t.placeholder = 'A big line over the room';
+      t.addEventListener('change', () => upd(() => { ev.txt = t.value.slice(0, 40); }));
+      box.appendChild(field('Line', t));
+    }
+    if (ev.d === 'gates') box.appendChild(row('Color', seg(CH_NAMES.map((n, k) => [k, n, `<i style="background:${CH_COLS[k]}"></i>`]), ev.a | 0, (v) => upd(() => { ev.a = v; }))));
+    if (ev.d === 'snakes') {
+      const b = el('button', 'mk-pick'); b.type = 'button';
+      b.appendChild(canvasIcon(28, (c, s) => c.drawImage(snakeSprite(ev.k), 0, 0, s, s)));
+      b.appendChild(el('span', null, esc(snakeName(ev.k))));
+      b.addEventListener('click', (e) => { e.preventDefault(); pickSnake(ev.k, (k) => upd(() => { ev.k = k; })); });
+      box.appendChild(row('Snake', b));
+    }
+    if (EV_A[ev.d]) box.appendChild(row(ev.d === 'snakes' ? 'How many' : ev.d === 'lights' ? 'Lights' : 'Amount', seg(EV_A[ev.d], ev.a, (v) => upd(() => { ev.a = v; }))));
+    return box;
+  }
+  function eventsSection(R) {
+    const sec = el('div', 'mk-sec');
+    const list = evOf(R);
+    sec.appendChild(el('h4', 'mk-h', `Events (${list.length} of ${EV_MAX})`));
+    if (!list.length) sec.appendChild(el('p', 'mk-p', 'When something happens in this room, something else happens. Walk in and the lights go out. Kill three snakes and the red gates open. After 20 seconds a second pack comes out. Each event fires once.'));
+    list.forEach((ev, i) => sec.appendChild(evLine(R, ev, i)));
+    if (list.length < EV_MAX) sec.appendChild(btn('gold', IC.bolt + 'Add an event', 'Add an event to this room', () => { pushUndo(); list.push(newEv()); changed(); }));
+    return sec;
+  }
+  safe(() => {
+    const rr = renderRoomPane;
+    renderRoomPane = function () {
+      const r = rr.apply(this, arguments);
+      safe(() => {
+        const pane = $('mkPaneRoom'); if (!pane || !Maker.M) return;
+        const top = pane.scrollTop, R = R_();
+        const doors = pane.querySelector('.mk-doors'), h = doors && doors.previousElementSibling;
+        for (const s of [roomRulesSection(R), eventsSection(R)]) { if (h) pane.insertBefore(s, h); else pane.appendChild(s); }
+        pane.scrollTop = top;
+      });
+      return r;
+    };
+    const rc = renderCrumb;
+    renderCrumb = function () {
+      const r = rc.apply(this, arguments);
+      safe(() => {
+        const b = $('mkCrumb'), R = Maker.M && R_(); if (!b || !R) return;
+        const bits = [];
+        if (R.ev && R.ev.length) bits.push(`${R.ev.length} event${R.ev.length === 1 ? '' : 's'}`);
+        const wv = R.e.reduce((m, e) => (e.t === 'sn' ? Math.max(m, e.wv || 1) : m), 0);
+        if (wv > 1) bits.push(`${wv} waves`);
+        if (R.tb) bits.push(`clock ${R.tb} s`);
+        if (bits.length) { const s = el('span', 'mk-crx', esc(bits.join(' · '))); const hv = b.querySelector('.hv'); b.insertBefore(s, hv); }
+      });
+      return r;
+    };
+  });
+
+  /* ---- the floor generator */
+  const GEN = { rooms: 9, shape: 'branch', snakes: 1, extras: { chest: 1, shop: 1, miniboss: 1, vault: 0, challenge: 0, spring: 0, secret: 1, pantry: 0 }, seed: 1 };
+  const GEN_EX = [['chest', 'Treasure'], ['shop', 'Shop'], ['miniboss', 'Mini boss'], ['vault', 'Vault and key'], ['challenge', 'Challenge'], ['spring', 'Spring'], ['pantry', 'Pantry'], ['secret', 'Secret room']];
+  function genPool(set) { const p = ((typeof WAVE_POOL !== 'undefined' && WAVE_POOL[set]) || ['grub', 'grub', 'hood', 'splitter']).filter((k) => SNAKES.includes(k)); return p.length ? p : ['grub']; }
+  function genFloor(F, o) {
+    const rng = mulberry32((o.seed >>> 0) || 1), ri = (n) => Math.floor(rng() * n), pk = (a) => a[ri(a.length)];
+    const set = F.set, rooms = [], at = new Map(), key = (x, y) => x + ',' + y;
+    const add = (x, y, t, parent) => { const R = newRoom(x, y, t); R.par = parent; rooms.push(R); at.set(key(x, y), R); return R; };
+    const free = (x, y) => x >= 0 && y >= 0 && x < FW && y < FH && !at.has(key(x, y));
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const start = add(4, 3, 'start', null);
+    const want = clamp(o.rooms | 0, 4, 24);
+    let guard = 0;
+    while (rooms.length < want && guard++ < 4000) {
+      const from = o.shape === 'line' ? rooms[rooms.length - 1] : o.shape === 'loop' ? pk(rooms) : (rng() < 0.6 ? rooms[Math.max(0, rooms.length - 1 - ri(3))] : pk(rooms));
+      const d = pk(dirs), x = from.x + d[0], y = from.y + d[1];
+      if (!free(x, y)) { if (o.shape === 'line' && guard % 40 === 39) { const r2 = pk(rooms); rooms.push(rooms.splice(rooms.indexOf(r2), 1)[0]); } continue; }
+      // branches and lines stay thin: no room with three neighbors already in place, most of the time
+      const nb = dirs.filter((v) => at.has(key(x + v[0], y + v[1]))).length;
+      if (o.shape !== 'loop' && nb > 1 && rng() < 0.85) continue;
+      add(x, y, 'fight', from);
+    }
+    const Fx = { rooms };
+    // doors: parent links always; other neighbors are walls, except on loops
+    for (const R of rooms) for (const s in SIDES) {
+      const v = SIDES[s], n = at.get(key(R.x + v[0], R.y + v[1])); if (!n) continue;
+      const linked = n.par === R || R.par === n;
+      if (!linked && (o.shape !== 'loop' || rng() < 0.25)) { R.d[s] = 'w'; n.d[OPPS[s]] = 'w'; }
+    }
+    // distances from the start, through doors
+    const dist = new Map([[start, 0]]), q = [start];
+    while (q.length) { const R = q.shift(); for (const s of doorsOf(Fx, R)) { const n = neighbor(Fx, R, s); if (n && !dist.has(n)) { dist.set(n, dist.get(R) + 1); q.push(n); } } }
+    const far = rooms.slice().sort((a, b) => (dist.get(b) || 0) - (dist.get(a) || 0));
+    const lair = far[0] !== start ? far[0] : rooms[rooms.length - 1];
+    lair.t = 'boss';
+    const deg = (R) => doorsOf(Fx, R).length;
+    const spare = rooms.filter((R) => R.t === 'fight' && R !== lair);
+    const ends = spare.filter((R) => deg(R) === 1).sort(() => rng() - 0.5), mids = spare.filter((R) => deg(R) > 1).sort(() => rng() - 0.5);
+    const takeRoom = () => ends.shift() || (mids.length > 2 ? mids.shift() : null);
+    const special = [];
+    for (const [k] of GEN_EX) if (o.extras[k] && k !== 'secret') { const R = takeRoom(); if (!R) break; R.t = k; special.push(R); }
+    // a secret room: a new room behind a cracked wall
+    if (o.extras.secret) {
+      const cands = [];
+      for (const R of rooms) for (const s in SIDES) { const v = SIDES[s]; if (free(R.x + v[0], R.y + v[1]) && R !== lair && R.t !== 'start') cands.push([R, s]); }
+      if (cands.length && rooms.length < LIMITS.rooms) {
+        const [R, s] = pk(cands), v = SIDES[s], S = add(R.x + v[0], R.y + v[1], 'chest', R);
+        // walls to everything but its way in, and that way is a crack
+        for (const s2 in SIDES) { const v2 = SIDES[s2], n = at.get(key(S.x + v2[0], S.y + v2[1])); if (!n) continue; S.d[s2] = n === R ? 'c' : 'w'; n.d[OPPS[s2]] = S.d[s2]; }
+      }
+    }
+    // the rooms themselves
+    const pool = genPool(set), fights = (FIGHT_SETS[set] || FIGHT_SETS.cellar).slice();
+    for (const R of rooms) {
+      let rows = null;
+      if (R.t === 'start') rows = START_SETS[set] || START_SETS.cellar;
+      else if (R.t === 'fight') rows = pk(fights);
+      else if (R.t !== 'boss') { const tp = typeTemplate(R.t); rows = tp ? rowsOf(tp) : null; }
+      if (rows) {
+        const C = cleanRoom({ x: R.x, y: R.y, t: R.t, g: rows.map((r) => (r + '...........').slice(0, GW)).join('').replace(/[12]/g, '.') });
+        R.g = C.g; R.e = C.e;
+      }
+      if (R.t === 'fight') {
+        let sn = R.e.filter((e) => e.t === 'sn');
+        for (const e of sn) e.k = pk(pool);
+        const goal = Math.max(1, Math.round((sn.length || 3) * o.snakes));
+        while (sn.length > goal) { const e = sn.pop(); R.e.splice(R.e.indexOf(e), 1); }
+        let tries = 0;
+        while (sn.length < goal && tries++ < 80) {
+          const c = 1 + ri(GW - 2), r = 1 + ri(GH - 2);
+          if (R.g[r * GW + c] !== '.' || entAt(R, c, r)) continue;
+          const e = cleanEnt({ t: 'sn', c, r, k: pk(pool) }); if (e) { R.e.push(e); sn.push(e); }
+        }
+        // bigger floors get a few second waves
+        if (o.snakes >= 1 && sn.length >= 4 && rng() < 0.35) for (const e of sn.slice(-2)) e.wv = 2;
+      }
+      if (R.t === 'miniboss') R.b = pk(MINI_POOL[set] || MINI_POOL.cellar);
+      if (R.t === 'vault') R.lk = 0;
+    }
+    // a key for the vault, in a fight room on the way
+    if (special.some((R) => R.t === 'vault')) {
+      const fr = rooms.filter((R) => R.t === 'fight');
+      const R = fr.length ? pk(fr) : start;
+      for (let i = 0; i < 40; i++) { const c = 1 + ri(GW - 2), r = 1 + ri(GH - 2); if (R.g[r * GW + c] === '.' && !entAt(R, c, r)) { R.e.push(cleanEnt({ t: 'ky', c, r })); break; } }
+    }
+    // doorways stay clear
+    for (const R of rooms) for (const s of doorsOf(Fx, R)) {
+      const [mc, mr] = MOUTH[s], k = mr * GW + mc;
+      if (SOLID_TILE(R.g[k])) R.g = R.g.slice(0, k) + '.' + R.g.slice(k + 1);
+      const e = entAt(R, mc, mr); if (e && ENTS[e.t].solid && e.t !== 'gt') R.e.splice(R.e.indexOf(e), 1);
+    }
+    for (const R of rooms) delete R.par;
+    return rooms;
+  }
+  function openGenerator() {
+    const F = F_();
+    const body = el('div', 'mk-gen');
+    const pv = el('div', 'mk-gen-pv');
+    const cv = document.createElement('canvas'); pv.appendChild(cv);
+    const info = el('p', 'mk-p');
+    let rooms = null;
+    const redo = () => {
+      rooms = genFloor(F, GEN);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2), w = 260, h = 170;
+      cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + 'px'; cv.style.height = h + 'px';
+      const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paintFloorThumb(c, w, h, { rooms, set: F.set });
+      const sn = rooms.reduce((n, R) => n + R.e.filter((e) => e.t === 'sn').length, 0);
+      info.textContent = `${rooms.length} rooms, ${sn} snakes. Seed ${GEN.seed}.`;
+    };
+    const opts = el('div');
+    const paintOpts = () => {
+      opts.textContent = '';
+      opts.appendChild(row('Rooms', seg([[6, '6'], [9, '9'], [12, '12'], [16, '16'], [20, '20']], GEN.rooms, (v) => { GEN.rooms = v; paintOpts(); redo(); })));
+      opts.appendChild(row('Shape', seg([['branch', 'Branches'], ['loop', 'Loops'], ['line', 'A long line']], GEN.shape, (v) => { GEN.shape = v; paintOpts(); redo(); })));
+      opts.appendChild(row('Snakes', seg([[0.5, 'Few'], [1, 'Normal'], [1.6, 'Many']], GEN.snakes, (v) => { GEN.snakes = v; paintOpts(); redo(); })));
+      const ex = el('div', 'mk-seg');
+      for (const [k, nm] of GEN_EX) {
+        const b = el('button', GEN.extras[k] ? 'on' : '', esc(nm)); b.type = 'button'; b.setAttribute('aria-pressed', GEN.extras[k] ? 'true' : 'false');
+        b.addEventListener('click', (e) => { e.preventDefault(); GEN.extras[k] = GEN.extras[k] ? 0 : 1; paintOpts(); redo(); });
+        ex.appendChild(b);
+      }
+      opts.appendChild(row('Extra rooms', ex));
+    };
+    paintOpts();
+    body.append(pv, info, opts);
+    body.appendChild(el('p', 'mk-p', `Uses the layouts and snakes of ${setName(F.set)}. Replaces every room on floor ${Maker.fi + 1}; Undo brings them back.`));
+    GEN.seed = 1 + Math.floor(Math.random() * 99999);
+    redo();
+    dlg('Generate a floor', body, [
+      btn('', IC.rot + 'Another one', 'Roll a new floor', () => { GEN.seed = 1 + Math.floor(Math.random() * 99999); redo(); }),
+      btn('pri', IC.gen + 'Use this floor', 'Replace this floor with it', () => {
+        if (!rooms) return;
+        pushUndo();
+        F.rooms = rooms; syncEdges(F);
+        const st = F.rooms.find((R) => R.t === 'start') || F.rooms[0]; Maker.rx = st.x; Maker.ry = st.y; Maker.sel = null; PRO.area = null;
+        closeDlg(); changed(true); toast(`Floor ${Maker.fi + 1}: ${rooms.length} new rooms`);
+      }),
+    ]);
+  }
+  function fillEmptyRooms() {
+    const F = F_(), set = F.set, pool = genPool(set), fights = FIGHT_SETS[set] || FIGHT_SETS.cellar;
+    let n = 0;
+    const R0 = F.rooms.filter((R) => R.g === EMPTY && !R.e.length && !FIXED[R.t] && R.t !== 'boss');
+    if (!R0.length) { toast('No empty rooms on this floor.'); return; }
+    pushUndo();
+    for (const R of R0) {
+      let rows;
+      if (R.t === 'start') rows = START_SETS[set] || START_SETS.cellar;
+      else if (R.t === 'fight' || R.t === 'hall') rows = fights[Math.floor(Math.random() * fights.length)];
+      else { const tp = typeTemplate(R.t); rows = tp ? rowsOf(tp) : fights[Math.floor(Math.random() * fights.length)]; }
+      const C = cleanRoom({ x: R.x, y: R.y, t: R.t, g: rows.map((r) => (r + '...........').slice(0, GW)).join('').replace(/[12]/g, '.') });
+      R.g = C.g; R.e = R.t === 'hall' ? C.e.filter((e) => e.t !== 'sn') : C.e;
+      for (const e of R.e) if (e.t === 'sn') e.k = pool[Math.floor(Math.random() * pool.length)];
+      for (const s of doorsOf(F, R)) { const [mc, mr] = MOUTH[s], k = mr * GW + mc; if (SOLID_TILE(R.g[k])) R.g = R.g.slice(0, k) + '.' + R.g.slice(k + 1); }
+      n++;
+    }
+    changed(true); toast(`${n} room${n === 1 ? '' : 's'} filled`);
+  }
+  safe(() => {
+    const rf = renderFloor;
+    renderFloor = function () {
+      const r = rf.apply(this, arguments);
+      safe(() => {
+        const pane = $('mkPaneFloor'); if (!pane || !Maker.M) return;
+        const top = pane.scrollTop;
+        const sec = el('div', 'mk-sec');
+        sec.appendChild(el('h4', 'mk-h', 'Quick build'));
+        const acts = el('div', 'mk-acts');
+        acts.append(btn('gold', IC.gen + 'Generate floor', 'Generate a whole floor', openGenerator), btn('', IC.layout + 'Fill empty rooms', 'Give every empty room a layout and snakes', fillEmptyRooms));
+        sec.appendChild(acts);
+        sec.appendChild(el('p', 'mk-p', 'Generate makes a full floor in this floor’s style: start, lair, fights and the extra rooms you pick. Fill empty rooms only touches rooms with nothing in them.'));
+        const grid = pane.querySelector('.mk-fg'), after = grid && grid.nextElementSibling;
+        if (after && after.nextSibling) pane.insertBefore(sec, after.nextSibling); else pane.appendChild(sec);
+        pane.scrollTop = top;
+      });
+      return r;
+    };
+  });
+
+  /* ---- the map pane: an overview, and test settings */
+  function threatOf(R) {
+    let t = 0;
+    for (const e of R.e) {
+      if (e.t === 'sn') { const K = KINDS[e.k] || {}; t += Math.sqrt(K.hp || 6) * (e.g ? 2 : 1) * (e.hp || 1) * (R.sh || 1); }
+      else if (e.t === 'ns') t += 6; else if (ENTS[e.t] && ENTS[e.t].cat === 'traps') t += 1.2;
+    }
+    for (const ev of R.ev || []) if (ev.d === 'snakes') t += Math.sqrt((KINDS[ev.k] || {}).hp || 6) * (ev.a || 1);
+    if (R.t === 'boss' || R.t === 'arena') t += 30; else if (R.t === 'miniboss') t += 14;
+    return t;
+  }
+  function overviewSection(M) {
+    const sec = el('div', 'mk-sec');
+    sec.appendChild(el('h4', 'mk-h', 'Overview'));
+    const tb = el('table', 'mk-ov');
+    let html = '<thead><tr><th>Floor</th><th>Rooms</th><th>Snakes</th><th>Traps</th><th>Loot</th><th>Events</th><th>Threat</th></tr></thead><tbody>';
+    M.floors.forEach((F, i) => {
+      let sn = 0, tr = 0, lt = 0, ev = 0, th = 0, top = null, topT = -1;
+      for (const R of F.rooms) {
+        for (const e of R.e) { const c = ENTS[e.t] && ENTS[e.t].cat; if (e.t === 'sn') sn++; else if (c === 'traps') tr++; else if (c === 'loot') lt++; }
+        ev += (R.ev || []).length;
+        const t = threatOf(R); th += t; if (t > topT) { topT = t; top = R; }
+      }
+      const lvl = th < 40 ? 'Mild' : th < 90 ? 'Fair' : th < 160 ? 'Tough' : 'Brutal';
+      html += `<tr data-f="${i}" data-x="${top ? top.x : 0}" data-y="${top ? top.y : 0}"><td>${i + 1} <small>${esc(F.name || setName(F.set))}</small></td><td>${F.rooms.length}</td><td>${sn}</td><td>${tr}</td><td>${lt}</td><td>${ev}</td><td><i class="th ${lvl.toLowerCase()}">${lvl}</i></td></tr>`;
+    });
+    tb.innerHTML = html + '</tbody>';
+    tb.addEventListener('click', (e) => { const tr = e.target.closest('tr[data-f]'); if (!tr) return; Maker.fi = +tr.dataset.f; Maker.rx = +tr.dataset.x; Maker.ry = +tr.dataset.y; Maker.sel = null; changed(true); setPane('room'); });
+    sec.appendChild(tb);
+    sec.appendChild(el('p', 'mk-p mk-small', 'Threat counts snakes by their health, traps, nests, events and bosses. Tap a floor to jump to its heaviest room.'));
+    return sec;
+  }
+  function openTestSettings() {
+    const T0 = PRO.test, body = el('div');
+    const paint = () => {
+      body.textContent = '';
+      body.appendChild(el('p', 'mk-p', 'Only for testing from the editor. Players of your map never get these.'));
+      const set = (k, v) => { T0[k] = v; lsSet(TSTORE, T0); paint(); };
+      body.appendChild(row('Can not die', seg([[0, 'Off'], [1, 'On']], T0.god | 0, (v) => set('god', v))));
+      body.appendChild(row('Extra coins', seg([[0, '0'], [50, '50'], [200, '200']], T0.coins | 0, (v) => set('coins', v))));
+      body.appendChild(row('Keys', seg([[0, '0'], [3, '3'], [9, '9']], T0.keys | 0, (v) => set('keys', v))));
+    };
+    paint();
+    dlg('Test settings', body, [btn('', 'Close', 'Close', closeDlg), btn('pri', IC.play + 'Test map', 'Test the whole map', () => { closeDlg(); play({ floor: 0 }); })]);
+  }
+  safe(() => {
+    const rm = renderMapPane;
+    renderMapPane = function () {
+      const r = rm.apply(this, arguments);
+      safe(() => {
+        const pane = $('mkPaneMap'); if (!pane || !Maker.M) return;
+        const top = pane.scrollTop, about = [...pane.querySelectorAll('.mk-h')].find((h) => h.textContent === 'About');
+        const sec = overviewSection(Maker.M);
+        if (about) pane.insertBefore(sec, about); else pane.appendChild(sec);
+        pane.scrollTop = top;
+      });
+      return r;
+    };
+    const vd = validate;
+    validate = function (M) {
+      const out = vd.apply(this, arguments);
+      M.floors.forEach((F, fi) => {
+        const fl = M.floors.length > 1 ? `Floor ${fi + 1}: ` : '';
+        const gates = [0, 0, 0, 0];
+        for (const R of F.rooms) for (const e of R.e) if (e.t === 'gt') gates[e.ch || 0]++;
+        for (const R of F.rooms) {
+          const sn = R.e.filter((e) => e.t === 'sn'), nm = `${RT[R.t] ? RT[R.t].name : R.t} ${colName(R.x)}${R.y + 1}`;
+          if (R.tb && !sn.length && !R.e.some((e) => e.t === 'ns') && !['challenge', 'survival', 'boss', 'arena', 'miniboss'].includes(R.t)) out.push({ msg: `${fl}${nm} has a clock but nothing to fight.`, fi, x: R.x, y: R.y, soft: 1 });
+          if (sn.length && sn.every((e) => (e.wv || 1) > 1)) out.push({ msg: `${fl}${nm}: no snake in the first wave. The second comes right away.`, fi, x: R.x, y: R.y, soft: 1 });
+          for (const ev of R.ev || []) {
+            if (ev.d === 'gates' && !gates[ev.a | 0]) out.push({ msg: `${fl}${nm}: an event flips ${CH_NAMES[ev.a | 0].toLowerCase()} gates, there are none.`, fi, x: R.x, y: R.y, soft: 1 });
+            if (ev.w === 'wave' && !sn.some((e) => (e.wv || 1) >= ev.n)) out.push({ msg: `${fl}${nm}: an event waits for wave ${ev.n}, it never comes.`, fi, x: R.x, y: R.y, soft: 1 });
+          }
+        }
+      });
+      return out;
+    };
+  });
+
+  /* ================================ the run: waves, events, room rules, test settings */
+  safe(() => {
+    const br = buildRoom;
+    buildRoom = function (room, R) {
+      const r = br.apply(this, arguments);
+      const sn = R.e.filter((e) => e.t === 'sn');
+      if (room.mkSn) room.mkSn.forEach((s, i) => { s.wv = (sn[i] && sn[i].wv) || 1; });
+      room.mkEv = (R.ev || []).map((e) => Object.assign({}, e, { done: false }));
+      room.mkDk = R.dk != null && R.dk >= 0 ? R.dk : null;
+      room.mkShp = R.sh || 1; room.mkTbLen = R.tb || 0;
+      return r;
+    };
+    // snake health per room, and waves
+    function spawnList(room, list) {
+      const keep = room.mkSn, before = room.snakes.length;
+      room.mkSn = list;
+      try { sms0(room); } finally { room.mkSn = keep; }
+      if (room.mkShp && room.mkShp !== 1) for (const sn of room.snakes.slice(before)) { sn.maxHp = Math.max(1, Math.round(sn.maxHp * room.mkShp)); sn.hp = sn.maxHp; }
+    }
+    const sms0 = spawnMapSnakes;
+    spawnMapSnakes = function (room) {
+      const list = room.mkSn || [];
+      const waved = (room.type === 'fight' || room.mkGuard) && list.some((s) => (s.wv || 1) > 1);
+      if (!waved) return spawnList(room, list);
+      room.mkWq = [2, 3].map((w) => list.filter((s) => s.wv === w)).filter((l) => l.length);
+      room.mkWave = 1;
+      spawnList(room, list.filter((s) => (s.wv || 1) <= 1));
+    };
+    Hooks.layer('Game.clearRoom', 'v14.9 map waves and events', function (next, room) {
+      if (inMap() && room && room.mkWq && room.mkWq.length && !room.cleared) {
+        if (!room.mkWaveAt) { room.mkWaveAt = G.t + 0.9; return; }
+        if (G.t < room.mkWaveAt) return;
+        room.mkWaveAt = 0;
+        const list = room.mkWq.shift(); room.mkWave = (room.mkWave || 1) + 1;
+        safe(() => spawnList(room, list));
+        safe(() => { UI.banner(room.mkWave === 2 ? 'Second wave' : 'Third wave', room.mkWq.length ? 'One more after this.' : 'The last of them.', 'curse'); Sfx.hiss(0.8); });
+        fireEv(room, 'wave', room.mkWave);
+        return;
+      }
+      const was = room && room.cleared;
+      const r = next.apply(this, [].slice.call(arguments, 1));
+      if (inMap() && room && !was && room.cleared) safe(() => {
+        const tb = room.mkTb;
+        if (tb && !tb.done) {
+          tb.done = true;
+          if (G.t <= tb.end) { const f = nearestFreeCell(room, RW / 2, RH / 2); spawnItem(room, f.x, f.y); UI.banner('In time', `Cleared with ${Math.ceil(tb.end - G.t)} seconds to spare. A powerup.`, 'legend'); Sfx.tone(660, 0.25, { to: 1320, type: 'triangle', vol: 0.07 }); }
+          else UI.banner('Too slow', 'The clock ran out. No prize this time.');
+        }
+        fireEv(room, 'clear', 0);
+      });
+      return r;
+    });
+    Hooks.layer('Game.enterRoom', 'v14.9 map events', function (next, room) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
+      if (inMap() && room) safe(() => {
+        room.mkCh0 = G.map && G.map.mkCh ? G.map.mkCh.slice() : [0, 0, 0, 0];
+        if (!room.mkIn) { room.mkIn = true; fireEv(room, 'enter', 0); }
+        startClock(room);
+      });
+      return r;
+    });
+    function startClock(room) {
+      if (!room.mkTbLen || room.mkTb || room.cleared || !room.locked) return;
+      room.mkTb = { end: G.t + room.mkTbLen + 1, len: room.mkTbLen, done: false };
+      UI.banner('Beat the clock', `Clear this room in ${room.mkTbLen} seconds for a powerup.`);
+    }
+    const ure = updateRoomExtras;
+    updateRoomExtras = function (dt, room, frozen) {
+      ure.apply(this, arguments);
+      if (dt > 0 && !frozen && room && room === G.room && inMap() && G.state === 'play' && G.map) safe(() => evTick(dt, room));
+    };
+    function evTick(dt, room) {
+      if (!room.mkTb) startClock(room);
+      const E = room.mkEv; if (!E || !E.length || E.every((e) => e.done)) return;
+      const P = G.player;
+      room.mkTime = (room.mkTime || 0) + dt;
+      fireEv(room, 'time', room.mkTime);
+      // kills: every snake seen alive in this room that is gone now
+      const seen = room.mkSeenSn || (room.mkSeenSn = new Set());
+      for (const sn of room.snakes) if (sn.alive && !sn.isBoss) seen.add(sn);
+      let k = 0; for (const sn of seen) if (!sn.alive || !room.snakes.includes(sn)) k++;
+      fireEv(room, 'kills', k);
+      if (P && P.hp > 0 && P.hp <= P.maxHp / 2) fireEv(room, 'hurt', 0);
+      const ch = G.map.mkCh, c0 = room.mkCh0 || (room.mkCh0 = ch.slice());
+      for (let i = 0; i < 4; i++) if (ch[i] !== c0[i]) { c0[i] = ch[i]; fireEv(room, 'flip', i); }
+    }
+    function fireEv(room, w, v) {
+      for (const e of room.mkEv || []) {
+        if (e.done || e.w !== w) continue;
+        if ((w === 'time' || w === 'kills') && v < e.n) continue;
+        if ((w === 'wave' || w === 'flip') && v !== e.n) continue;
+        e.done = true;
+        safe(() => doEv(room, e));
+      }
+    }
+    function doEv(room, e) {
+      const P = G.player, mid = () => nearestFreeCell(room, P ? P.x : RW / 2, P ? P.y + T : RH / 2);
+      switch (e.d) {
+        case 'shout': UI.banner(e.txt || '', ''); Sfx.tone(440, 0.2, { to: 660, type: 'triangle', vol: 0.05 }); break;
+        case 'gates': G.map.mkCh[e.a | 0] ^= 1; applyGates(G.map, true); Sfx.clank(); if (P) floatText(P.x, P.y - 30, `${CH_NAMES[e.a | 0].toUpperCase()} GATES`, CH_COLS[e.a | 0], true); break;
+        case 'snakes': {
+          if (!KINDS[e.k] || !P) break;
+          const used = new Set(), n = e.a || 1;
+          for (let i = 0; i < n; i++) {
+            const cell = Game.farCell(room, P, used); used.add(cell.r * COLS + cell.c);
+            const sn = safe(() => new Snake(e.k, cell.x, cell.y, { delay: 0.3 + i * 0.18, ang: Math.atan2(P.y - cell.y, P.x - cell.x) }));
+            if (!sn) continue;
+            if (room.mkShp && room.mkShp !== 1) { sn.maxHp = Math.max(1, Math.round(sn.maxHp * room.mkShp)); sn.hp = sn.maxHp; }
+            room.snakes.push(sn);
+          }
+          if (!room.locked) { room.cleared = false; room.locked = true; room.doorCl = 0; Sfx.doorShut(); }
+          Sfx.hiss(0.9);
+          break;
+        }
+        case 'heal': if (P) { P.heal(e.a || 2); floatText(P.x, P.y - 28, e.a >= 4 ? '+2 APPLES' : e.a >= 2 ? '+1 APPLE' : '+½ APPLE', '#ff6a7a', true); Sfx.tone(660, 0.18, { to: 990, type: 'triangle', vol: 0.06 }); } break;
+        case 'coins': G.run.coins = (G.run.coins || 0) + (e.a || 10); Sfx.coin(); if (P) floatText(P.x, P.y - 28, `+${e.a || 10} COINS`, '#ffd84a', true); break;
+        case 'item': { const f = mid(); spawnItem(room, f.x, f.y, e.a === 'rare' ? 1 : 0.04); flashLight(f.x, f.y, 90, 0.8, 0.6); break; }
+        case 'key': { const f = mid(); room.pickups.push({ kind: 'key', x: f.x, y: f.y, vx: 0, vy: 60, t: 0.5, ph: 0 }); Sfx.tone(880, 0.2, { to: 1320, type: 'triangle', vol: 0.06 }); break; }
+        case 'lights': room.mkDkEv = e.a | 0; Sfx.tone(e.a >= 2 ? 160 : 520, 0.25, { to: e.a >= 2 ? 90 : 780, type: 'sine', vol: 0.06 }); break;
+        case 'open': {
+          let n = 0;
+          for (const s in room.doors) { const o = room.doors[s]; if (o && o.sealed) { o.sealed = false; o.dirty = true; o.ver = (o.ver || 0) + 1; n++; } }
+          if (room.sealed) { room.sealed = false; n++; }
+          room.dirty = true; room.ver++;
+          if (room.mkExit && !room.exit) { openExit(room); n++; }
+          Sfx.unlock(); UI.banner(n ? 'Unlocked' : 'Click', n ? 'Something opened.' : 'Nothing here was locked.');
+          break;
+        }
+        case 'boom': explode(room, RW / 2, RH / 2, 80, { dmg: 1, snakeDmg: 9 }); break;
+        default: break;
+      }
+    }
+    // darkness per room and from events
+    const dt0 = darkTarget;
+    darkTarget = function (room, L) {
+      if (inMap() && room && (room.mkDkEv != null || room.mkDk != null)) {
+        const v = room.mkDkEv != null ? room.mkDkEv : room.mkDk;
+        return room.cleared && room.mkDkEv == null ? Math.max(0.12, DARK_V[v] * 0.6) : DARK_V[v];
+      }
+      return dt0.apply(this, arguments);
+    };
+    // the clock on screen
+    const gl = drawGlow3;
+    drawGlow3 = function (c, room) {
+      gl.apply(this, arguments);
+      const tb = room && room.mkTb;
+      if (!tb || tb.done || !inMap()) return;
+      safe(() => {
+        const left = Math.max(0, tb.end - G.t), late = left <= 0, warn = left < 5;
+        c.save();
+        c.font = `800 15px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+        const s = late ? 'TIME UP' : `${Math.ceil(left)}`;
+        const w = c.measureText(s).width + 20;
+        const y0 = RH - 28; c.fillStyle = 'rgba(10,6,5,0.7)'; c.fillRect(RW / 2 - w / 2, y0, w, 20);
+        c.strokeStyle = late ? '#8a7a6a' : warn ? '#ff4a5a' : '#ffc53a'; c.lineWidth = 1; c.strokeRect(RW / 2 - w / 2 + 0.5, y0 + 0.5, w - 1, 19);
+        c.fillStyle = late ? '#b8a8a0' : warn ? '#ff6a7a' : '#ffd27a'; c.fillText(s, RW / 2, y0 + 10.5);
+        c.restore();
+      });
+    };
+    // test settings, only when testing from the editor
+    Hooks.layer('Game.startRun', 'v14.9 map test settings', function (next) {
+      const r = next.apply(this, [].slice.call(arguments, 1));
+      if (inMap() && RTM.back === 'editor') safe(() => {
+        const T0 = PRO.test;
+        for (const P of (G.players && G.players.length ? G.players : [G.player])) if (P && T0.god) P.god = true;
+        if (T0.coins) G.run.coins = (G.run.coins || 0) + T0.coins;
+        if (T0.keys) G.run.keys = (G.run.keys || 0) + T0.keys;
+        if (T0.god || T0.coins || T0.keys) UI.banner('Test run', [T0.god ? 'can not die' : '', T0.coins ? `+${T0.coins} coins` : '', T0.keys ? `${T0.keys} keys` : ''].filter(Boolean).join(', '));
+      });
+      return r;
+    });
+  });
+
+  /* ---- help */
+  safe(() => {
+    HELP.splice(HELP.length - 1, 0, ['Pro tools', [
+      ['Shapes', 'L line, O outline, C circle (Shift for a filled one). S cycles the brush size: 1, 2 or 3 tiles.'],
+      ['Area', 'M, then drag a box. Copy, cut, delete, fill, flip, or drag it to move it. Arrow keys nudge it. Ctrl A takes the whole room.'],
+      ['Stamps', 'Ctrl V after copying an area gives a stamp: click to put it down, X and Y flip it, R turns it. Save areas as stamps; they show under Paint, Stamps, next to the built in ones.'],
+      ['Waves', 'Select a snake and set its Wave. Second wave snakes come when the first wave is dead, the third after that.'],
+      ['Events', 'Room, Events. When you walk in, clear the room, after some seconds, after some kills, when a wave starts, at half health or when gates flip: shout, flip gates, let snakes out, heal, coins, a powerup, a key, lights, unlock, or an explosion.'],
+      ['Room rules', 'Darkness and snake health per room, and Beat the clock: clear it in time for a powerup.'],
+      ['Generate', 'Floor, Quick build. Generate a whole floor in its style, or fill every empty room with a layout and snakes.'],
+      ['Test settings', 'The gear next to Test: can not die, extra coins and keys. Only in your own test runs.'],
+    ]]);
+    const keys = HELP[HELP.length - 1][1].find((x) => x[0] === 'Keys');
+    if (keys) keys[1] = 'B brush, E eraser, F fill, R box, L line, O outline, C circle, M area, I picker, V select, S size. X and Y mirror. G grid. T tests. Ctrl Z and Ctrl Y undo and redo. Arrows walk between rooms, or move an area.';
+  });
+
+  const CSS14 = `
+.mk-ev{border:1px solid var(--line);border-left:3px solid #e3a54a;border-radius:2px;padding:8px 10px 2px;margin-bottom:8px;background:rgba(255,255,255,.02)}
+.mk-ev-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.mk-ev-hd b{font:700 12px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--toffee)}
+.mk-ev-hd .mk-btn.ic{width:30px;min-height:30px}
+.mk-stb.mine{border-color:rgba(124,196,255,.45)}
+.mk-stp{grid-column:1/-1;margin-top:6px}
+.mk-small{font-size:12.5px}
+.mk-ic{display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;color:#7cc4ff}
+.mk-ic svg{width:26px;height:26px}
+.mk-crx{color:var(--toffee)}
+.mk-gen-pv{display:flex;justify-content:center;background:#120d0b;border:1px solid var(--line);border-radius:2px;padding:8px;margin-bottom:6px}
+.mk-gen .mk-row{grid-template-columns:96px minmax(0,1fr)}
+table.mk-ov{width:100%;border-collapse:collapse;font:600 13px/1.2 var(--ui);color:var(--muted)}
+table.mk-ov th{font:700 10px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);text-align:left;padding:4px 4px 6px}
+table.mk-ov td{padding:6px 4px;border-top:1px solid var(--line)}
+table.mk-ov td small{color:var(--faint);font-weight:500}
+table.mk-ov tbody tr{cursor:pointer}
+table.mk-ov tbody tr:hover td{color:var(--ink);background:rgba(255,255,255,.03)}
+table.mk-ov i.th{font-style:normal;padding:2px 6px;border-radius:2px;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+i.th.mild{background:rgba(90,216,90,.15);color:#8fe08f}i.th.fair{background:rgba(255,200,58,.15);color:#ffd27a}i.th.tough{background:rgba(255,138,26,.18);color:#ffaa5a}i.th.brutal{background:rgba(232,58,80,.2);color:#ff8494}
+@media (max-width:1599px) and (min-width:980px){.mke-tools .mk-btn .tl{display:none}.mke-tools .mk-btn{padding:0;width:40px}}
+@media (max-width:520px){table.mk-ov th:nth-child(5),table.mk-ov td:nth-child(5){display:none}}
+`;
+  Object.assign(MK, { PRO, applyAt, setTool, pickBrush, validate, genFloor, GEN, grabArea, placeClip, flipClip, rotClip, startStamp, putStamp, areaMove, saveStamp, myStamps, ST_IN, fillEmptyRooms, openGenerator, openTestSettings, cleanMapNow: (M) => cleanMap(M), compactNow: (M) => compact(M), cleanFloor: (F, i) => cleanFloor(F, i) });
+})();
