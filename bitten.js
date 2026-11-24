@@ -32223,7 +32223,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
 /* src/65-v114-cards.js: v11.4: pause, game over and escape screens as cards, party menu. From v11.4. Lines 31508 to 31738 of the v13.7 script. */
 /* ===== v11.4: Pause, game over and the escape screen as framed cards, sharp switches in Settings.
    Party menu: with the remix as menu music the start screen turns into a club that follows the song,
-   intro, build, drop, break and drop II, with a now playing slip. Settings switch "Party menu". ===== */
+   intro, build, drop, break and drop II. Settings switch "Party menu". ===== */
 (function () {
   'use strict';
   const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe65'); console.error(e); return fb; } };
@@ -32258,16 +32258,6 @@ function drawGullWingsOranje24(c, R, flap, behind) {
 #pause > .stack .btn.primary{width:100%}
 #pause > .stack .row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #pause .kick{color:var(--apple-hi)}
-/* party menu: now playing slip */
-.np114{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));z-index:6;pointer-events:none;display:grid;grid-template-columns:22px auto;gap:3px 9px;align-items:center;
-  background:rgba(10,7,7,.82);border:1px solid var(--line);border-left:3px solid var(--np,#ff3ad8);border-radius:2px;padding:7px 10px 7px 8px;font-family:var(--ui);transition:opacity .4s}
-.np114[hidden]{display:grid!important;opacity:0}
-.np114 .eq{grid-row:1/3;display:flex;align-items:flex-end;gap:2px;height:20px}
-.np114 .eq i{width:3px;background:var(--np,#ff3ad8);height:30%;border-radius:0}
-.np114 b{font:700 10px/1 var(--ui);letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
-.np114 span{font:700 14px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
-.np114 em{grid-column:1/3;display:block;height:2px;background:rgba(236,226,212,.12);margin-top:3px}
-.np114 em i{display:block;height:100%;width:0;background:var(--np,#ff3ad8)}
 `;
   document.body.appendChild(css);
 
@@ -32282,7 +32272,6 @@ function drawGullWingsOranje24(c, R, flap, behind) {
 
   /* ------------------------------------------------------------------ party menu */
   const PAL = ['#ff3ad8', '#3ad8ff', '#ffd23a', '#ff3a50', '#7aff5a'];
-  const SEC_NAME = { intro: 'Intro', build: 'Build', drop: 'Drop', break: 'Break', drop2: 'Drop II', outro: 'Outro' };
   const SEC_COL = { intro: '#e3a54a', build: '#ff7a3a', drop: '#ff3ad8', break: '#9a6aff', drop2: '#3ad8ff', outro: '#e3a54a' };
   const PT = { conf: [], spark: [], last: 0, lastBar: -1, lastBeat: -1, bump: 0 };
   const partyOn = () => !!(Save.data && Save.data.settings && Save.data.settings.party !== false && Save.data.settings.music !== false && Sfx.on);
@@ -32300,28 +32289,16 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     return { sec: cur.sec, barF, beat: Math.floor(beatF), bf: beatF % 1, prog: Math.max(0, Math.min(1, (barF - SEC.from) / (SEC.to - SEC.from))) };
   }
 
-  let np = null;
-  function slip() {
-    if (np) return np;
-    np = document.createElement('div'); np.className = 'np114'; np.hidden = true; np.setAttribute('aria-hidden', 'true');
-    np.innerHTML = '<div class="eq"><i></i><i></i><i></i><i></i></div><b>Now playing</b><span>Rotten Waltz</span><em><i></i></em>';
-    document.getElementById('app').appendChild(np);
-    return np;
-  }
-
   const ms0 = MenuScene.render;
   MenuScene.render = function (c) {
     ms0.call(this, c);
     const s = partyOn() ? songNow() : null;
-    const n = slip();
-    const menuVis = UI.el && UI.el.menu && !UI.el.menu.hidden;
-    n.hidden = !(s && menuVis);
     const cv = View.cv;
     if (!s) { if (PT.bump) { PT.bump = 0; cv.style.transform = ''; } return; }
-    safe(() => party(c, s, n));
+    safe(() => party(c, s));
   };
 
-  function party(c, s, n) {
+  function party(c, s) {
     const W = View.W, H = View.H, dpr = View.dpr, t = performance.now() / 1000;
     const dt = Math.min(0.05, PT.last ? t - PT.last : 0.016); PT.last = t;
     const drop = s.sec === 'drop' || s.sec === 'drop2', build = s.sec === 'build', brk = s.sec === 'break';
@@ -32418,19 +32395,12 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     // the whole floor bumps on the kick in the drops
     const bump = drop && !REDUCED ? 1 + 0.012 * kick : 1;
     if (Math.abs(bump - (PT.bump || 1)) > 0.0005) { View.cv.style.transform = bump === 1 ? '' : `scale(${bump.toFixed(4)})`; PT.bump = bump; }
-
-    // now playing slip
-    n.style.setProperty('--np', col);
-    n.querySelector('span').textContent = 'Rotten Waltz · ' + (SEC_NAME[s.sec] || s.sec);
-    const bars = n.querySelectorAll('.eq i');
-    bars.forEach((b, i) => { const v = drop ? 0.25 + 0.75 * Math.abs(Math.sin(t * (5 + i * 1.7) + i)) * (0.5 + 0.5 * kick) : 0.2 + 0.4 * Math.abs(Math.sin(t * (2 + i) + i)); b.style.height = Math.round(v * 100) + '%'; });
-    n.querySelector('em i').style.width = Math.round(s.prog * 100) + '%';
   }
   // leaving the menu: put the stage back
   const hide0 = UI.hide;
-  UI.hide = function (id) { if (id === 'menu') safe(() => { View.cv.style.transform = ''; PT.bump = 0; if (np) np.hidden = true; }); return hide0.apply(this, arguments); };
+  UI.hide = function (id) { if (id === 'menu') safe(() => { View.cv.style.transform = ''; PT.bump = 0; }); return hide0.apply(this, arguments); };
   const r0 = render;
-  render = function (dt) { r0(dt); if (G.state !== 'menu' && PT.bump) { View.cv.style.transform = ''; PT.bump = 0; if (np) np.hidden = true; } };
+  render = function (dt) { r0(dt); if (G.state !== 'menu' && PT.bump) { View.cv.style.transform = ''; PT.bump = 0; } };
 
   /* settings switch */
   safe(() => {
@@ -32444,7 +32414,7 @@ function drawGullWingsOranje24(c, R, flap, behind) {
     UI.paintSettings();
   });
   safe(() => {
-    for (const s of ['Party menu', 'With Music on, the start screen turns into a club that follows the remix: intro, build, drop, break, drop II. Off keeps the quiet cellar.', 'Now playing', 'Rotten Waltz'])
+    for (const s of ['Party menu', 'With Music on, the start screen turns into a club that follows the remix: intro, build, drop, break, drop II. Off keeps the quiet cellar.'])
       if (!TEXT_LIT9.messages.includes(s)) TEXT_LIT9.messages.push(s);
   });
 
