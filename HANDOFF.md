@@ -247,3 +247,20 @@ Game Maker and the guide. Register content once, at its source, and the features
   guide cards and room entries, and the Map Maker catalog. `B.SYNC14.audit()` lists anything still missing.
 - Test: `node test/sync.js` (audit empty, new content flows in, Admin builds every room, a map with every extra room plays,
   SIX SEVEN per stage and rules, Unlock everything opens every floor).
+
+## v14.9: Map Maker Pro (src/74 section 14)
+All in section 14 at the end of src/74 (it wraps internal functions, so it lives inside the same IIFE). Test hook `B.MK123.PRO`.
+* Tools: Line (L), Outline (O), Circle (C, Shift filled), Area (M), brush size 1 to 3 (S, wraps `applyAt`; not in Fill or Box).
+  Area: copy, cut, delete, fill, flip, drag or arrow keys to move, Ctrl A whole room, Save as stamp.
+  Stamps: Ctrl V after an area copy, or Paint > Stamps (10 built in `ST_IN`, own stamps in localStorage `bitten.mkStamps14`, max 30).
+  In stamp mode X / Y flip and R turns (H is the help key). Escape leaves area and stamp mode before it leaves the editor.
+* Snake piece param `wv` (wave 1 to 3). Fight and guarded rooms spawn wave 1; a `Game.clearRoom` layer spawns the next wave 0.9 s
+  after the last one dies instead of clearing.
+* Room fields in map and share code: `ev` (up to 6 events {w, n, d, a, k, txt}, each fires once, only for the room you are in),
+  `dk` room darkness (-1 floor), `sh` snake health scale, `tb` beat the clock seconds (prize: a powerup). Runtime in `buildRoom`,
+  `spawnMapSnakes`, `updateRoomExtras` (dt > 0 only), `darkTarget` wrappers; sim state only, no timers.
+* Floor pane Quick build: `genFloor(F, GEN)` (seeded mulberry32: branches, loops, line; extras incl. vault plus key and a cracked
+  secret room) and Fill empty rooms. Map pane Overview (threat per floor). Gear next to Test: can not die, coins, keys
+  (localStorage `bitten.mkTest14`, applied only when `RTM.back === 'editor'`).
+* Test: `node test/mapmaker2.js [shotdir]` (tools via real mouse and keys, share code, waves, events, rules, 108 generated floors
+  validated, a generated floor played). catalog, sync and netmap still pass.
