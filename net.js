@@ -19,7 +19,7 @@
   const B = window.__bitten = window.__bitten || {};
   const safe = (fn, fb) => { try { return fn(); } catch (e) { try { errNote14(e, 'net'); } catch (e2) { /* ignore */ } return fb; } };
   const T = (s) => (typeof sayF9 === 'function' ? sayF9(s) : s);
-  const PROTO = 'bitten-net-14.6-1';
+  const PROTO = 'bitten-net-14.10-1';
   const STEP = 1 / 60, CHECK = 60, MAXP = 4;
   const ID_PREFIX = 'bitten14-';
   const LINES = ['Host a game', 'Join', 'Room code', 'Leave', 'Copy invite link', 'Link copied', 'Waiting for players', 'Connecting',
@@ -29,7 +29,7 @@
     'joined', 'Host', 'You', 'Online play needs the game served over http or https.', 'Share the code or the link. Up to four apples, one room, the host picks the mode.',
     'is choosing', 'Out of sync, repaired', 'Online', 'Mode', 'ping', 'Looking for the room', 'No direct link, trying the relay', 'relay', 'direct',
     'Share invite', 'Could not connect. Check the internet connection and try again.', 'More', 'Share level', 'Pick a level to share',
-    'Level shared', 'shared a level', 'Save', 'Saved', 'Saved to your maps. Play it in the Map Maker.', 'Play together', 'No maps yet. Build one in the Map Maker.',
+    'Level shared', 'is back', 'Catching up', 'You are back in', 'shared a level', 'Save', 'Saved', 'Saved to your maps. Play it in the Map Maker.', 'Play together', 'No maps yet. Build one in the Map Maker.',
     'Levels from the lobby', 'Close', 'Examples', 'Your maps', 'Too fast, wait a moment'];
   safe(() => { for (const s of LINES) if (!TEXT_LIT9.messages.includes(s)) TEXT_LIT9.messages.push(s); });
 
@@ -361,7 +361,19 @@
     let mem = S.members.find((x) => x.link === L);
     if (m.t === 'hello') {
       if (m.v !== PROTO) { L.send({ t: 'no', why: 'This room runs another version of Bitten' }); setTimeout(() => L.close(), 300); return; }
-      if (S.running) { L.send({ t: 'no', why: 'A run is already going in that room. Wait for the next one.' }); setTimeout(() => L.close(), 300); return; }
+      if (S.running) {
+        /* v14.10: a player who dropped out comes back into the running run. The host sends the start message and every
+           bundle since tick 0; the guest replays them (the run is deterministic) and is live again. */
+        const nm0 = cleanName(m.name, 1), back = S.members.find((x) => x.away && !x.link && x.name === nm0) || S.members.find((x) => x.away && !x.link);
+        if (back && NET.startMsg && NET.log && !NET.logFull) {
+          back.link = L; back.in = null; back.dashN = -1; back.pingN = -1; back.via = L.relay ? 'relay' : 'direct';
+          L.send({ t: 'rejoin', start: NET.startMsg, you: back.slot, code: S.code, L: NET.log.slice() });
+          back.away = false; NET.events.push({ k: 'back', s: back.slot });
+          safe(() => UI.banner(back.name + ' ' + T('is back'), ''));
+          return;
+        }
+        L.send({ t: 'no', why: 'A run is already going in that room. Wait for the next one.' }); setTimeout(() => L.close(), 300); return;
+      }
       if (S.members.length >= maxP()) { L.send({ t: 'no', why: 'That room is full' }); setTimeout(() => L.close(), 300); return; }
       let slot = 1; while (S.members.some((x) => x.slot === slot)) slot++;
       let nm = cleanName(m.name, slot);
@@ -415,6 +427,7 @@
     const msg = { t: 'start', seed, mode: onlineMode(), members: pubMembers(), save: JSON.parse(JSON.stringify(Save.data)), opts: optsNow() };
     for (const m of S.members) if (m.link) m.link.send(msg);
     beginRun(msg);
+    NET.startMsg = msg; NET.log = []; NET.logFull = false;
   }
   const optsNow = () => safe(() => (B.OPTS7 ? JSON.parse(JSON.stringify(B.OPTS7)) : null), null);
 
@@ -444,6 +457,15 @@
     if (m.t === 'lobby') { S.members = m.members; S.me = m.you; S.code = m.code; S.mode = m.mode; S.gm = m.gm || null; S.status = T('Waiting for the host'); paint(); return; }
     if (m.t === 'no') { S.err = T(m.why); S.status = ''; const L = S.link; S.link = null; S.role = null; safe(() => L && L.close()); paint(); return; }
     if (m.t === 'start') { S.members = m.members; beginRun(m); return; }
+    if (m.t === 'rejoin') {
+      S.members = m.start.members; S.me = m.you; if (m.code) S.code = m.code;
+      beginRun(m.start);
+      if (!NET.live) return;
+      for (const x of m.L) { const ins = unpackIns(x[1], NET.lastIns); NET.lastIns = ins; NET.queue.push([x[0], ins, x[2] || 0, x[3] || 0]); NET.want++; }
+      NET.catchup = NET.queue.length;
+      safe(() => UI.banner(T('Catching up'), ''));
+      return;
+    }
     if (m.t === 'b') {
       if (!NET.live) return;
       for (const x of m.L) {
@@ -464,6 +486,8 @@
   const MKA = () => B.MK123;
   const okMap = (o) => !!(o && typeof o === 'object' && Array.isArray(o.floors) && o.floors.length && JSON.stringify(o).length < 240000);
   function gotMap(from, map) {
+    /* v14.10: saving or playing a shared map needs the Map Maker chunk; start loading it now */
+    safe(() => { const M = MKA(); if (M && M.ready && !M.ready()) M.ensure(); });
     S.inbox = (S.inbox || []).filter((x) => !x.saved || x.t > performance.now() - 6e5).slice(-7);
     S.inbox.push({ from, map, name: String(map.name || 'Untitled map').slice(0, 40), t: performance.now(), saved: false, k: (S.inboxN = (S.inboxN || 0) + 1) });
     safe(() => UI.banner(from + ' ' + T('shared a level'), String(map.name || '')));
@@ -584,9 +608,29 @@
     d.sound = mine.sound;
     Save.data = d; Save.store = function () { return true; };
     if (msg.opts && B.OPTS7) Object.assign(B.OPTS7, msg.opts);
-    NET.keep = () => { Save.data = mine; Save.store = st0; if (opts && B.OPTS7) { for (const k of Object.keys(B.OPTS7)) delete B.OPTS7[k]; Object.assign(B.OPTS7, opts); } };
+    const base = JSON.parse(JSON.stringify(d));
+    NET.keep = () => {
+      Save.data = mine; Save.store = st0; if (opts && B.OPTS7) { for (const k of Object.keys(B.OPTS7)) delete B.OPTS7[k]; Object.assign(B.OPTS7, opts); }
+      safe(() => { keepProgress(mine, base, d); Save.store(); if (typeof Meta !== 'undefined') Meta.check(); });
+    };
+  }
+  /* v14.10: what the guest earned in the run (stats, powerups found, things seen, achievements, unlocks, bests) goes into the
+     guest's own save. The run played on a copy of the host's save, so only the change from the start of the run counts. */
+  function keepProgress(mine, base, run) {
+    const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+    mine.stats = mine.stats || {};
+    for (const k in run.stats || {}) { const dlt = num(run.stats[k]) - num(base.stats && base.stats[k]); if (dlt > 0) mine.stats[k] = num(mine.stats[k]) + dlt; }
+    for (const k of ['found', 'seen', 'ach', 'winChars']) {
+      const r = run[k] || {}, b0 = base[k] || {}; mine[k] = mine[k] || {};
+      for (const id in r) if (r[id] && !b0[id]) mine[k][id] = r[id];
+    }
+    for (const id in run.unlocks || {}) if (run.unlocks[id] === true && !(base.unlocks && base.unlocks[id])) { mine.unlocks = mine.unlocks || {}; mine.unlocks[id] = true; }
+    for (const k in run.best || {}) if (num(run.best[k]) > num(base.best && base.best[k])) { mine.best = mine.best || {}; mine.best[k] = Math.max(num(mine.best[k]), num(run.best[k])); }
   }
   function beginRun(msg) {
+    /* v14.10: a Map run needs the Map Maker chunk (the coop screen loads it when it opens; this is the fallback) */
+    const mk = B.MK123;
+    if (msg.mode === 'map' && mk && mk.ready && !mk.ready()) { mk.ensure().then(() => beginRun(msg)); return; }
     safe(() => Sfx.init());
     if (NET.live) endRun(false);
     if (S.role === 'guest') swapSave(msg);
@@ -661,6 +705,7 @@
   }
   function applyEvent(e) {
     if (e.k === 'away') { const P = G.players[e.s]; if (P) { P.away14 = true; P.vx = P.vy = 0; } if (G.panel14 && G.panel14.slot === e.s) closePanel(); return; }
+    if (e.k === 'back') { const P = G.players[e.s]; if (P) P.away14 = false; return; }
     if (e.k === 'act') { const P = G.players[e.s]; if (P) withPlayer(P, () => replayClick(e.a)); return; }
   }
 
@@ -688,6 +733,8 @@
     }
     if (!out.length) return;
     const R = NET.ring || (NET.ring = []); for (const b of out) R.push(b); if (R.length > 1500) R.splice(0, R.length - 1200);
+    /* v14.10: the whole run, for a player who comes back (up to 30 minutes of ticks; after that a return is refused) */
+    if (NET.log && !NET.logFull) { for (const b of out) NET.log.push(b); if (NET.log.length > 108000) { NET.logFull = true; NET.log = null; } }
     for (const m of S.members) {
       if (!m.link || !m.link.open || m.away) continue;
       if (!m.link.relay) { m.link.send({ t: 'b', L: out }); continue; }
@@ -700,12 +747,14 @@
     const Q = NET.queue;
     NET.acc = Math.min(NET.acc + dt, STEP * 4);
     let k = 0;
-    const extra = Q.length > 6 ? Math.min(Q.length - 3, 30) : 0;
+    const far = Q.length > 120;                               /* v14.10: catching up after a return: many ticks per frame */
+    const extra = far ? Math.min(Q.length - 3, 360) : Q.length > 6 ? Math.min(Q.length - 3, 30) : 0;
     while (Q.length && ((NET.acc >= STEP - 1e-6) || k < extra)) {
       if (NET.acc >= STEP - 1e-6) NET.acc -= STEP;
       simTick(Q.shift()); k++;
-      if (k > 40) break;
+      if (k > (far ? 360 : 40)) break;
     }
+    if (NET.catchup && Q.length < 10) { NET.catchup = 0; safe(() => UI.banner(T('You are back in'), '')); }
     if (!Q.length) NET.acc = Math.min(NET.acc, STEP);
     /* my input goes to the host every frame */
     const L = S.link;
@@ -1155,7 +1204,7 @@
     if (S.role === 'host') NET.events.push({ k: 'act', s: S.me, a });
     else if (S.link) S.link.send({ t: 'act', a });
   }
-  B.net14 = { paintLobby: paint, S, NET, host: hostOpen, join: guestJoin, leave, start: hostStart, openLobby, stateHash, NetSource, PROTO, act, shareMap, gotMap, saveShared };
+  B.net14 = { keepProgress, paintLobby: paint, S, NET, host: hostOpen, join: guestJoin, leave, start: hostStart, openLobby, stateHash, NetSource, PROTO, act, shareMap, gotMap, saveShared };
 
   /* ?join=CODE opens the lobby and joins */
   safe(() => {

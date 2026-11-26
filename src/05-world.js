@@ -363,7 +363,7 @@ function generateLevel(def, rng) {
       h.secretLink = { k, room: sr, hp: 3 };
       break;
     }
-    // some floors have a portal room hanging off a fight room: the Ender Wyrm lives there
+    // some floors have a portal room hanging off a fight room: the Rift Wyrm lives there
     if (def.portal) {
       const ph = shuffle(rooms.filter((r) => r.type === 'fight' && r.dist >= 1), rng);
       for (const h of ph) {

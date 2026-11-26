@@ -1,4 +1,4 @@
-/* src/78-v14-more-text.js: v14.1: more icon free content. 31 BP pumps, 22 kapsalon cuts, 13 eiser rulings, 14 gedaagde rulings.
+/* src/78-v14-more-text.js: v14.1: more icon free content. 31 PIT pumps, 22 kapsalon cuts, 13 eiser rulings, 14 gedaagde rulings.
    These categories show text only, so they need no icon painters. Effects are written as plain percentages and the
    description is built from them: the sentence and the number cannot drift apart. Only existing mechanics are used. */
 (function () {
@@ -51,7 +51,7 @@
     return o;
   }
 
-  /* ------------------------------------------------------------------ BP pumps: [id, name, cost, effects, closer, extra] */
+  /* ------------------------------------------------------------------ PIT pumps: [id, name, cost, effects, closer, extra] */
   const PUMP_SPECS = [
     ['ruitenwissers', 'Ruitenwissers', 22, { light: 14, fire: -6 }, 'Wipers on high.'],
     ['antivries', 'Antivries', 20, { kb: -35, speed: -5 }, 'Does not freeze, does not hurry.'],
@@ -268,7 +268,7 @@
     const set = (re, text) => { const l = li(re); const sp = l && l.querySelector('span'); if (sp) sp.textContent = text; };
     const C = window.__bitten && window.__bitten.COURT21;
     if (C) set(/Rechtbank/, `Step onto a plate. Eiser: ${C.eiser.length} rulings, from a legendary to contempt of court. Gedaagde: ${C.gedaagde.length} rulings, mostly small. The other plate closes.`);
-    set(/BP Tankstation/, `Three pumps from ${PUMPS.length} kinds of fuel. Each pushes one number up and another down, for 20 to 40 coins. Some wash, heal or leave a mark. The till buys your powerups back.`);
+    set(/PIT Tankstation/, `Three pumps from ${PUMPS.length} kinds of fuel. Each pushes one number up and another down, for 20 to 40 coins. Some wash, heal or leave a mark. The till buys your powerups back.`);
     set(/Kapsalon/, `One cut, 8 coins, from ${CUTS.length} styles: a small boost for good. One in four is a kappersfail. Nobody will say anything.`);
   });
   Object.assign(window.__bitten || (window.__bitten = {}), { MORE14: { NEW_PUMPS, NEW_CUTS, EISER14, GEDAAGDE14, TX, build } });

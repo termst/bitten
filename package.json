@@ -1,0 +1,14 @@
+{
+  "name": "bitten",
+  "private": true,
+  "description": "Bitten. The game itself has no dependencies; these are only for the build (minify, chunk slots) and the tests.",
+  "scripts": {
+    "build": "node build.mjs --check",
+    "test": "node test/sync.js && node test/catalog.js && node test/mapmaker2.js && node test/mkfields.js && node test/bot.js --runs 3 --chars apple,lucif,lucky --a none --ref test/ref.json && node test/phase0.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0",
+    "eslint-scope": "8.2.0",
+    "espree": "10.3.0"
+  }
+}

@@ -540,7 +540,7 @@ function roomChip(room) {
   if (room.type === 'chaosboss') return room.cleared ? ['BOSS DOWN', '#8a3a3f'] : ['BOSS', '#e83a50'];
   if (room.type === 'club') return room.cleared ? ['PARTY OVER', '#b05aff'] : ['CLUB', '#ff3ad8'];
   if (room.type === 'hellclub') return room.cleared ? ['SILENCE', '#8a3a3f'] : ['HELLCLUB', '#ff3a2a'];
-  if (room.type === 'tank') return ['BP TANKSTATION', '#4ac05a'];
+  if (room.type === 'tank') return ['PIT TANKSTATION', '#4ac05a'];
   if (room.type === 'kapper') return ['KAPSALON', '#e8e2d0'];
   if (room.type === 'courtroom') return room.locked ? ['TAAKSTRAF', '#e0583e'] : [room.verdictDone ? 'CASE CLOSED' : 'RECHTBANK', '#d8b46a'];
   if (room.type === 'portal') return [room.cleared ? 'PORTAL CLOSED' : 'PORTAL BOSS', '#b05aff'];

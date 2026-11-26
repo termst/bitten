@@ -1960,10 +1960,10 @@ function drawDoorway(c, k, target, room, L) {
   const special = sp('boss') ? 'boss' : sp('portal') ? 'portal' : sp('vault') ? 'vault' : sp('miniboss') ? 'miniboss' : sp('chest') ? 'chest' : sp('challenge') ? 'challenge' : sp('survival') ? 'survival' : sp('offering') ? 'offering' : sp('library') ? 'library'
     : sp('chaosboss') ? 'boss' : sp('club') ? 'club' : sp('hellclub') ? 'hellclub' : sp('tank') ? 'tank' : sp('gym') ? 'gym' : sp('kapper') ? 'kapper' : sp('courtroom') ? 'courtroom'
     : sp('pantry') ? 'pantry' : sp('spring') ? 'spring' : sp('shop') ? 'shop' : sp('gamble') ? 'gamble' : sp('vote') ? 'vote' : null;
-  const pillar = { boss: '#d8ccb6', portal: '#2b2140', chest: '#b8913f', challenge: '#b0402e', offering: '#5e1420', pantry: '#6f9a3a', shop: '#1aa0e0', vote: '#e8742a',
+  const pillar = { boss: '#d8ccb6', portal: '#1f3a33', chest: '#b8913f', challenge: '#b0402e', offering: '#5e1420', pantry: '#6f9a3a', shop: '#1aa0e0', vote: '#e8742a',
     vault: '#c9a000', miniboss: '#d06a3a', survival: '#c87830', library: '#6a2a9a', spring: '#3aa89a', gamble: '#f2c230',
     club: '#ff3ad8', hellclub: '#c8262e', tank: '#2f9a4a', kapper: '#e8e2d0', gym: '#b4f03c', courtroom: '#8a6a3a' }[special] || L.wallHi;
-  if (special === 'portal') { c.fillStyle = 'rgba(160,70,255,0.55)'; c.fillRect(-DOOR_HW, -WALL - 2, DOOR_HW * 2, WALL + 2.5); c.fillStyle = 'rgba(220,160,255,0.35)'; for (let i = 0; i < 6; i++) c.fillRect(-DOOR_HW + 4 + i * 6, -WALL + (i * 7) % (WALL - 4), 3, 3); }
+  if (special === 'portal') { c.fillStyle = 'rgba(60,200,160,0.55)'; c.fillRect(-DOOR_HW, -WALL - 2, DOOR_HW * 2, WALL + 2.5); c.fillStyle = 'rgba(200,255,232,0.35)'; for (let i = 0; i < 6; i++) c.fillRect(-DOOR_HW + 4 + i * 6, -WALL + (i * 7) % (WALL - 4), 3, 3); }
   for (const s of [-1, 1]) {
     const x = s > 0 ? DOOR_HW : -DOOR_HW - 7;
     rrect(c, x - 0.5, -WALL - 1, 8, WALL + 4, 2); c.fillStyle = '#0c0807'; c.fill();
@@ -2039,46 +2039,51 @@ function drawDoorJaws(c, room) {
   }
 }
 
-/* v10.6: the Minecraft portal door. Obsidian frame, swirling purple pixels, sparks, and a glow on the floor. */
+/* v10.6, look redone in v14.10 (T15): the rift door. A tear in the wall with a smooth turning vortex, a frame of gnarled
+   roots with glowing pips, motes drifting out. Drawn from time only (no game random). */
 function isPortalDoor10(room, d) { return d.type === 'portal' || room.type === 'portal'; }
 function drawPortalDoors10(c, room, t) {
   for (const k in room.doors) {
     if (!isPortalDoor10(room, room.doors[k])) continue;
     c.save(); doorTransform(c, k);
-    const W2 = DOOR_HW * 2, px = 4, cols = Math.ceil(W2 / px), rows = Math.ceil((WALL + 2) / px);
-    c.beginPath(); c.rect(-DOOR_HW, -WALL - 2, W2, WALL + 2.5); c.clip();
-    c.fillStyle = '#12061f'; c.fillRect(-DOOR_HW, -WALL - 2, W2, WALL + 3);
-    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-      const n = Math.sin(i * 0.85 + t * 2.1) + Math.sin(j * 1.25 - t * 1.7) + Math.sin((i + j) * 0.55 + t * 1.2) + Math.sin(i * 0.3 - j * 0.7 + t * 2.6);
-      const v = clamp((n + 4) / 8, 0, 1);
-      c.fillStyle = mixHex('#2a0a5c', '#c58bff', v * v);
-      c.fillRect(-DOOR_HW + i * px, -WALL - 2 + j * px, px, px);
-      if (v > 0.9) { c.fillStyle = 'rgba(255,225,255,0.55)'; c.fillRect(-DOOR_HW + i * px + 1, -WALL - 2 + j * px + 1, 2, 2); }
+    const W2 = DOOR_HW * 2, H = WALL + 2.5, cy = -WALL * 0.45;
+    // the tear: a lens shape, clipped
+    c.beginPath(); c.moveTo(-DOOR_HW + 2, -WALL - 2);
+    c.quadraticCurveTo(-DOOR_HW - 3, cy, -DOOR_HW + 4, 0.5); c.lineTo(DOOR_HW - 4, 0.5);
+    c.quadraticCurveTo(DOOR_HW + 3, cy, DOOR_HW - 2, -WALL - 2); c.closePath(); c.clip();
+    const g = c.createRadialGradient(0, cy, 1, 0, cy, Math.max(W2, H) * 0.7);
+    g.addColorStop(0, '#e8fff4'); g.addColorStop(0.18, '#5df0c0'); g.addColorStop(0.55, '#0f6e66'); g.addColorStop(1, '#04171a');
+    c.fillStyle = g; c.fillRect(-DOOR_HW - 4, -WALL - 3, W2 + 8, H + 2);
+    // turning arms of the vortex
+    c.lineCap = 'round';
+    for (let a = 0; a < 5; a++) {
+      c.beginPath();
+      for (let s = 0; s <= 14; s++) {
+        const u = s / 14, an = a / 5 * TAU + t * 1.4 + u * 3.2, r = 2 + u * (DOOR_HW + 4);
+        const x = Math.cos(an) * r, y = cy + Math.sin(an) * r * 0.55;
+        if (s) c.lineTo(x, y); else c.moveTo(x, y);
+      }
+      c.strokeStyle = `rgba(200,255,232,${0.22 + 0.12 * Math.sin(t * 2 + a)})`; c.lineWidth = 2.2; c.stroke();
     }
-    // the edges breathe
-    const pu = 0.5 + 0.5 * Math.sin(t * 3);
-    const eg = c.createLinearGradient(-DOOR_HW, 0, DOOR_HW, 0);
-    eg.addColorStop(0, `rgba(210,120,255,${0.35 + pu * 0.25})`); eg.addColorStop(0.14, 'rgba(210,120,255,0)');
-    eg.addColorStop(0.86, 'rgba(210,120,255,0)'); eg.addColorStop(1, `rgba(210,120,255,${0.35 + pu * 0.25})`);
-    c.fillStyle = eg; c.fillRect(-DOOR_HW, -WALL - 2, W2, WALL + 3);
     c.restore();
-    // obsidian frame blocks, with magenta veins
+    // the frame: two gnarled roots with glowing pips
     c.save(); doorTransform(c, k);
-    for (const s of [-1, 1]) {
-      const x0 = s > 0 ? DOOR_HW : -DOOR_HW - 8;
-      for (let j = 0; j < 7; j++) {
-        const y = -WALL + j * 4;
-        c.fillStyle = (j + (s > 0 ? 1 : 0)) % 2 ? '#1a0b2e' : '#241040'; c.fillRect(x0, y, 8, 4.2);
-        if ((j * 7 + (s > 0 ? 3 : 0)) % 4 === 0) { c.fillStyle = `rgba(190,90,255,${0.5 + 0.4 * Math.sin(t * 2 + j)})`; c.fillRect(x0 + 2 + (j % 3), y + 1, 2, 2); }
+    for (const sd of [-1, 1]) {
+      c.beginPath(); c.moveTo(sd * (DOOR_HW + 2), -WALL - 2);
+      for (let j = 1; j <= 6; j++) { const y = -WALL - 2 + j * (H / 6); c.lineTo(sd * (DOOR_HW + 2 + Math.sin(j * 1.9 + sd) * 2.4), y); }
+      c.strokeStyle = '#3b2616'; c.lineWidth = 6.5; c.lineJoin = 'round'; c.stroke();
+      c.strokeStyle = '#6b4a2a'; c.lineWidth = 2.4; c.stroke();
+      for (let j = 0; j < 3; j++) {
+        const y = -WALL + 3 + j * (H / 3.2), pu = 0.55 + 0.45 * Math.sin(t * 2.4 + j * 2 + sd);
+        c.fillStyle = `rgba(120,255,200,${pu})`; c.beginPath(); c.arc(sd * (DOOR_HW + 2.5), y, 1.8, 0, TAU); c.fill();
       }
     }
-    c.fillStyle = '#0d0618'; c.fillRect(-DOOR_HW - 8, -WALL - 1.5, DOOR_HW * 2 + 16, 3);
-    // sparks drifting out into the room
-    for (let i = 0; i < 16; i++) {
-      const ph = (t * 0.45 + i * 0.173) % 1;
-      const sx = Math.sin(i * 7.31) * (DOOR_HW - 4), sy = -WALL * 0.45 + ph * (WALL * 1.7);
-      c.fillStyle = `rgba(${i % 3 ? 220 : 255},${i % 3 ? 150 : 210},255,${(1 - ph) * 0.9})`;
-      const sz = i % 4 === 0 ? 3 : 2; c.fillRect(sx + Math.sin(ph * 6 + i) * 3, sy, sz, sz);
+    // motes drifting out into the room
+    for (let i = 0; i < 14; i++) {
+      const ph = (t * 0.4 + i * 0.191) % 1;
+      const sx = Math.sin(i * 7.31) * (DOOR_HW - 5) + Math.sin(ph * 5 + i) * 3, sy = cy + ph * (WALL * 1.6);
+      c.fillStyle = `rgba(${i % 3 ? 150 : 230},255,${i % 3 ? 215 : 240},${(1 - ph) * 0.8})`;
+      c.beginPath(); c.arc(sx, sy, i % 4 === 0 ? 1.6 : 1.1, 0, TAU); c.fill();
     }
     c.restore();
   }

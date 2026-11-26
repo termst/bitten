@@ -1,8 +1,8 @@
 /* src/27-v9-story2-cast.js: v9: the second story cast and scenes. From v9. Lines 14917 to 15337 of the v13.7 script. */
 /* =====================================================================
    Version 9: the second story's cast and scenes. Original cartoons.
-   Alesen: puffer jacket, scarf, a plan for everything.
-   Senale: red hoodie, fresh fade, a tuft of hair that might be white.
+   Jorik: puffer jacket, scarf, a plan for everything.
+   Mels: red hoodie, fresh fade, a tuft of hair that might be white.
    ===================================================================== */
 const OUT9 = '#1d1612';
 const SKIN_A = '#f1c9a5', SKIN_S = '#e2b28c', SKIN_P = '#eac2a0', SKIN_J = '#d9a98a';
@@ -58,7 +58,7 @@ function tears9(c, t) {
   for (const s of [-1, 1]) { const d = (t * 1.3 + (s > 0 ? 0.5 : 0)) % 1; ell(c, s * 19, 2 + d * 26, 2.6, 4); c.fill(); }
 }
 
-/* ------------------------------------------------------------------ Alesen */
+/* ------------------------------------------------------------------ Jorik */
 function drawAlesenHead(c, S, face, t, opt = {}) {
   c.save(); c.scale(S, S); c.lineJoin = 'round'; c.lineCap = 'round';
   // hair at the back
@@ -109,7 +109,7 @@ function drawAlesen(c, S, face, t, opt = {}) {
   c.restore();
 }
 
-/* ------------------------------------------------------------------ Senale */
+/* ------------------------------------------------------------------ Mels */
 function drawSenaleHead(c, S, face, t, opt = {}) {
   c.save(); c.scale(S, S); c.lineJoin = 'round'; c.lineCap = 'round';
   for (const s of [-1, 1]) { ell(c, s * 39, 6, 8, 11); c.fillStyle = SKIN_S; c.fill(); c.strokeStyle = OUT9; c.lineWidth = 2.6; c.stroke(); }
@@ -246,7 +246,7 @@ function drawRoomScene9(c, v, t, st) {
   c.fillStyle = '#2a2a30'; c.font = `700 22px ${UIF}`; c.fillText(day ? '18' : '13', 0, 8);
   c.strokeStyle = '#c3243a'; c.lineWidth = 2; c.beginPath(); c.arc(0, 1, 15, 0, TAU); c.stroke();
   c.restore();
-  // Alesen at the desk
+  // Jorik at the desk
   c.save(); c.translate(280, 254 + Math.sin(t * 2) * 2);
   drawAlesen(c, 0.86, st.faceA || 'normal', t, { talk: speak9(st, 'alesen'), blink: st.blink, phone: true });
   c.restore();

@@ -298,5 +298,16 @@
     if (cb && U) { cb.appendChild(U.box); U.box.hidden = false; safe(() => U.paint()); }
     else if (U && el.contains(U.box)) U.home();
   }
+  /* v14.10: the Map Maker is a lazy chunk. The coop screen (couch and online) can pick and play maps, so it loads it when it
+     opens; the map list and the lobby repaint once it is in. A Map run also waits for it (gate in 74-mapmaker/00-prelude.js). */
+  safe(() => {
+    const op = B.coop14.open;
+    B.coop14.open = function () {
+      const r = op.apply(this, arguments);
+      const M = MK();
+      if (M && M.ready && !M.ready()) M.ensure().then(() => safe(() => { if (B.coopSec14 && !B.coopSec14.hidden) { B.coop14.paint(); if (B.net14 && B.net14.paintLobby) B.net14.paintLobby(); } }));
+      return r;
+    };
+  });
   B.gm14 = { cfg, pub, mount, seedNum, max: () => cfg().max, STYLES, TEAM, pickMap, mapNow, mapChoices };
 })();

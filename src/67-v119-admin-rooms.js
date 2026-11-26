@@ -13,8 +13,8 @@
     ['fight', 'Fight room', 'FGT'], ['chest', 'Chest room', 'CHS'], ['shop', 'Shop', 'SHP'], ['challenge', 'Challenge altar', 'CHL'],
     ['survival', 'Survival altar', 'SUR'], ['miniboss', 'Mini boss', 'MIN'], ['chaosboss', 'Boss fight', 'BSS'], ['vote', 'Vote', 'VOT'],
     ['library', 'Cursed library', 'LIB'], ['gamble', 'Slot machine', 'SLT'], ['spring', 'Spring', 'SPR'], ['offering', 'Offering altar', 'OFR'],
-    ['pantry', 'Pantry', 'PAN'], ['vault', 'Vault', 'VLT'], ['secret', 'Secret room', 'SEC'], ['portal', 'Portal (Ender Wyrm)', 'PRT'],
-    ['tank', 'BP Tankstation', 'TNK'], ['kapper', 'Kapsalon', 'KAP'], ['courtroom', 'Rechtbank', 'CRT'], ['gym', 'Klokhuis Gym', 'GYM'],
+    ['pantry', 'Pantry', 'PAN'], ['vault', 'Vault', 'VLT'], ['secret', 'Secret room', 'SEC'], ['portal', 'Portal (Rift Wyrm)', 'PRT'],
+    ['tank', 'PIT Tankstation', 'TNK'], ['kapper', 'Kapsalon', 'KAP'], ['courtroom', 'Rechtbank', 'CRT'], ['gym', 'Klokhuis Gym', 'GYM'],
     ['club', 'Club (DJ Manu-Beau)', 'CLB'], ['hellclub', 'Hellclub', 'HEL'], ['clownhq', 'Clini-Clown HQ', 'CLN'], ['quiet', 'Prikkelarme Kamer', 'QUI'], ['brawl', 'De Knokpit', 'KNK'],
   ];
   const CODE = { start: 'STA', boss: 'BOS' };

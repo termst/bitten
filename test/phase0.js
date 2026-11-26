@@ -17,7 +17,10 @@ const ok = (name, cond, info = '') => { out.push(`${cond ? 'PASS' : 'FAIL'} ${na
     ok(`${label}: no outside requests`, log.aborted.length === 0, log.aborted.slice(0, 3).join(' '));
     if (label === 'http desktop') {
       const bytes = log.requests.filter(([u]) => !u.endsWith('.mp3')).reduce((s, [, n]) => s + n, 0);
-      ok('first load under 3 MB', bytes < 3 * 1024 * 1024, (bytes / 1048576).toFixed(2) + ' MB, ' + log.requests.length + ' files');
+      ok('first load under 2.5 MB', bytes < 2.5 * 1024 * 1024, (bytes / 1048576).toFixed(2) + ' MB, ' + log.requests.length + ' files');
+      const core = (log.requests.find(([u]) => /\/bitten\.js$/.test(u)) || [0, 0])[1];
+      ok('core bitten.js under 2 MB (v14.10, lazy chunks)', core > 0 && core < 2 * 1024 * 1024, (core / 1048576).toFixed(2) + ' MB');
+      ok('no chunk on first load', !log.requests.some(([u]) => /\/chunks\//.test(u)), log.requests.filter(([u]) => /\/chunks\//.test(u)).map(([u]) => u).join(' '));
       const sw = await page.evaluate(() => navigator.serviceWorker.ready.then((r) => !!r.active).catch(() => false));
       ok('service worker active', sw);
     }

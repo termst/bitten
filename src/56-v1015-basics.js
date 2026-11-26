@@ -217,7 +217,7 @@
       ['Legendary', 'Gold frame. Rare, and a lot stronger.'],
       ['Info card', 'Stand next to anything you can take. A card shows what it does and what it costs.'],
       ['Clashes', 'Some powerups do not go together. Stand on a clashing one for about a second to swap. The old one drops.'],
-      ['Selling', 'The till at the BP Tankstation buys powerups back.'],
+      ['Selling', 'The till at the PIT Tankstation buys powerups back.'],
       ['Rewards', 'Every achievement drops a powerup. Many add new powerups to the pool.'],
     ]],
     ['Rot and curses', '#b07ad0', [

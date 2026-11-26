@@ -4,6 +4,8 @@
 // seeded mulberry32 (reseeded right before the run starts), render is switched off.
 // Usage: node test/bot.js [--runs 20] [--chars apple,lucky] [--a ref/Bitten_v13.7.html] [--b index.html]
 //        [--mode arcade] [--cap 600] [--par 3] [--out test/out/bot.json]
+//        [--ref test/ref.json] compare the last build with the stored reference numbers, exit 1 on drift beyond the margins
+//        [--write-ref] store the last build's numbers as the new reference (after an intended gameplay change)
 const { launch, ROOT } = require('./lib');
 const fakeClockInit = require('./fakeclock');
 const path = require('path');
@@ -223,6 +225,41 @@ if (require.main === module) (async () => {
     lines.push(row.join(' | '));
   }
   console.log(lines.join('\n'));
+  // reference numbers live in code (test/ref.json), not in notes: drift beyond the margins fails the run
+  const writeRef = process.argv.includes('--write-ref');
+  const refFile = arg('ref', writeRef ? 'test/ref.json' : '');
+  if (refFile) {
+    const file = path.resolve(ROOT, refFile);
+    const last = all[BUILDS[BUILDS.length - 1]];
+    const now = {};
+    for (const ch of CHARS) { const a = (last[ch] || []).slice().sort((x, y) => x.seed - y.seed); now[ch] = { kills: +mean(a, 'kills').toFixed(2), dmg: +mean(a, 'dmg').toFixed(2), time: +mean(a, 'time').toFixed(1), floor: +mean(a, 'floor').toFixed(2), seeds: a.map((r) => [r.seed, r.floor, r.kills, r.dmg, r.time]), errors: a.reduce((s, r) => s + r.errors, 0) }; }
+    if (writeRef) {
+      const old = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+      const ref = { note: 'Seeded bot reference (test/bot.js --runs ' + RUNS + ' --mode ' + MODE + '). Update with --write-ref after an intended gameplay change.', runs: RUNS, mode: MODE, cap: CAP, margin: old.margin || { kills: 0.15, dmg: 0.25, time: 0.15, floor: 0.34 }, chars: Object.assign(old.chars || {}, now) };
+      fs.writeFileSync(file, JSON.stringify(ref, null, 1) + '\n');
+      console.log('reference written: ' + path.relative(ROOT, file));
+    } else {
+      const ref = JSON.parse(fs.readFileSync(file, 'utf8')), M = ref.margin;
+      if (ref.runs !== RUNS || ref.mode !== MODE) console.log(`note: reference was made with --runs ${ref.runs} --mode ${ref.mode}`);
+      const bad = [];
+      for (const ch of CHARS) {
+        const r = ref.chars[ch], n = now[ch];
+        if (!r) { console.log(`ref ${ch}: no reference, skipped`); continue; }
+        const exact = n.seeds.filter((s) => r.seeds.some((q) => JSON.stringify(q) === JSON.stringify(s))).length;
+        const parts = [];
+        for (const k of ['kills', 'dmg', 'time', 'floor']) {
+          const lim = k === 'floor' ? M.floor : Math.abs(r[k]) * M[k] + (k === 'time' ? 5 : 1);
+          const d = n[k] - r[k], over = Math.abs(d) > lim;
+          parts.push(`${k} ${n[k]} (ref ${r[k]}, ${d >= 0 ? '+' : ''}${d.toFixed(2)})${over ? ' DRIFT' : ''}`);
+          if (over) bad.push(`${ch} ${k}`);
+        }
+        if (n.errors) bad.push(`${ch} errors ${n.errors}`);
+        console.log(`ref ${ch.padEnd(6)} ${parts.join(', ')}, seeds identical ${exact}/${n.seeds.length}`);
+      }
+      console.log(bad.length ? 'FAIL reference drift: ' + bad.join(', ') : 'PASS within the reference margins');
+      if (bad.length) process.exitCode = 1;
+    }
+  }
   const out = arg('out', path.join(ROOT, 'test/out/bot.json'));
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, JSON.stringify(all, null, 1));

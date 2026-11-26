@@ -162,7 +162,7 @@ function sellPrice(id, P) {
   return v;
 }
 
-/* ------------------------------------------------------------------ the BP Tankstation: tune one thing up, another down */
+/* ------------------------------------------------------------------ the PIT Tankstation: tune one thing up, another down */
 const PUMPS = [
   { id: 'super98', name: 'Super 98', desc: 'Seeds hit 20% harder. You walk 10% slower. Premium, heavy.', cost: 30, mod: { dmg: 1.2, speed: 0.9 } },
   { id: 'diesel', name: 'Diesel', desc: '1 more apple of health. You shoot 12% slower. Slow burn.', cost: 28, maxHp: 2, mod: { rate: 1.12 } },
@@ -195,7 +195,7 @@ ACHS.push(
   { id: 'lijn34', reward: 'ov', name: 'Pak Deze Bus', desc: 'Beat Lijn 34.', stat: 'boss_bus', goal: 1 },
   { id: 'phone', reward: 'bank', name: '8 Procent', desc: 'Beat De Tellie.', stat: 'boss_tellie', goal: 1 },
   { id: 'judge', reward: 'bezwaar', name: 'Hoger Beroep', desc: 'Beat De Kantonrechter.', stat: 'boss_rechter', goal: 1 },
-  { id: 'fulltank', reward: 'nitro', name: 'Vol Tanken', desc: 'Tune your apple 5 times at a BP Tankstation.', stat: 'tunes', goal: 5 },
+  { id: 'fulltank', reward: 'nitro', name: 'Vol Tanken', desc: 'Tune your apple 5 times at a PIT Tankstation.', stat: 'tunes', goal: 5 },
   { id: 'pawnshop', reward: 'verzoek', name: 'Inkoop Verkoop', desc: 'Sell 10 powerups at a tankstation.', stat: 'sold', goal: 10 },
   { id: 'freshcut', reward: 'schaar', name: 'Fresh Cut', desc: 'Get 5 haircuts at a kapsalon.', stat: 'haircuts', goal: 5 },
   { id: 'order', reward: 'speaker', name: 'Order In The Court', desc: 'Hear 3 verdicts in a courtroom.', stat: 'verdicts', goal: 3 },

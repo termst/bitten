@@ -1,0 +1,104 @@
+{
+ "note": "Seeded bot reference (test/bot.js --runs 3 --mode arcade). Update with --write-ref after an intended gameplay change.",
+ "runs": 3,
+ "mode": "arcade",
+ "cap": 600,
+ "margin": {
+  "kills": 0.15,
+  "dmg": 0.25,
+  "time": 0.15,
+  "floor": 0.34
+ },
+ "chars": {
+  "apple": {
+   "kills": 29,
+   "dmg": 13,
+   "time": 155.6,
+   "floor": 1.33,
+   "seeds": [
+    [
+     1000,
+     2,
+     29,
+     17,
+     192.33
+    ],
+    [
+     1001,
+     1,
+     28,
+     10,
+     119.22
+    ],
+    [
+     1002,
+     1,
+     30,
+     12,
+     155.3
+    ]
+   ],
+   "errors": 0
+  },
+  "lucif": {
+   "kills": 41,
+   "dmg": 12.33,
+   "time": 387.9,
+   "floor": 1,
+   "seeds": [
+    [
+     1000,
+     0,
+     20,
+     5,
+     604.47
+    ],
+    [
+     1001,
+     2,
+     67,
+     19,
+     413.82
+    ],
+    [
+     1002,
+     1,
+     36,
+     13,
+     145.33
+    ]
+   ],
+   "errors": 0
+  },
+  "lucky": {
+   "kills": 51.33,
+   "dmg": 18,
+   "time": 254.6,
+   "floor": 1.33,
+   "seeds": [
+    [
+     1000,
+     1,
+     24,
+     15,
+     133.13
+    ],
+    [
+     1001,
+     2,
+     70,
+     24,
+     390.93
+    ],
+    [
+     1002,
+     1,
+     60,
+     15,
+     239.75
+    ]
+   ],
+   "errors": 0
+  }
+ }
+}

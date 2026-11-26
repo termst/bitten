@@ -169,7 +169,7 @@
     const panel = document.getElementById('tab-rooms');
     const ul = panel && panel.querySelector('ul.rooms9'); if (!ul) return;
     const GROUPS = [
-      ['Spend and heal', ['Shop', 'BP Tankstation', 'Kapsalon', 'Slot machine', 'Spring', 'De Prikkelarme Kamer']],
+      ['Spend and heal', ['Shop', 'PIT Tankstation', 'Kapsalon', 'Slot machine', 'Spring', 'De Prikkelarme Kamer']],
       ['Free stuff, at a price', ['Treasure', 'Pantry', 'Offering', 'Cursed books', 'Vote', 'Rechtbank', 'Vault', 'Challenge', 'Secret room']],
       ['Big fights', ['Mini boss', 'Survival', 'Club', 'Hellclub', 'Portal', 'Clini-Clown HQ', 'Het Kelderspook', 'Jaude']],
     ];

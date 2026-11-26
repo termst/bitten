@@ -146,8 +146,8 @@ function drawWalls9(c, room, L, rng) {
       c.fillStyle = '#1f7a3a'; c.fillRect(a0, -WALL + 3, a1 - a0, WALL - 8);
       c.fillStyle = '#f2c230'; c.fillRect(a0, -8, a1 - a0, 4);
     }
-    if (!door('n')) wallText9(c, 'BP TANKSTATION', RW / 2, -WALL / 2 - 1, 13, '#ffffff');
-    else { wallText9(c, 'BP', RW * 0.22, -WALL / 2 - 1, 13, '#ffffff'); wallText9(c, 'TANKSTATION', RW * 0.78, -WALL / 2 - 1, 12, '#ffffff'); }
+    if (!door('n')) wallText9(c, 'PIT TANKSTATION', RW / 2, -WALL / 2 - 1, 13, '#ffffff');
+    else { wallText9(c, 'PIT', RW * 0.22, -WALL / 2 - 1, 13, '#ffffff'); wallText9(c, 'TANKSTATION', RW * 0.78, -WALL / 2 - 1, 12, '#ffffff'); }
     // the price board on the west wall
     c.save(); c.translate(-WALL / 2, RH * 0.22); c.rotate(-Math.PI / 2);
     c.fillStyle = '#16181c'; c.fillRect(-34, -9, 68, 18);

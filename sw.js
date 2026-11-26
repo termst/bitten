@@ -3,15 +3,16 @@
    answers when the network fails or takes over 6 s. A push is live on the next load, nothing to bump by hand.
    Fonts, icons and the De Wals track: cache first, they do not change.
    BUILD is written by build.mjs (hash of the game files), so each build installs a fresh offline copy. */
-const BUILD = 'c8e09513b0';
+const BUILD = '3d4c36e8de';
 const CACHE = 'bitten-nf-' + BUILD;
+const CHUNK_FILES = ["chunks/maker.js"];   /* written by build.mjs: the lazy chunks (src/01-chunks.js), cached for offline like the rest */
 const CORE = [
   './', 'bitten.js', 'net.js', 'vendor/peerjs.min.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png',
   'fonts/barlow-condensed-latin-400-normal.woff2', 'fonts/barlow-condensed-latin-500-normal.woff2',
   'fonts/barlow-condensed-latin-600-normal.woff2', 'fonts/barlow-condensed-latin-700-normal.woff2',
   'fonts/grenze-gotisch-latin-600-normal.woff2', 'fonts/grenze-gotisch-latin-800-normal.woff2',
-];
+].concat(CHUNK_FILES);
 /* cache first: files that never change under the same name */
 const STATIC = /\/(assets\/wals\.mp3|fonts\/[\w-]+\.woff2|icons\/[\w-]+\.png|vendor\/[\w.-]+)$/;
 const TIMEOUT = 6000;

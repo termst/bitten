@@ -275,10 +275,16 @@ function escHtml10(s) { return String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&am
     for (const k in RARE_NAMES10) o.floors['rare_' + k] = fieldsOf9(RARE_NAMES10[k], ['name', 'sub']);
     return o;
   };
+  // v14.10 (T15): renamed names. A texts file from before 14.10 still carries the old ones: they read as the new ones
+  const T15_OLD = [[/\bThe Ender Wyrm\b/g, 'The Rift Wyrm'], [/\bEnder Wyrm\b/g, 'Rift Wyrm'], [/\bCreepers\b/g, 'Knallers'], [/\bcreepers\b/g, 'knallers'], [/^Creeper$/, 'Knaller'],
+    [/\bBP TANKSTATION\b/g, 'PIT TANKSTATION'], [/\bBP (?=Tankstation|pump|Ultimate|Koffie|Spaarpas)/g, 'PIT '], [/^BP$/, 'PIT'], [/\bminecraft server\b/g, 'block server'], [/\bin minecraft\b/g, 'out of blocks'],
+    // T14: the second story's cast
+    [/\bAlesen\b/g, 'Jorik'], [/\bSenale\b/g, 'Mels'], [/\bhaa die alex\b/g, 'haa die jorik'], [/^Alek$/, 'Joor']];
+  const t15 = (v) => { for (const [re, to] of T15_OLD) v = v.replace(re, to); return v; };
   const ap0 = Texts.apply;
   Texts.apply = function (o) {
     if (o && typeof o === 'object') {
-      o = Object.assign({}, o);
+      o = JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'string' ? t15(v) : v)));
       // a texts file from before version 10 still has the old powerup names: keep the new ones
       if (o.powerups && typeof o.powerups === 'object') {
         const pw = {};

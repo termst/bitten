@@ -37,7 +37,7 @@ const ACHS = [
   { id: 'fast', reward: 'cider', name: 'Fast Food', desc: 'Escape in arcade in under 20 minutes.', stat: 'fastWin', goal: 1 },
   { id: 'salad', reward: 'buddy', name: 'Fruit Salad', desc: 'Escape with 3 different characters.', stat: 'winChars', goal: 3 },
   { id: 'explorer', reward: 'regrow', name: 'Explorer', desc: 'Clear 200 rooms.', stat: 'rooms', goal: 200 },
-  { id: 'ender', reward: 'pick', name: 'The End?', desc: 'Beat the Ender Wyrm behind a portal.', stat: 'boss_ender', goal: 1 },
+  { id: 'ender', reward: 'pick', name: 'The End?', desc: 'Beat the Rift Wyrm behind a portal.', stat: 'boss_ender', goal: 1 },
   { id: 'kaboom', reward: 'pump', name: 'Kaboom', desc: 'Blow up 30 rocks, pots or eggs with explosions.', stat: 'boomed', goal: 30 },
   { id: 'selfserve', reward: 'fuse', name: 'Self Service', desc: 'Make a Fuel Worm blow itself up.', stat: 'fuelPop', goal: 1 },
   { id: 'hellfire', reward: 'brim', name: 'Hellfire', desc: 'Kill 40 snakes while they are on fire.', stat: 'burnKills', goal: 40 },
