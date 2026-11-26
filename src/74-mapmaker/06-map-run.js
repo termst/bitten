@@ -1,4 +1,4 @@
-/* 74.js section 06: map-run. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 06: map-run. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { BOSSES, CH_COLS, CH_NAMES, DARK_V, EMPTY, FIXED, GH, GN, GW, MINIS, MK, NEEDS, OPPS, S9, SIDES, TILE, edgeOf, entAt, fbAngle, safe, setDef, typeTemplate } = M74;

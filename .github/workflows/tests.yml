@@ -14,9 +14,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install Playwright (tests only, the game has no npm dependencies)
+      - name: Install the build and test tools (the game itself has no npm dependencies)
         run: |
-          npm install --no-save --no-package-lock playwright@1.63.0
+          npm ci
+          npm install --no-save playwright@1.63.0
           npx playwright install --with-deps chromium
       - name: build --check
         run: |

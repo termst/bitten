@@ -25,7 +25,7 @@
   const RI0 = {
     secret: { name: 'Secret room', code: 'SEC', col: '#7a6a5a', hung: 1, nolink: 1, desc: 'Behind a cracked wall in the game: a Rot Eater and its loot. Fixed layout.' },
     spook: { name: 'Het Kelderspook', code: 'SPK', col: '#a8c8ff', hung: 1, nolink: 1, desc: 'A secret room with the ghost boss inside. Fixed layout.' },
-    portal: { name: 'Portal (Ender Wyrm)', code: 'PRT', col: '#9a5ad8', hung: 1, nolink: 1, desc: 'The block world behind the portal, with the Ender Wyrm. Fixed layout.' },
+    portal: { name: 'Portal (Rift Wyrm)', code: 'PRT', col: '#9a5ad8', hung: 1, nolink: 1, desc: 'The block world behind the portal, with the Rift Wyrm. Fixed layout.' },
     club: { name: 'Club (DJ Manu-Beau)', code: 'CLB', col: '#3ad8ff', hung: 1, nolink: 1, desc: 'The club behind a door: DJ Manu-Beau and his beat. Fixed layout.' },
     hellclub: { name: 'Hellclub', code: 'HEL', col: '#ff3a2a', hung: 1, nolink: 1, desc: 'The club gone to hell: Manu-Beau as a devil. Fixed layout.' },
     clownhq: { name: 'Clini-Clown HQ', code: 'CLN', col: '#ff5ab4', hung: 1, desc: 'The clowns’ hideout: a fight with a prize. Fixed layout.' },

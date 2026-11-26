@@ -1,4 +1,4 @@
-/* 74.js section 05: piece-art. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 05: piece-art. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { CH_COLS, CH_NAMES, DIRS, FONT, bossArt, safe } = M74;

@@ -1,7 +1,7 @@
-/* src/13-explosions.js: explosions, fire, fuel cans, Fuel Worm, creepers, Ender Wyrm. From v7. Lines 7424 to 7667 of the v13.7 script. */
+/* src/13-explosions.js: explosions, fire, fuel cans, Fuel Worm, knallers, Rift Wyrm. From v7. Lines 7424 to 7667 of the v13.7 script. */
 /* =====================================================================
    Explosions, fire, thrown fuel cans, the Fuel Worm,
-   and the Minecraft style portal boss: the Ender Wyrm and its creepers
+   and the rift portal boss: the Rift Wyrm and its knallers
    ===================================================================== */
 function explode(room, x, y, r, o = {}) {
   const P = G.player;
@@ -144,7 +144,7 @@ function lightFuse(sn) {
   sn.fuse = 0.0001; Sfx.fuse(); floatText(sn.x, sn.y - 20, '!!', '#ff5a3a');
 }
 
-/* ------------------------------------------------------------------ creepers */
+/* ------------------------------------------------------------------ knallers (T15: were creepers) */
 AI.creeper = function (sn, room, dt) {
   const P = G.player, d = dist(sn.x, sn.y, P.x, P.y);
   if (sn.mode === 'fuse') {
@@ -156,7 +156,7 @@ AI.creeper = function (sn, room, dt) {
   if (d < 54 && P.dying <= 0) { sn.mode = 'fuse'; sn.mt = 0; Sfx.fuse(); }
 };
 
-/* ------------------------------------------------------------------ the Ender Wyrm */
+/* ------------------------------------------------------------------ the Rift Wyrm */
 function enderCell(room, P) {
   const opts = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {

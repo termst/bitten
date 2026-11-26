@@ -359,7 +359,7 @@ function updateBitterbal9(p, i, dt, room, P) {
 function combat9(room) {
   const P = G.player, L = G.levelDef;
   chaosCombat9(room);
-  if (P.flags.loud) {
+  if (teamFlag14('loud')) {
     const pool = EXTRA_POOL[L.set] || EXTRA_POOL.cellar;
     const cell = Game.farCell(room, P, new Set());
     room.snakes.push(new Snake(pick(pool), cell.x, cell.y, { delay: 0.9, ang: Math.atan2(P.y - cell.y, P.x - cell.x) }));

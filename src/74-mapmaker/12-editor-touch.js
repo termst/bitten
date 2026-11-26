@@ -1,4 +1,4 @@
-/* 74.js section 12: editor-touch. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 12: editor-touch. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, EFFECTS, ENT_PARAMS, FIXED, F_, GW, IC, LIMITS, MK, Maker, Pop, RT, R_, SVG, TILE, brushDesc, brushId, brushName, btn, canvasIcon, capShow, cellFrom, changed, closeDlg, colName, dlg, el, entAt, entDefaults, esc, field, paintBrushIcon, paramControl, pushUndo, restore, runFx, safe, scheduleSave, setCh, setPane, syncUndo, toast } = M74;

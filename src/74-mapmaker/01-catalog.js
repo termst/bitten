@@ -1,4 +1,4 @@
-/* 74.js section 01: catalog. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 01: catalog. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { SF } = M74;
@@ -62,7 +62,7 @@
     ['O', 'altarO', 'Offering altar', 'pieces', 'Holds the offering. Offering rooms only.', 1],
     ['Y', 'lectern', 'Lectern', 'pieces', 'Holds a motion. Vote rooms only.', 1],
     ['I', 'book', 'Book stand', 'pieces', 'Holds a cursed book. Library rooms only.', 1],
-    ['7', 'pump', 'Pump', 'pieces', 'A BP pump. Tankstation rooms only.', 1],
+    ['7', 'pump', 'Pump', 'pieces', 'A PIT pump. Tankstation rooms only.', 1],
     ['8', 'till', 'Till', 'pieces', 'Sells your powerups. Tankstation rooms only.', 1],
     ['s', 'snackspot', 'Snack shelf', 'pieces', 'Snacks for sale. Tankstation rooms only.', 0],
     ['9', 'chair', 'Barber chair', 'pieces', 'Sit for a cut. Kapsalon rooms only.', 1],
@@ -108,7 +108,7 @@
     ['vote', 'Vote', 'VOT', '#e8742a', 'Two motions on two lecterns. Walk onto one.'],
     ['gamble', 'Slot machine', 'SLT', '#f2c230', 'Three coins a pull.'],
     ['spring', 'Spring', 'SPR', '#3aa89a', 'Heals and washes off every downgrade. Once.'],
-    ['tank', 'BP Tankstation', 'TNK', '#4ac05a', 'Pumps that tune your apple, and a till that buys powerups.'],
+    ['tank', 'PIT Tankstation', 'TNK', '#4ac05a', 'Pumps that tune your apple, and a till that buys powerups.'],
     ['kapper', 'Kapsalon', 'KAP', '#e8e2d0', 'One cut, a small boost for good. Or a kappersfail.'],
     ['courtroom', 'Rechtbank', 'CRT', '#d8b46a', 'Step onto a plate. Eiser or gedaagde.'],
     ['gym', 'Klokhuis Gym', 'GYM', '#b4f03c', 'Coach Larspel opens three stations. His furniture goes on top.'],

@@ -1,4 +1,4 @@
-/* 74.js section 13: chests-rewards. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 13: chests-rewards. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, ART, ENTS, ENT_ORDER, ENT_PARAMS, FLAT, FONT, GH, GW, HELP, IC, MK, Maker, P_, ROOM_FIELDS, RTM, R_, TILE, btn, canvasIcon, changed, cleanRoom, closeDlg, dlg, el, entDefaults, esc, field, inMap, label, newRoom, pickItem, pushUndo, putOb, row, safe, scheduleSave, seg, selectOf } = M74;

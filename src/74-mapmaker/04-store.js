@@ -1,4 +1,4 @@
-/* 74.js section 04: store. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 04: store. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { BOSSES, CH_COLS, CH_NAMES, DARK, DARK_V, DIFF_OPTS, DIRS, DIR_NAMES, EMPTY, ENTS, ENT_PARAMS, FH, FIXED, FW, GRID_OK, LIMITS, MINIS, MIRX, MIRY, MK, MODS, MOUTH, NEEDS, OPPS, RT, RTYPES, RULES, RULE_DEF, SETS, SIDES, SNAKES, SPAWN_CH, TILE, TILES, cellCh, cleanEnt, cleanRoom, cloneMap, codeError, decodeMap, doorsOf, edgeOf, encodeMap, entAt, entDefaults, looksLikeCode, newRoom, roomAt, setCh, setDef, setEdge, setName, typeTemplate, uid } = M74;

@@ -1,4 +1,4 @@
-/* 74.js section 09: editor-panes. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 09: editor-panes. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, BOSSES, CATS, CH_COLS, CH_NAMES, DARK, DIFF_OPTS, EMPTY, ENTS, ENT_ORDER, ENT_PARAMS, FH, FIXED, FONT, FW, F_, GH, GN, GW, IC, LIMITS, MINIS, MIRX, MIRY, MODS, MOUTH, Maker, NEEDS, RT, RTYPES, RULES, R_, SETS, SIDES, SNAKES, SOLID_TILE, Store, TILE, TILES, TYPE_ICON, bossName, bossSprite, btn, canvasIcon, cellCh, changed, cleanRoom, cloneMap, doorsOf, edgeOf, el, entAt, esc, field, mapStats, neighbor, newRoom, paintBrushIcon, pushUndo, roomAt, row, rowsOf, saveNow, scheduleSave, seg, setDef, setEdge, setName, setPane, showHub, snakeName, snakeSprite, syncEdges, toast, typeTemplate, uid } = M74;

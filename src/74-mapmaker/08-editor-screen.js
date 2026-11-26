@@ -1,4 +1,4 @@
-/* 74.js section 08: editor-screen. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 08: editor-screen. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, ART, EMPTY, ENT_PARAMS, FONT, GW, LIMITS, MK, RT, RTM, SIDES, Store, TILES, cloneMap, codeError, decodeMap, doorsOf, entDefaults, esc, looksLikeCode, roomAt, rowsOf, safe, setDef, snakeSprite, uid } = M74;

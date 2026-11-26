@@ -1,5 +1,5 @@
 /* src/72-v127-wereldmachten.js: v12.7: Wereldmachten. From v12.7. Lines 33641 to 34078 of the v13.7 script. */
-/* ===== v12.7: Wereldmachten. Ten powerups, five curses, five downgrades, four BP pumps and six court rulings.
+/* ===== v12.7: Wereldmachten. Ten powerups, five curses, five downgrades, four PIT pumps and six court rulings.
    Gummy worms, a lucky strike, Europe, Ukraine, Russia, the USA, tariffs, China and rice waffles. ===== */
 (function () {
   'use strict';
@@ -43,7 +43,7 @@
   };
   for (const id in NEW_DOWNS) { DOWNS[id] = NEW_DOWNS[id]; DOWN_IDS.push(id); }
 
-  /* ------------------------------------------------------------------ BP pumps */
+  /* ------------------------------------------------------------------ PIT pumps */
   const NEW_PUMPS = [
     { id: 'unleaded', name: 'Regular Unleaded', desc: 'You walk 12% faster. Seeds hit 6% softer. Cheap, by the gallon.', cost: 18, mod: { speed: 1.12, dmg: 0.94 } },
     { id: 'e10', name: 'E10', desc: 'You shoot 8% faster. Seeds fly 8% less far. Meets every standard, barely.', cost: 22, mod: { rate: 0.92, range: 0.92 } },

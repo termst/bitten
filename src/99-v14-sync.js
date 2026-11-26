@@ -46,7 +46,7 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fig = (snake, name, size, txt) => `<figure><canvas data-snake="${snake}" aria-hidden="true"></canvas><figcaption><b>${esc(name)}</b><span class="size">${esc(size)}</span><span>${esc(txt)}</span></figcaption></figure>`;
   const LEGACY_GUIDE = {
-    creeper: ['Small, from the Ender Wyrm', 'Square, green and quiet. The Ender Wyrm drops them in its fight. Walks up to you, hisses, and blows up. Shoot it first or step away.'],
+    creeper: ['Small, from the Rift Wyrm', 'Square, green and quiet. The Rift Wyrm drops them in its fight. Walks up to you, hisses, and blows up. Shoot it first or step away.'],
     splitling: ['Tiny, from a Splitter', 'What is left when a Splitter dies. Fast and weak: one or two seeds each.'],
     rotling: ['Tiny, from a Rot Eater', 'A bloated Rot Eater spits these out while it feeds and when it dies. Fast and weak, but they come in groups.'],
   };
@@ -97,7 +97,7 @@
       miss('admin.bosses', cat.bosses, CHAOS_BOSSES9);
       miss('admin.snakes', cat.snakes.concat(cat.bosses.filter((k) => KINDS[k])), Object.keys(KINDS));
     }
-    if (MK) {
+    if (MK && MK.SETS) {   // v14.10: before the Map Maker chunk loads, MK123 is only a stub
       miss('mapmaker.floors', cat.floors, MK.SETS);
       miss('mapmaker.snakes', cat.snakes, MK.SNAKES);
       miss('mapmaker.bosses', cat.bosses, MK.BOSSES);

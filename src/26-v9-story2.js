@@ -1,9 +1,9 @@
 /* src/26-v9-story2.js: v9: the second story, ONDER CURATELE (script). From v9. Lines 14695 to 14916 of the v13.7 script. */
 /* =====================================================================
    Version 9: a second story. ONDER CURATELE.
-   Alesen and Senale argue about nothing, overdramatically, for four
+   Jorik and Mels argue about nothing, overdramatically, for four
    floors. Every argument feeds the worms under Utrecht. You are the
-   apple in the middle. Senale ends up under curatele, in the hands of
+   apple in the middle. Mels ends up under curatele, in the hands of
    his parents. Built from one week of real messages, 13 to 18 December.
    ===================================================================== */
 const STORY_BUS = {
@@ -50,17 +50,17 @@ const TXT = (from, msgs, seen) => ({ phone: { from, msgs, seen } });
 const SCRIPT2 = {
   intro: [
     CAP('UTRECHT. 13 DECEMBER. 11:03 PM.', { bg: 'room', v: 'night' }),
-    CAP('Alesen has one apple, one plan, and one best friend. Two of those are about to fall apart.'),
-    CAP('His phone lights up.', TXT('Senale', ['word wel een spannende dag morgen he', 'heb je al een film uitgekozen'], 'Read 23:04')),
+    CAP('Jorik has one apple, one plan, and one best friend. Two of those are about to fall apart.'),
+    CAP('His phone lights up.', TXT('Mels', ['word wel een spannende dag morgen he', 'heb je al een film uitgekozen'], 'Read 23:04')),
     AL('proud', 'i picked a film. WAHED. four stars. i booked the seats. i booked the bus. i planned the breathing'),
-    CAP('Senale approves, in his own way.', TXT('Senale', ['oke', 'weg issie', 'oh ziek', '4 ster'], 'Read 23:41')),
+    CAP('Mels approves, in his own way.', TXT('Mels', ['oke', 'weg issie', 'oh ziek', '4 ster'], 'Read 23:41')),
     AL('proud', 'tomorrow is going to be perfect. nothing can go wrong. i have a spreadsheet'),
     CAP('Midnight. The phone buzzes again. Nothing good has ever buzzed at midnight.'),
-    CAP('', TXT('Senale', ['haa die alex uh je gaat boos worden', 'maar morgen ga ik dus blijkbaar naar mn opa en oma', '(wist ik niet)'], 'Read 00:01')),
+    CAP('', TXT('Mels', ['haa die jorik uh je gaat boos worden', 'maar morgen ga ik dus blijkbaar naar mn opa en oma', '(wist ik niet)'], 'Read 00:01')),
     AL('shout', 'BLIJKBAAR??? WIST IK NIET???'),
-    CAP('', TXT('Senale', ['alsof ik er iets aan kan doen', 'mn ouders waren op een kerst diner uitje ding dus ze reageerde niet', 'ging er vanuit dat het kon zegmaar want normaal doe ik nooit wat'], 'Read 00:05')),
+    CAP('', TXT('Mels', ['alsof ik er iets aan kan doen', 'mn ouders waren op een kerst diner uitje ding dus ze reageerde niet', 'ging er vanuit dat het kon zegmaar want normaal doe ik nooit wat'], 'Read 00:05')),
     AL('cry', 'the tickets. i paid with KAART GELD. do u know how much kaart geld that is'),
-    CAP('', TXT('Senale', ['hoe duur was het', 'oh kaart geld', 'het is heel kut', 'sorry zeggen voor iets waar ik niks aan kan doen'], 'Read 00:42')),
+    CAP('', TXT('Mels', ['hoe duur was het', 'oh kaart geld', 'het is heel kut', 'sorry zeggen voor iets waar ik niks aan kan doen'], 'Read 00:42')),
     ME('(you are an apple in a fruit bowl. you did not ask to be in this group chat)'),
     CAP('Deep under Utrecht, something feeds on every pointless argument. Tonight it eats very, very well.'),
     AL('whisper', 'appel. little guy. you are my witness'),
@@ -70,7 +70,7 @@ const SCRIPT2 = {
   ],
   end0: [
     CAP('Lijn 34 is down. It was 34. Then 36. Then 31. Nobody knows. Nobody will ever know.', { bg: 'hokkie', v: 'dusk' }),
-    CAP('The next day. 14:03.', TXT('Senale', ['Broo', '31 pas bus', 'Je zegt pak d3z3 bus', 'Wat de f***', 'Sinds wanneer was dat het plan'], 'Read 14:06')),
+    CAP('The next day. 14:03.', TXT('Mels', ['Broo', '31 pas bus', 'Je zegt pak d3z3 bus', 'Wat de f***', 'Sinds wanneer was dat het plan'], 'Read 14:06')),
     AL('shout', 'I SAID PAK DEZE BUS AS A SUGGESTION. A VIBE. NOT AN ORDER'),
     SE('angry', 'Anders was ik blijven lopen met jou'),
     SE('angry', 'Slaat echt weer nergens op'),
@@ -87,13 +87,13 @@ const SCRIPT2 = {
     SE('sad', 'We hebben het tenminste wel leuk gehad he'),
     SE('proud', 'Kunnen veel mensen niet zeggen'),
     AL('proud', 'that is actually so true. we did have fun. apart from all of it'),
-    CAP('', TXT('Senale', ['ik sta in utrecht', 'thank you'], 'Read 16:27')),
+    CAP('', TXT('Mels', ['ik sta in utrecht', 'thank you'], 'Read 16:27')),
     CAP('Two days of silence. In friendship years that is about a decade.', { bg: 'room', v: 'day' }),
-    CAP('17 December. 11:55.', TXT('Senale', ['Alek', 'Leven we nog', 'Ik heb groot nieuws voor als je er bent', 'Kommop bro je bent wwkkur'], 'Read 12:48')),
+    CAP('17 December. 11:55.', TXT('Mels', ['Joor', 'Leven we nog', 'Ik heb groot nieuws voor als je er bent', 'Kommop bro je bent wwkkur'], 'Read 12:48')),
     AL('shout', 'BIG NEWS??'),
-    CAP('', TXT('Senale', ['Nee niks', 'Hadden elkaar gewoon lang niet gesproken'], 'Read 12:49')),
+    CAP('', TXT('Mels', ['Nee niks', 'Hadden elkaar gewoon lang niet gesproken'], 'Read 12:49')),
     AL('shout', 'IT HAS BEEN TWO DAYS'),
-    CAP('18 December.', TXT('Senale', ['Als je nu naar hoci komt kan ik je nog ff zien', 'Maar daar heb je niet veel aan denk ik', 'rizzmas'], 'Read 15:54')),
+    CAP('18 December.', TXT('Mels', ['Als je nu naar hoci komt kan ik je nog ff zien', 'Maar daar heb je niet veel aan denk ik', 'rizzmas'], 'Read 15:54')),
     AL('proud', 'rizzmas. a party. a DJ. appel. we are going and we are being NORMAL'),
     CAP('The party is in a basement. The basement goes a lot further down than a basement should. The DJ is a big guy. At midnight he will be a big worm. That is how Rizzmas works.', { bg: 'club', v: 'night' }),
   ],
@@ -105,7 +105,7 @@ const SCRIPT2 = {
     AL('proud', 'smile. i am taking a picture. for the memories'),
     CAP('Flash. This is where it goes wrong.'),
     SE('angry', '***** op'),
-    CAP('(The court has asked us not to repeat what Senale said. He said it twice.)'),
+    CAP('(The court has asked us not to repeat what Mels said. He said it twice.)'),
     SE('angry', 'je kan het ook niet sturen'),
     SE('angry', 'dat witte haar is wel erg'),
     AL('normal', 'erm?'),
@@ -121,7 +121,7 @@ const SCRIPT2 = {
     SE('normal', 'nee is te laat om terug te krabbelen nu'),
     SE('normal', 'ik spreek je in 2026 weer'),
     CAP('Then the doorbell rings. It is his parents. They brought a lawyer. The lawyer brought a folder. The folder says CURATELE.', { bg: 'court', v: 'day' }),
-    OU('Senale has been "not knowing" things for nineteen years. We have asked the kantonrechter to step in.'),
+    OU('Mels has been "not knowing" things for nineteen years. We have asked the kantonrechter to step in.'),
     SE('sad', 'Ik wist het niet'),
     OU('We know you did not know. That is the whole case.'),
     AL('whisper', 'appel. this is a courtroom. you are exhibit A. act natural'),
@@ -129,25 +129,25 @@ const SCRIPT2 = {
   ],
   ending: [
     CAP('The kantonrechter falls. His gavel rolls across the floor. It still finds somebody guilty of something.', { bg: 'court', v: 'day' }),
-    CAP('But a ruling is a ruling.', { tv: { head: 'UITSPRAAK', text: 'Senale is placed under curatele. His parents are his curators.', tick: 'the court thanks exhibit A, an apple   ·   the court thanks exhibit A, an apple   ·   the court thanks exhibit A, an apple' } }),
-    OU('Senale. Phone. Charger. Coat. We are going to opa and oma.'),
+    CAP('But a ruling is a ruling.', { tv: { head: 'UITSPRAAK', text: 'Mels is placed under curatele. His parents are his curators.', tick: 'the court thanks exhibit A, an apple   ·   the court thanks exhibit A, an apple   ·   the court thanks exhibit A, an apple' } }),
+    OU('Mels. Phone. Charger. Coat. We are going to opa and oma.'),
     SE('sad', 'Mijn fout'),
     OU('Your phone is at 8 percent. Give it here. We will charge it for you. Forever.'),
     AL('cry', 'can i at least see him sometimes'),
     OU('In 81 weeks. We have put it in the calendar.'),
     CAP('81 WEEKS LATER.', { bg: 'room', v: 'day' }),
-    CAP('2026.', TXT('Senale', ['Heftig', 'Wollah meh'], 'Read 11:00')),
+    CAP('2026.', TXT('Mels', ['Heftig', 'Wollah meh'], 'Read 11:00')),
     AL('normal', 'hey. can you send me back the kaart geld for the film. from 2024'),
-    CAP('', TXT('Senale', ['ik ga je geen geld sturen'], 'Read 13:57')),
+    CAP('', TXT('Mels', ['ik ga je geen geld sturen'], 'Read 13:57')),
     CAP('He cannot. His parents hold his money. That is what curatele means. The kantonrechter explained it for forty minutes.'),
     AL('normal', 'is goed'),
-    CAP('', TXT('Senale', ['goe', 'jou', 'ik ook', 'roy!!!', 'zo ben ik'], 'Read 00:13')),
+    CAP('', TXT('Mels', ['goe', 'jou', 'ik ook', 'roy!!!', 'zo ben ik'], 'Read 00:13')),
     ME('(four floors of worms. one crooked photo. it was worth it. probably)'),
     CAP('THE END. SEE YOU IN 81 WEEKS.'),
   ],
 };
 
-/* the group chat while you play: A: is Alesen, S: is Senale */
+/* the group chat while you play: A: is Jorik, S: is Mels */
 const CHAT2 = {
   fightFirst: ['S:Ik ben er nu. Dus 3uh', 'A:i am IN the supermarket. where are u. WHERE ARE U', 'S:rizzmas', 'A:objection. OBJECTION. that worm is leading the witness'],
   fight: [
@@ -186,7 +186,7 @@ const NEWBIE9 = { stok: 1, stroopw: 1, bril: 1, handel: 1, pantser: 1, driekop: 
 
 const STORIES9 = {
   lockdown: { id: 'lockdown', title: 'STOP DE LOCKDOWN', tag: 'Jensbabba has a plan.', blurb: 'Day 47 of the lockdown. Jensbabba read one post too many and now the worms are behind everything. Three chapters.', levels: STORY_LEVELS, script: SCRIPT, boss: STORY_BOSS, chat: CHAT_LINES, death: DEATH_LINES, deathWho: 'Jensbabba', winStat: 'storyWins', winText: ['The end?', 'Jensbabba is now staring at the bananas.', 'Play the story again'], speaker: 'jens' },
-  curatele: { id: 'curatele', title: 'ONDER CURATELE', tag: 'Alesen and Senale argue about nothing.', blurb: 'One week of messages. One film, three buses, one crooked photo, one court case. Senale ends up in the hands of his parents. Four chapters.', levels: STORY2_LEVELS, script: SCRIPT2, boss: STORY2_BOSS, chat: CHAT2, death: DEATH2, deathWho: null, winStat: 'story2Wins', winText: ['See you in 81 weeks', 'Senale is under curatele. His parents hold the money. He still says roy.', 'Play the story again'], speaker: 'senale', needs: 'lockdown' },
+  curatele: { id: 'curatele', title: 'ONDER CURATELE', tag: 'Jorik and Mels argue about nothing.', blurb: 'One week of messages. One film, three buses, one crooked photo, one court case. Mels ends up in the hands of his parents. Four chapters.', levels: STORY2_LEVELS, script: SCRIPT2, boss: STORY2_BOSS, chat: CHAT2, death: DEATH2, deathWho: null, winStat: 'story2Wins', winText: ['See you in 81 weeks', 'Mels is under curatele. His parents hold the money. He still says roy.', 'Play the story again'], speaker: 'senale', needs: 'lockdown' },
 };
 const STORY_ORDER9 = ['lockdown', 'curatele'];
 function curStory() { return STORIES9[G.storyId] || STORIES9.lockdown; }
@@ -195,7 +195,7 @@ function storyOpen9(id) { const S = STORIES9[id]; return !S.needs || storyDone9(
 function storyDeath9() {
   const S = curStory(), line = pick(S.death);
   const m = /^([AS]):(.*)$/.exec(line);
-  if (m) return `${m[1] === 'A' ? 'Alesen' : 'Senale'}: "${m[2]}"`;
+  if (m) return `${m[1] === 'A' ? 'Jorik' : 'Mels'}: "${m[2]}"`;
   return `${S.deathWho || 'Jensbabba'}: "${line}"`;
 }
 const WHO9 = { jens: 'JENSBABBA', apple: 'YOU (THE APPLE)', alesen: 'ALESEN', senale: 'SENALE', ouders: "SENALE'S PARENTS" };

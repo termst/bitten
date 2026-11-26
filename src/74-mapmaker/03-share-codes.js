@@ -1,4 +1,4 @@
-/* 74.js section 03: share-codes. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 03: share-codes. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { EMPTY, ENT_PARAMS, ROOM_FIELDS, RULE_DEF, uid } = M74;

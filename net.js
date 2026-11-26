@@ -464,6 +464,8 @@
   const MKA = () => B.MK123;
   const okMap = (o) => !!(o && typeof o === 'object' && Array.isArray(o.floors) && o.floors.length && JSON.stringify(o).length < 240000);
   function gotMap(from, map) {
+    /* v14.10: saving or playing a shared map needs the Map Maker chunk; start loading it now */
+    safe(() => { const M = MKA(); if (M && M.ready && !M.ready()) M.ensure(); });
     S.inbox = (S.inbox || []).filter((x) => !x.saved || x.t > performance.now() - 6e5).slice(-7);
     S.inbox.push({ from, map, name: String(map.name || 'Untitled map').slice(0, 40), t: performance.now(), saved: false, k: (S.inboxN = (S.inboxN || 0) + 1) });
     safe(() => UI.banner(from + ' ' + T('shared a level'), String(map.name || '')));
@@ -584,9 +586,29 @@
     d.sound = mine.sound;
     Save.data = d; Save.store = function () { return true; };
     if (msg.opts && B.OPTS7) Object.assign(B.OPTS7, msg.opts);
-    NET.keep = () => { Save.data = mine; Save.store = st0; if (opts && B.OPTS7) { for (const k of Object.keys(B.OPTS7)) delete B.OPTS7[k]; Object.assign(B.OPTS7, opts); } };
+    const base = JSON.parse(JSON.stringify(d));
+    NET.keep = () => {
+      Save.data = mine; Save.store = st0; if (opts && B.OPTS7) { for (const k of Object.keys(B.OPTS7)) delete B.OPTS7[k]; Object.assign(B.OPTS7, opts); }
+      safe(() => { keepProgress(mine, base, d); Save.store(); if (typeof Meta !== 'undefined') Meta.check(); });
+    };
+  }
+  /* v14.10: what the guest earned in the run (stats, powerups found, things seen, achievements, unlocks, bests) goes into the
+     guest's own save. The run played on a copy of the host's save, so only the change from the start of the run counts. */
+  function keepProgress(mine, base, run) {
+    const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+    mine.stats = mine.stats || {};
+    for (const k in run.stats || {}) { const dlt = num(run.stats[k]) - num(base.stats && base.stats[k]); if (dlt > 0) mine.stats[k] = num(mine.stats[k]) + dlt; }
+    for (const k of ['found', 'seen', 'ach', 'winChars']) {
+      const r = run[k] || {}, b0 = base[k] || {}; mine[k] = mine[k] || {};
+      for (const id in r) if (r[id] && !b0[id]) mine[k][id] = r[id];
+    }
+    for (const id in run.unlocks || {}) if (run.unlocks[id] === true && !(base.unlocks && base.unlocks[id])) { mine.unlocks = mine.unlocks || {}; mine.unlocks[id] = true; }
+    for (const k in run.best || {}) if (num(run.best[k]) > num(base.best && base.best[k])) { mine.best = mine.best || {}; mine.best[k] = Math.max(num(mine.best[k]), num(run.best[k])); }
   }
   function beginRun(msg) {
+    /* v14.10: a Map run needs the Map Maker chunk (the coop screen loads it when it opens; this is the fallback) */
+    const mk = B.MK123;
+    if (msg.mode === 'map' && mk && mk.ready && !mk.ready()) { mk.ensure().then(() => beginRun(msg)); return; }
     safe(() => Sfx.init());
     if (NET.live) endRun(false);
     if (S.role === 'guest') swapSave(msg);
@@ -1155,7 +1177,7 @@
     if (S.role === 'host') NET.events.push({ k: 'act', s: S.me, a });
     else if (S.link) S.link.send({ t: 'act', a });
   }
-  B.net14 = { paintLobby: paint, S, NET, host: hostOpen, join: guestJoin, leave, start: hostStart, openLobby, stateHash, NetSource, PROTO, act, shareMap, gotMap, saveShared };
+  B.net14 = { keepProgress, paintLobby: paint, S, NET, host: hostOpen, join: guestJoin, leave, start: hostStart, openLobby, stateHash, NetSource, PROTO, act, shareMap, gotMap, saveShared };
 
   /* ?join=CODE opens the lobby and joins */
   safe(() => {

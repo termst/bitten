@@ -1,4 +1,4 @@
-/* 74.js section 14: examples. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 14: examples. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { EMPTY, MK, safe } = M74;

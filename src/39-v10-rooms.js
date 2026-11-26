@@ -300,7 +300,7 @@ function jaudeBite10(P, lost) {
     if (room.mod === 'sparks') room.sparkT10 = 2.2;
     if (room.mod === 'rails') room.railT10 = rnd(2.5, 4);
     rageCheck10(room);
-    const pScare = P.flags.clownbait ? 0.12 : 0.015;
+    const pScare = teamFlag14('clownbait') ? 0.12 : 0.015;
     if (Math.random() < pScare) room.scareAt10 = G.t + rnd(3, 12);
   };
 }
@@ -320,7 +320,7 @@ function addRails10(room) {
 function rageCheck10(room) {
   const P = G.player, run = G.run, f = G.levelIdx || 0;
   if (room.rageDone10 || G.mode === 'story') return;
-  const k = P.flags.rage ? 3 : 1;
+  const k = teamFlag14('rage') ? 3 : 1;
   let kind = null, why = 'GRRR';
   if ((run.rageKills || 0) >= 4 && !run.reus10 && Math.random() < 0.3) { kind = 'rage3'; run.reus10 = true; why = 'DE REUS'; }
   else if (P.curses.length >= 3 && Math.random() < 0.1 * k) { kind = 'rage3'; why = 'DE REUS'; }

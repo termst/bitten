@@ -220,12 +220,12 @@ const KINDS = {
     body: '#1f8a3a', body2: '#197a31', outline: '#06200d', hi: 'rgba(220,255,200,0.25)', blood: '#2a2a1a', eye: '#ffe14a', band: '#ffd60a',
   },
   creeper: {
-    name: 'Creeper', hp: 4, headR: 10, r0: 9, r1: 8, spacing: 9, maxLen: 3, minLen: 2, speed: 74, turn: 4, bite: 1, blocky: true,
+    name: 'Knaller', hp: 4, headR: 10, r0: 9, r1: 8, spacing: 9, maxLen: 3, minLen: 2, speed: 74, turn: 4, bite: 1, blocky: true,
     palette: ['#5aa83a', '#4c9a30', '#6cbc48'], headCol: '#62b040',
     body: '#5aa83a', body2: '#4c9a30', outline: '#0e2208', hi: 'rgba(255,255,255,0.25)', blood: '#3c6a24', eye: '#000000',
   },
   ender: {
-    boss: true, name: 'The Ender Wyrm', hp: 140, headR: 18, r0: 16, r1: 13, spacing: 13, maxLen: 16, minLen: 6, bite: 2, blocky: true,
+    boss: true, name: 'The Rift Wyrm', hp: 140, headR: 18, r0: 16, r1: 13, spacing: 13, maxLen: 16, minLen: 6, bite: 2, blocky: true,
     palette: ['#1c1a22', '#26222f', '#1f1c27', '#2c2638'], headCol: '#16141b',
     body: '#1c1a22', body2: '#26222f', outline: '#050407', hi: 'rgba(255,255,255,0.15)', blood: '#7a2fa8', eye: '#d26bff',
   },
@@ -297,7 +297,7 @@ const BOSS_INFO = {
   ouro: { title: 'Ouroboros', sub: 'The snake that eats itself.' },
   pricewar: { title: 'The Price War', sub: 'Two supermarkets. One apple. Everything must go.' },
   coalition: { title: 'The Coalition', sub: 'Four parties, one worm. For now.' },
-  ender: { title: 'The Ender Wyrm', sub: 'It builds, it teleports, and it brought creepers.' },
+  ender: { title: 'The Rift Wyrm', sub: 'It builds, it teleports, and it brought knallers.' },
 };
 /* The four fictional parties The Coalition falls apart into */
 const PARTIES = [

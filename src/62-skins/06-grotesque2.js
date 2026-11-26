@@ -6,7 +6,7 @@
   /* ------------------------------------------------------------------ v13.2: Grotesque II
      A second grotesque look for every apple, each one stolen from something in the game:
      a lamprey, the kapsalon, Ouroboros, the supermarket, De Tellie, the Block Worm, the lobby,
-     the BP pump and the slot machine. */
+     the PIT pump and the slot machine. */
 
   /* The Apple: Prikmond. The face is a lamprey mouth */
   function drawPrik132(c, R, st) {

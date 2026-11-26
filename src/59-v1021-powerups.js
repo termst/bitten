@@ -1,6 +1,6 @@
 /* src/59-v1021-powerups.js: v10.21: powerups, legendaries, locked powerups, curses, downgrades, pumps. From v10.21. Lines 26054 to 26948 of the v13.7 script. */
 /* ===== v10.21: 15 powerups, 15 legendaries, 15 locked powerups with 15 achievements, 15 curses, 15 downgrades,
-   new court rulings (eiser and gedaagde), 15 new BP pumps. Bonuses from this patch stack additively and are capped. ===== */
+   new court rulings (eiser and gedaagde), 15 new PIT pumps. Bonuses from this patch stack additively and are capped. ===== */
 (function () {
   'use strict';
   const safe = (fn, fb) => { try { return fn(); } catch (e) { errNote14(e, 'safe59'); console.error(e); return fb; } };
@@ -41,7 +41,7 @@
     tulpenmanie: { rare: true, name: 'Tulpenmanie', desc: 'Every kill in a room: 4% more damage, up to 32%. Resets when you leave.', apply(p) { p.tulp21 = true; } },
     // locked: an achievement opens them
     tondeuse: { lock: 'barber21', name: 'Tondeuse', desc: '1 in 6 hits deals 2 bonus damage plus 25% of your damage.', apply(p) { p.tond21 = true; } },
-    spaarpas: { lock: 'tank21', name: 'BP Spaarpas', desc: 'Pumps 30% cheaper. Every tune you carry: 4% more damage, up to 24%.', apply(p) { p.spaar21 = true; } },
+    spaarpas: { lock: 'tank21', name: 'PIT Spaarpas', desc: 'Pumps 30% cheaper. Every tune you carry: 4% more damage, up to 24%.', apply(p) { p.spaar21 = true; } },
     advocaat: { lock: 'judge21', name: 'Advocaat', desc: 'Court rulings always go your way. Once per floor, a curse bounces off.', apply(p) { p.adv21 = true; p.advUsed21 = false; } },
     marktplaats: { lock: 'sell21', name: 'Marktplaats', desc: 'The till pays 60% more for powerups, plus 2 coins.', apply(p) { p.markt21 = true; } },
     stempas: { lock: 'vote21', name: 'Stempas', desc: '6% more damage. Vote rooms heal an apple and pay 3 coins.', apply(p) { p.stem21 = true; } },
@@ -102,9 +102,9 @@
   };
   for (const id in NEW_DOWNS) { DOWNS[id] = NEW_DOWNS[id]; DOWN_IDS.push(id); }
 
-  /* ------------------------------------------------------------------ BP pumps */
+  /* ------------------------------------------------------------------ PIT pumps */
   const NEW_PUMPS = [
-    { id: 'ultimate', name: 'BP Ultimate', desc: 'Seeds hit 25% harder. You shoot 8% slower. Ultimate price.', cost: 32, mod: { dmg: 1.25, rate: 1.08 } },
+    { id: 'ultimate', name: 'PIT Ultimate', desc: 'Seeds hit 25% harder. You shoot 8% slower. Ultimate price.', cost: 32, mod: { dmg: 1.25, rate: 1.08 } },
     { id: 'hvo', name: 'HVO100', desc: 'You walk 10% faster and seeds fly 10% farther. They hit 8% softer. Green-ish.', cost: 24, mod: { speed: 1.1, range: 1.1, dmg: 0.92 } },
     { id: 'waterstof', name: 'Waterstof', desc: 'You shoot 15% faster. Your light is 15% weaker. Clean, dim.', cost: 28, mod: { rate: 0.85, light: 0.85 } },
     { id: 'kerosine', name: 'Kerosine', desc: 'Seeds fly 35% faster and 25% farther. They are 12% smaller. Jet fuel.', cost: 26, mod: { shot: 1.35, range: 1.25, size: 0.88 } },
@@ -114,7 +114,7 @@
     { id: 'banden', name: 'Bandenspanning', desc: 'You walk 12% faster and bites push you 40% less. Seeds hit 5% softer. Pumped tires.', cost: 22, mod: { speed: 1.12, kb: 0.6, dmg: 0.95 } },
     { id: 'olie', name: 'Olie Verversen', desc: 'Washes off your newest curse. You walk 5% slower. Fresh oil, stiff start.', cost: 34, cleanseCurse: true, mod: { speed: 0.95 } },
     { id: 'wasstraat', name: 'Wasstraat', desc: 'Heals you all the way. You shoot 6% slower. Wash and wax.', cost: 24, healFull: true, mod: { rate: 1.06 } },
-    { id: 'bpkoffie', name: 'BP Koffie', desc: 'You shoot 10% faster and walk 5% faster. Your light dims 8%. Strong, bitter.', cost: 20, mod: { rate: 0.9, speed: 1.05, light: 0.92 } },
+    { id: 'bpkoffie', name: 'PIT Koffie', desc: 'You shoot 10% faster and walk 5% faster. Your light dims 8%. Strong, bitter.', cost: 20, mod: { rate: 0.9, speed: 1.05, light: 0.92 } },
     { id: 'kroketbp', name: 'Worstenbroodje', desc: '1 more apple. You walk 7% slower. From the warmer.', cost: 26, maxHp: 2, mod: { speed: 0.93 } },
     { id: 'autogas', name: 'CNG', desc: 'Seeds hit 15% harder and are 15% bigger. They fly 15% less far. Plus, minus.', cost: 24, mod: { dmg: 1.15, size: 1.15, range: 0.85 } },
     { id: 'premium', name: 'Premium Diesel', desc: '0.5 apple more health and 8% harder seeds. You shoot 6% slower. Premium, slightly.', cost: 30, maxHp: 1, mod: { dmg: 1.08, rate: 1.06 } },
@@ -127,7 +127,7 @@
   STAT_DEFS.splice(STAT_DEFS.length - 2, 0, ['rulings21', 'Rulings in your favour']);
   const NEW_ACHS = [
     { id: 'barber21', reward: 'tondeuse', name: 'Vaste Klant', desc: 'Get 15 haircuts.', stat: 'haircuts', goal: 15 },
-    { id: 'tank21', reward: 'spaarpas', name: 'Volgetankt', desc: 'Tank 15 times at a BP pump.', stat: 'tunes', goal: 15 },
+    { id: 'tank21', reward: 'spaarpas', name: 'Volgetankt', desc: 'Tank 15 times at a PIT pump.', stat: 'tunes', goal: 15 },
     { id: 'judge21', reward: 'advocaat', name: 'Bekende Van Justitie', desc: 'Hear 10 verdicts in the Rechtbank.', stat: 'verdicts', goal: 10 },
     { id: 'sell21', reward: 'marktplaats', name: 'Opkoper', desc: 'Sell 25 powerups at the till.', stat: 'sold', goal: 25 },
     { id: 'vote21', reward: 'stempas', name: 'Stemvee', desc: 'Vote in 20 rooms.', stat: 'votes', goal: 20 },
@@ -161,7 +161,7 @@
 
   /* ------------------------------------------------------------------ numbers: additive, capped */
   const inFight = () => fighting10(G.room);
-  function dark21(room) { return !!room && (room.mod === 'dark' || room.theme === 'club' || room.theme === 'hell' || (G.player && G.player.flags && G.player.flags.nacht)); }
+  function dark21(room) { return !!room && (room.mod === 'dark' || room.theme === 'club' || room.theme === 'hell' || (G.player && G.player.flags && teamFlag14('nacht'))); }
   function dmgAdd21(P) {
     let a = 0;
     if (P.tegel21) a += 0.06;
@@ -599,7 +599,7 @@
       case 'cloud': c.fillStyle = '#f2f4ff'; for (const [x, y, r] of [[-0.35, 0.1, 0.35], [0.05, -0.1, 0.45], [0.4, 0.1, 0.32]]) circle(c, x * R, y * R, r * R); txt10(c, '7', 0, R * 0.05, Math.round(R * 0.6), '#c8a050'); break;
       case 'tulip': c.strokeStyle = '#3d6a1c'; c.lineWidth = R * 0.1; c.beginPath(); c.moveTo(0, R * 0.9); c.lineTo(0, 0); c.stroke(); fs(() => { c.beginPath(); c.moveTo(-R * 0.4, -R * 0.6); c.lineTo(-R * 0.2, -R * 0.3); c.lineTo(0, -R * 0.65); c.lineTo(R * 0.2, -R * 0.3); c.lineTo(R * 0.4, -R * 0.6); c.quadraticCurveTo(R * 0.45, R * 0.1, 0, R * 0.1); c.quadraticCurveTo(-R * 0.45, R * 0.1, -R * 0.4, -R * 0.6); c.closePath(); }); break;
       case 'clipper': fs(() => rrect(c, -R * 0.3, -R * 0.6, R * 0.6, R * 1.4, R * 0.2)); c.fillStyle = '#d8dde6'; c.fillRect(-R * 0.35, -R * 0.8, R * 0.7, R * 0.2); break;
-      case 'card': fs(() => rrect(c, -R * 0.8, -R * 0.5, R * 1.6, R, R * 0.12)); c.fillStyle = '#ffd23a'; c.fillRect(-R * 0.8, -R * 0.25, R * 1.6, R * 0.18); txt10(c, 'BP', R * 0.35, R * 0.22, Math.round(R * 0.36), '#ffffff'); break;
+      case 'card': fs(() => rrect(c, -R * 0.8, -R * 0.5, R * 1.6, R, R * 0.12)); c.fillStyle = '#ffd23a'; c.fillRect(-R * 0.8, -R * 0.25, R * 1.6, R * 0.18); txt10(c, 'PIT', R * 0.35, R * 0.22, Math.round(R * 0.36), '#ffffff'); break;
       case 'gavel': c.save(); c.rotate(-0.6); fs(() => rrect(c, -R * 0.5, -R * 0.55, R, R * 0.4, R * 0.08)); c.fillStyle = '#5a3a1a'; c.fillRect(-R * 0.07, -R * 0.15, R * 0.14, R * 1.0); c.restore(); break;
       case 'tag': fs(() => { c.beginPath(); c.moveTo(-R * 0.75, -R * 0.35); c.lineTo(R * 0.4, -R * 0.35); c.lineTo(R * 0.8, 0); c.lineTo(R * 0.4, R * 0.35); c.lineTo(-R * 0.75, R * 0.35); c.closePath(); }); txt10(c, '€', -R * 0.15, 0, Math.round(R * 0.5), O); break;
       case 'ballot': fs(() => c.rect(-R * 0.6, -R * 0.2, R * 1.2, R * 0.9)); c.fillStyle = '#f2ecd8'; c.save(); c.rotate(0.1); c.fillRect(-R * 0.3, -R * 0.8, R * 0.6, R * 0.7); c.restore(); txt10(c, 'X', 0, -R * 0.45, Math.round(R * 0.4), '#e8323c'); break;
@@ -655,7 +655,7 @@
   safe(() => {
     const rb = [...document.querySelectorAll('#tab-rooms li')].find((li) => /Rechtbank/.test(li.textContent));
     if (rb) { const sp = rb.querySelector('span'); if (sp) sp.textContent = `Step onto a plate. Eiser: ${COURT21.eiser.length} rulings, from a legendary to contempt of court. Gedaagde: ${COURT21.gedaagde.length} rulings, mostly small. The other plate closes.`; }
-    const bp = [...document.querySelectorAll('#tab-rooms li')].find((li) => /BP Tankstation/.test(li.textContent));
+    const bp = [...document.querySelectorAll('#tab-rooms li')].find((li) => /PIT Tankstation/.test(li.textContent));
     if (bp) { const sp = bp.querySelector('span'); if (sp) sp.textContent = `Three pumps from ${PUMPS.length} kinds of fuel. Each pushes one number up and another down, for 20 to 40 coins. Some wash or heal. The till buys your powerups back.`; }
   });
   safe(() => UI.buildItemCards());

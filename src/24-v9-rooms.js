@@ -1,6 +1,6 @@
 /* src/24-v9-rooms.js: v9 rooms: tankstation, kapsalon, courtroom, second story floors. From v9. Lines 13950 to 14257 of the v13.7 script. */
 /* =====================================================================
-   Version 9 rooms: the BP Tankstation, the kapsalon, the courtroom,
+   Version 9 rooms: the PIT Tankstation, the kapsalon, the courtroom,
    the club and the hellclub, and the floors of the second story
    ===================================================================== */
 const INSET9 = { booth: 2, speaker: 6, pump: 9, till: 4, chair: 10, judge: 2, bench: 5, crate: 4, bread: 5, checkout: 4, bottles: 6, freezer: 3 };
@@ -151,7 +151,7 @@ function stock9(map) {
 function enterRoom9(room, entry) {
   const P = G.player;
   enter9(P);
-  if (room.type === 'tank' && !room.seen) { room.seen = true; UI.card('', 'BP Tankstation', 'Tank at a pump to tune your apple. Sell powerups at the till.', '', 2.8); Sfx.dingdong(); }
+  if (room.type === 'tank' && !room.seen) { room.seen = true; UI.card('', 'PIT Tankstation', 'Tank at a pump to tune your apple. Sell powerups at the till.', '', 2.8); Sfx.dingdong(); }
   else if (room.type === 'kapper' && !room.seen) { room.seen = true; UI.card('', 'De kapsalon', `Sit in the chair. ${cutCost9()} coins. Nobody will say anything.`, '', 2.6); Sfx.snip(); }
   else if (room.type === 'courtroom' && !room.seen) { room.seen = true; UI.card('Rechtbank', 'Pick a side', 'Eiser: a big win or a big loss. Gedaagde: plays it safe.', 'boss', 3); Sfx.gavel(); }
   if (room.type === 'chaosboss' && !room.cleared && !room.fought) { room.fought = true; chaosBossFight9(room, entry); }
@@ -187,7 +187,7 @@ function darkTarget9(room, L) {
   if (room.type === 'courtroom') return 0.36;
   const P = G.player;
   let d = null;
-  if (P && P.flags && P.flags.nacht) d = Math.min(0.95, (room.cleared ? L.darkClear : room.mod === 'dark' ? Math.min(0.94, L.dark + 0.1) : L.dark) + 0.1);
+  if (P && P.flags && teamFlag14('nacht')) d = Math.min(0.95, (room.cleared ? L.darkClear : room.mod === 'dark' ? Math.min(0.94, L.dark + 0.1) : L.dark) + 0.1);
   if (G.boss && G.boss.kind === 'tellie' && G.boss.alive && G.boss.hp < G.boss.maxHp * 0.25) d = Math.min(0.95, (d == null ? L.dark : d) + 0.12);
   return d;
 }

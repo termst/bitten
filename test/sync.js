@@ -19,6 +19,8 @@ const path = require('path');
   await page.route('**/*', (r) => (r.request().url().startsWith('file://') ? r.continue() : r.abort()));
   await page.addInitScript(fakeClockInit);
   await page.goto('file://' + path.resolve(ROOT, 'index.html'));
+  await page.waitForFunction(() => window.__bitten && window.__bitten.Game);
+  await page.evaluate(() => window.__bitten.CHUNKS14 && window.__bitten.CHUNKS14.loadAll());   // v14.10: the Map Maker is a lazy chunk
   await page.evaluate(() => {
     const B = window.__bitten;
     window.__tick14 = async (ms) => { for (let t = 0; t < ms; t += 100) { await window.__advance(Math.min(100, ms - t)); if (B.G.state === 'contract' && B.CT24) B.CT24.decline(); } };
@@ -43,6 +45,8 @@ const path = require('path');
     return { before, after };
   });
   await page.reload();
+  await page.waitForFunction(() => window.__bitten && window.__bitten.Game);
+  await page.evaluate(() => window.__bitten.CHUNKS14 && window.__bitten.CHUNKS14.loadAll());
   await page.evaluate(() => window.__advance(300));
   await page.evaluate(() => {
     const B = window.__bitten;

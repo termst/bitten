@@ -1,4 +1,4 @@
-/* 74.js section 07: pieces-at-work. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 07: pieces-at-work. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { ART, BUMP, CH_COLS, DIRS, FB_SPD, FONT, GH, GW, MK, RTM, bossSprite, buildFloor, fbBall, gateOpen, label, mustFight, openExit, pullLever, safe, snakeSprite } = M74;

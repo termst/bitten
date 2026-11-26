@@ -1,4 +1,4 @@
-/* 74.js section 11: words. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 11: words. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, ART, CH_COLS, CH_NAMES, FLAT, FONT, RTM, TX_COLS, applyGates, el, esc, inCell, inMap, label, lineC, safe, wrapText } = M74;

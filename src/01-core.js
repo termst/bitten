@@ -325,6 +325,13 @@ function livePlayers14() {
    elsewhere re-arms it every tick (single player: the plain field, as before) */
 function armed14(o) { if (!MP14.on || !G.player) return o.armed; const m = o.arm14; return m && m.has(G.player) ? m.get(G.player) : o.armed; }
 function setArmed14(o, v) { if (!MP14.on || !G.player) { o.armed = v; return; } (o.arm14 || (o.arm14 = new Map())).set(G.player, v); }
+/* B8 (v14.10): a room curse (darkness, extra snakes, a gold worm) counts for the whole team while one apple that carries it
+   is alive. Single player: the apple's own flag, as before. */
+function teamFlag14(f) {
+  if (!MP14.on) return !!(G.player && G.player.flags && G.player.flags[f]);
+  for (const P of livePlayers14()) if (P.flags && P.flags[f]) return true;
+  return false;
+}
 function mpCount14() { return MP14.on && G.players ? G.players.length : 1; }
 /* v14.2 coop styles. 'split' (Coop): every apple has its own coins, contracts, pumps, chair and gym set.
    'plus' (Coop Plus): one purse, every powerup goes to every apple, and loot is dealt as for one apple. */

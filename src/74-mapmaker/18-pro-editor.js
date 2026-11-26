@@ -1,4 +1,4 @@
-/* 74.js section 18: pro-editor. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 18: pro-editor. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, ART, CH_COLS, CH_NAMES, EV_A, EV_DO, EV_MAX, EV_N, EV_WHEN, F_, GH, GW, IC, Maker, PRO, RDARK, RSH, RTB, R_, SHAPES, ST_IN, areaCopy, areaDelete, areaFill, areaMove, areaNorm, areaTransform, btn, canvasIcon, changed, closeDlg, colName, cycleSize, deleteStamp, dlg, el, esc, evDefaults, evOf, field, flipClip, grabArea, label, mirrorCells, myStamps, newEv, paintClip, pickSnake, pushUndo, rotClip, row, safe, saveStamp, seg, selectOf, shapeCells, snakeName, snakeSprite, stampAnchor, startStamp, tileAtlas, toast } = M74;

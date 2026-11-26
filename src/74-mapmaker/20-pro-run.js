@@ -1,4 +1,4 @@
-/* 74.js section 20: pro-run. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 20: pro-run. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { CH_COLS, CH_NAMES, DARK_V, FONT, GEN, HELP, MK, PRO, ROOM_FIELDS, RTM, ST_IN, applyGates, areaMove, cleanRoom, fillEmptyRooms, flipClip, genFloor, grabArea, inMap, myStamps, newRoom, openExit, openGenerator, openTestSettings, placeClip, putStamp, rotClip, safe, saveStamp, startStamp } = M74;

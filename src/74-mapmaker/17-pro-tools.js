@@ -1,4 +1,4 @@
-/* 74.js section 17: pro-tools. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 17: pro-tools. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, CATS, CH_COLS, ENTS, ENT_PARAMS, FIXED, F_, GH, GRID_OK, GW, IC, LIMITS, MK, Maker, P_, ROOM_FIELDS, R_, SNAKES, SOLID_TILE, SVG, TOOLS, cellFrom, changed, clampN, cleanEnt, entAt, entDefaults, flipEnt, lineCells, mouthAt, pickOpt, pushUndo, safe, strN, syncUndo, tileAtlas, toast } = M74;

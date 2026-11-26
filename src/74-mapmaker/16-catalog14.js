@@ -1,4 +1,4 @@
-/* 74.js section 16: catalog14. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 16: catalog14. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, BOSSES, FIXED, F_, HELP, IC, MINIS, MK, MODS, Maker, Pop, ROOM_FIELDS, RT, RTM, RTYPES, R_, S9, SETS, SNAKES, SPAWN_CH, addRoom, btn, canvasIcon, changed, drawEditor, el, esc, field, goFloor, itemBtn, layoutCanvas, paintBrushIcon, pickMany, playMap, popSkip, previewRoom, pushUndo, safe, seg, setType, showHub, tileAtlas, toast } = M74;

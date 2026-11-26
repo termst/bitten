@@ -1,4 +1,4 @@
-/* 74.js section 10: editor-canvas. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 10: editor-canvas. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, ART, BOSSES, DYN_DRAW, EMPTY, ENTS, ENT_PARAMS, FH, FIXED, FONT, FW, F_, GH, GN, GW, IC, LIMITS, MOUTH, Maker, RT, RTM, R_, SIDES, SNAKES, SOLID_TILE, SVG, TILE, addRoom, bossName, bossSprite, btn, canvasIcon, changed, cleanEnt, cloneMap, cycleEdge, doRedo, doUndo, doorsOf, edgeOf, el, encodeMap, entAt, esc, flipEnt, goFloor, label, neighbor, pasteRoom, pieceArt, pushUndo, roomAt, rowsOf, safe, saveNow, seg, setCh, setDef, setPane, showHub, snakeName, snakeSprite, tileAtlas, toast, typeTemplate, withScene } = M74;

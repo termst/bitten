@@ -1,4 +1,4 @@
-/* 74.js section 19: pro-generator. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. */
+/* 74.js section 19: pro-generator. Split by tools/split-iife.mjs (v14.10); shares the old IIFE scope through M74. @chunk maker */
 (function (M74) {
   'use strict';
   const { $, CH_NAMES, EMPTY, ENTS, FH, FIXED, FW, F_, GH, GW, IC, LIMITS, MOUTH, Maker, OPPS, PRO, RT, SIDES, SNAKES, SOLID_TILE, TSTORE, btn, changed, cleanEnt, cleanRoom, closeDlg, colName, dlg, doorsOf, el, entAt, esc, lsSet, neighbor, newRoom, paintFloorThumb, play, pushUndo, row, rowsOf, safe, seg, setName, setPane, syncEdges, toast, typeTemplate } = M74;
