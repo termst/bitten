@@ -1,0 +1,42 @@
+# v14.10: the regression tests on every pull request (and on pushes to main).
+# build --check also fails when bitten.js in the commit is not the build of src/ (someone edited src/ and forgot to build).
+name: tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright (tests only, the game has no npm dependencies)
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: build --check
+        run: |
+          node build.mjs --check
+          git diff --exit-code -- bitten.js chunks sw.js || (echo "::error::bitten.js, chunks/ or sw.js differ from a fresh build of src/. Run node build.mjs and commit." && exit 1)
+      - name: sync.js
+        run: node test/sync.js
+      - name: catalog.js
+        run: node test/catalog.js
+      - name: mapmaker2.js
+        run: node test/mapmaker2.js
+      - name: mkfields.js
+        run: node test/mkfields.js
+      - name: bot.js --runs 3 against test/ref.json
+        run: node test/bot.js --runs 3 --chars apple,lucif,lucky --a none --par 3 --ref test/ref.json
+      - name: phase0.js
+        run: node test/phase0.js
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-out
+          path: test/out/
+          if-no-files-found: ignore

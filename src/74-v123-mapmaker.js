@@ -240,7 +240,15 @@
   const FW = 9, FH = 7;
 
   const uid = () => 'm' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
-  function newRoom(x, y, t) { return { x, y, t: t || 'fight', g: EMPTY, e: [], m: '', b: '', n: 25, st: '', mim: 0, lk: 0, ta: 1, d: {}, ie: '', ic: '' }; }
+  /* v14.10 ROOM_FIELDS: a room field added after v12.3 is declared once here (pushed by the section that owns it).
+     newRoom, cleanRoom and compact all read this table, so a field can not be forgotten in one of them.
+     { k, init() -> default, clean(R) -> value from untrusted R, out(v) -> value for the share code or undefined to leave it out } */
+  const ROOM_FIELDS = [];
+  function newRoom(x, y, t) {
+    const o = { x, y, t: t || 'fight', g: EMPTY, e: [], m: '', b: '', n: 25, st: '', mim: 0, lk: 0, ta: 1, d: {}, ie: '', ic: '' };
+    for (const f of ROOM_FIELDS) o[f.k] = f.init();
+    return o;
+  }
   function newFloor(i, set) {
     const s = set || 'cellar';
     const st = newRoom(4, 4, 'start');
@@ -312,6 +320,7 @@
     o.ie = strN(R.ie, LIMITS.rtext); o.ic = strN(R.ic, LIMITS.rtext);
     o.d = {};
     if (R.d && typeof R.d === 'object') for (const k of ['n', 's', 'w', 'e']) if (R.d[k] === 'w' || R.d[k] === 'c') o.d[k] = R.d[k];
+    for (const f of ROOM_FIELDS) o[f.k] = f.clean(R);
     return o;
   }
   function cleanFloor(F, i) {
@@ -426,6 +435,7 @@
         if (R.m) r.m = R.m; if (R.b) r.b = R.b; if (R.n !== 25) r.n = R.n; if (R.st) r.st = R.st; if (R.mim) r.mim = 1; if (R.lk) r.lk = 1; if (!R.ta) r.ta = 0; if (R.ie) r.ie = R.ie; if (R.ic) r.ic = R.ic;
         const d = {}; let dd = false; for (const k in R.d) { d[k] = R.d[k]; dd = true; }
         if (dd) r.d = d;
+        for (const fd of ROOM_FIELDS) { const v = fd.out(R[fd.k]); if (v !== undefined) r[fd.k] = v; }
         f.rooms.push(r);
       }
       return f;
@@ -4549,23 +4559,17 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     return { m, ids };
   }
   safe(() => {
-    const cr0 = cleanRoom;
-    cleanRoom = function (R) { const o = cr0.apply(this, arguments); if (o) { o.rw = cleanRw(R && R.rw); o.rg = R && R.rg === 0 ? 0 : 1; } return o; };
+    ROOM_FIELDS.push(
+      { k: 'rw', init: () => [], clean: (R) => cleanRw(R.rw), out: (v) => (v && v.length ? v.map((x) => Object.assign({}, x)) : undefined) },
+      { k: 'rg', init: () => 1, clean: (R) => (R.rg === 0 ? 0 : 1), out: (v) => (v === 0 ? 0 : undefined) });
     const cm0 = cleanMap;
     cleanMap = function (M) { const o = cm0.apply(this, arguments); o.pool = cleanPool(M && M.pool); return o; };
-    const nr0 = newRoom;
-    newRoom = function () { const o = nr0.apply(this, arguments); o.rw = []; o.rg = 1; return o; };
     const nm0 = newMap;
     newMap = function () { const o = nm0.apply(this, arguments); o.pool = { m: '', ids: [] }; return o; };
     const cp0 = compact;
     compact = function (M) {
       const o = cp0.apply(this, arguments);
       if (M.pool && M.pool.m && M.pool.ids.length) o.pool = { m: M.pool.m, ids: M.pool.ids.slice() };
-      M.floors.forEach((F, fi) => F.rooms.forEach((R, ri) => {
-        const r = o.floors[fi] && o.floors[fi].rooms[ri]; if (!r) return;
-        if (R.rw && R.rw.length) r.rw = R.rw.map((x) => Object.assign({}, x));
-        if (R.rg === 0) r.rg = 0;
-      }));
       return o;
     };
   });
@@ -4983,16 +4987,10 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
   const BRW_MAX = 3;
   const cleanIds = (list, max, extra) => (Array.isArray(list) ? list : []).filter((id, i, a) => typeof id === 'string' && (ITEMS[id] || (extra && (id === 'rand' || id === 'rare'))) && (extra || a.indexOf(id) === i)).slice(0, max);
   safe(() => {
-    const cr1 = cleanRoom;
-    cleanRoom = function (R) {
-      const o = cr1.apply(this, arguments);
-      if (o) { const p = R && R.pl; o.pl = { m: p && (p.m === 'only' || p.m === 'ban') ? p.m : '', ids: cleanIds(p && p.ids, 120) }; }
-      return o;
-    };
+    ROOM_FIELDS.push({ k: 'pl', init: () => ({ m: '', ids: [] }), clean: (R) => { const p = R.pl; return { m: p && (p.m === 'only' || p.m === 'ban') ? p.m : '', ids: cleanIds(p && p.ids, 120) }; },
+      out: (v) => (v && v.m && v.ids.length ? { m: v.m, ids: v.ids.slice() } : undefined) });
     const cf1 = cleanFloor;
     cleanFloor = function (F) { const o = cf1.apply(this, arguments); if (o) o.brw = cleanIds(F && F.brw, BRW_MAX, true); return o; };
-    const nr1 = newRoom;
-    newRoom = function () { const o = nr1.apply(this, arguments); o.pl = { m: '', ids: [] }; return o; };
     const nf1 = newFloor;
     newFloor = function () { const o = nf1.apply(this, arguments); o.brw = []; return o; };
     const cp1 = compact;
@@ -5001,7 +4999,6 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
       M.floors.forEach((F, fi) => {
         const f = o.floors[fi]; if (!f) return;
         if (F.brw && F.brw.length) f.brw = F.brw.slice();
-        F.rooms.forEach((R, ri) => { const r = f.rooms[ri]; if (r && R.pl && R.pl.m && R.pl.ids.length) r.pl = { m: R.pl.m, ids: R.pl.ids.slice() }; });
       });
       return o;
     };
@@ -5181,31 +5178,11 @@ select.mk-in option{background:#120d0b;color:var(--ink)}
     return o;
   }
   safe(() => {
-    const nr = newRoom;
-    newRoom = function () { const o = nr.apply(this, arguments); o.ev = []; o.dk = -1; o.sh = 1; o.tb = 0; return o; };
-    const cr = cleanRoom;
-    cleanRoom = function (R) {
-      const o = cr.apply(this, arguments);
-      if (o && R) {
-        o.ev = (Array.isArray(R.ev) ? R.ev : []).slice(0, EV_MAX).map(cleanEv).filter(Boolean);
-        o.dk = clampN(R.dk, -1, 3, -1) | 0;
-        o.sh = pickOpt(R.sh, RSH, 1);
-        o.tb = pickOpt(R.tb, RTB, 0);
-      }
-      return o;
-    };
-    const cp = compact;
-    compact = function (M) {
-      const o = cp.apply(this, arguments);
-      M.floors.forEach((F, fi) => F.rooms.forEach((R, ri) => {
-        const r = o.floors[fi] && o.floors[fi].rooms[ri]; if (!r) return;
-        if (R.ev && R.ev.length) r.ev = R.ev.map((e) => Object.assign({}, e));
-        if (R.dk != null && R.dk !== -1) r.dk = R.dk;
-        if (R.sh && R.sh !== 1) r.sh = R.sh;
-        if (R.tb) r.tb = R.tb;
-      }));
-      return o;
-    };
+    ROOM_FIELDS.push(
+      { k: 'ev', init: () => [], clean: (R) => (Array.isArray(R.ev) ? R.ev : []).slice(0, EV_MAX).map(cleanEv).filter(Boolean), out: (v) => (v && v.length ? v.map((e) => Object.assign({}, e)) : undefined) },
+      { k: 'dk', init: () => -1, clean: (R) => clampN(R.dk, -1, 3, -1) | 0, out: (v) => (v != null && v !== -1 ? v : undefined) },
+      { k: 'sh', init: () => 1, clean: (R) => pickOpt(R.sh, RSH, 1), out: (v) => (v && v !== 1 ? v : undefined) },
+      { k: 'tb', init: () => 0, clean: (R) => pickOpt(R.tb, RTB, 0), out: (v) => (v ? v : undefined) });
   });
   const evOf = (R) => (R.ev || (R.ev = []));
 
@@ -6283,5 +6260,8 @@ i.th.mild{background:rgba(90,216,90,.15);color:#8fe08f}i.th.fair{background:rgba
 @media (max-width:1599px) and (min-width:980px){.mke-tools .mk-btn .tl{display:none}.mke-tools .mk-btn{padding:0;width:40px}}
 @media (max-width:520px){table.mk-ov th:nth-child(5),table.mk-ov td:nth-child(5){display:none}}
 `;
+  // v14.10: the plain names follow the current wrapped functions (they used to be the v12.3 / v12.5 originals)
+  Object.assign(MK, { cleanMap: (M) => cleanMap(M), compact: (M) => compact(M), cleanRoom: (R) => cleanRoom(R), cleanFloor: (F, i) => cleanFloor(F, i),
+    newMap: () => newMap(), newRoom: (x, y, t) => newRoom(x, y, t), newFloor: (i, set) => newFloor(i, set), ROOM_FIELDS });
   Object.assign(MK, { PRO, applyAt, setTool, pickBrush, validate, genFloor, GEN, grabArea, placeClip, flipClip, rotClip, startStamp, putStamp, areaMove, saveStamp, myStamps, ST_IN, fillEmptyRooms, openGenerator, openTestSettings, cleanMapNow: (M) => cleanMap(M), compactNow: (M) => compact(M), cleanFloor: (F, i) => cleanFloor(F, i) });
 })();
