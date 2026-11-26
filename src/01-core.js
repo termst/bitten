@@ -54,7 +54,7 @@ const REDUCED = mq('(prefers-reduced-motion: reduce)');
 const COARSE = mq('(pointer: coarse)') || ('ontouchstart' in window);
 
 /* ---- per-viewer progress (best effort, never required) ---- */
-const GAME_VERSION = '14.0', SAVE_FORMAT = 3, SAVE_KEY = 'bitten.v1', OPTS_KEY = 'bitten-v107-opts';
+const GAME_VERSION = '14.10', SAVE_FORMAT = 3, SAVE_KEY = 'bitten.v1', OPTS_KEY = 'bitten-v107-opts';
 const Save = {
   defaults() {
     return {

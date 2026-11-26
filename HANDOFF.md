@@ -1,4 +1,4 @@
-# Bitten v14.0: handoff notes
+# Bitten v14.10: handoff notes
 
 Work follows the phase order of the v14 prompt. Item codes are used in commits and comments.
 
@@ -129,6 +129,9 @@ A rare floor (tier 4, `set: 'ruimte'`, boss `galaxy`). Every room is open space:
   `test/bot.js` handles personal panels (signs every other contract).
 
 ## Not done yet (next chat)
+
+(v14.10 closed most of this list, see the v14.10 section at the end. Still open: S2-S6, F1-F8; rare floors as lazy chunks.)
+
 
 * F9 recap UI on game over and win screens (data exists; icon painters: drawItemIcon* in 06/07/08/20/43).
 * B6 room wide effect team cap 1.5x; B8 room curses (darkness, fog) for everyone while carrier lives.
@@ -264,3 +267,66 @@ All in section 14 at the end of src/74 (it wraps internal functions, so it lives
   (localStorage `bitten.mkTest14`, applied only when `RTM.back === 'editor'`).
 * Test: `node test/mapmaker2.js [shotdir]` (tools via real mouse and keys, share code, waves, events, rules, 108 generated floors
   validated, a generated floor played). catalog, sync and netmap still pass.
+
+## v14.10: cleanup release (closes the open items) and core feel
+
+### Build, chunks, size
+* `npm install` once (dev dependencies only: esbuild, espree, eslint-scope), then `node build.mjs --check`. `--no-minify` for a
+  readable local build (do not commit it). The game itself still has no npm dependencies.
+* `bitten.js` is minified (esbuild) and must stay under 2 MB (`--check` fails above it). It was 3.26 MB; now about 1.95 MB.
+  First load in phase0: 3.41 MB to 2.2 MB.
+* Lazy chunks (`src/01-chunks.js`, `CHUNKS14`). A file with `@chunk <name>` in its first three lines goes into `chunks/<name>.js`.
+  At its old place bitten.js keeps `CHUNKS14.place(file, slots, hooks)`: build.mjs lists every global and `Global.prop` the file
+  assigns and every `Hooks.layer` name. place() puts a forwarder there; when the chunk loads, begin()/end() run the file against
+  the inner functions and hook the result into the forwarder, so every wrapper sits where it sat before (later files stay outside).
+  Nothing to list by hand. `CHUNKS14.load(name)`, `loadAll()`, `onLoad(name, fn)`; tests call `loadAll()` after load.
+* Chunk `maker`: the Map Maker (src/74-mapmaker/01..20). `00-prelude.js` stays in bitten.js: menu button, How to play tab, achievements,
+  texts lists, `MK123.ensure()/ready()`, `inMap()` false until loaded, and a `Game.startRun` gate for map runs. The coop screen and a
+  shared map in the lobby load it; net.js `beginRun` waits for it on a guest (fallback). bot.js runs never load it: identical 3/3.
+* Not done: rare floors (82, 86-knokpit, 88-90) as chunks. Their placement code (seeded, at run start) and registries (items, achievements,
+  catalog) live in those files, so they would have to load before every run anyway; the save also lists their powerups. Music engines:
+  BittenRemix BPM/BAR are read by sim code (snake AI, bosses), so the engine stays in core. Room left under 2 MB: about 55 KB.
+
+### Code structure
+* `src/74-mapmaker/` and `src/62-skins/`: the two big files split by section with `tools/split-iife.mjs`. Shared names travel in
+  `window.__bitten.M74` / `S62`: a name reassigned anywhere (`compact = function ...`) is always read as `M74.name`; others are
+  exported where declared and destructured at the top of later sections. build.mjs reads `src/NN-name/` folders in order.
+* Map Maker `ROOM_FIELDS` (02-map.js): one entry per room field `{ k, init, clean, out }` (rw, rg, pl, ev, dk, sh, tb). newRoom,
+  cleanRoom and compact read it. `MK.cleanMap` / `MK.compact` / `MK.cleanRoom` now follow the current wrapped functions.
+  Test: `test/mkfields.js` (every field through a share code; fails when a ROOM_FIELDS entry has no sample).
+
+### Tests and CI
+* `.github/workflows/tests.yml`: build --check (and the committed build must equal a fresh one), sync, catalog, mapmaker2, mkfields,
+  bot.js --runs 3 against `test/ref.json`, phase0. On every PR and push to main.
+* `test/ref.json`: seeded bot numbers per character (means and every seed). `node test/bot.js --runs 3 --chars apple,lucif,lucky --a none --ref test/ref.json`
+  fails on drift beyond the margins (kills 15%, damage 25%, time 15%, floor 0.34). After an intended gameplay change: `--write-ref`.
+* New: `test/coop1410.js`, `test/netrejoin.js`, `test/core1410.js`, `test/mkfields.js`.
+
+### Open items closed (src/93-v1410-coop.js unless noted)
+* F9 recap on game over and win in coop: per apple kills, damage dealt (top sources), damage taken, what bit last, powerup icons.
+* B6: room wide effects (`ROOMWIDE14`: air horn, the drop, bass waves, stomp, gust, motion, veto, gavel, sky rain) with k carriers of a
+  blast-tagged powerup hit at 1.5 / k each, so the team total is at most 1.5x one apple. Seeds and orbits are not capped.
+* B8: `teamFlag14(flag)` in 01-core.js. Darkness (nacht), gold worm (blight), extra grub (wormy), extra snake (loud), clown and rage
+  rolls count for the team while a carrier lives. Single player reads the apple's own flag, as before (bot identical).
+* M9 couch: the till and the contract panel show which apple chooses (owner chip). The shared screen still pauses (one screen).
+* Multiplayer tab in How to play; achievements Better Together (coop win), Back On Your Stem (10 revives), Long Distance (5 online floors).
+* Reconnect (net.js, PROTO bitten-net-14.10-1): the host keeps every bundle of the run (up to 30 minutes). A player whose apple is
+  away can join the same room again: the host sends the start message and the log, the guest replays it (deterministic) at up to
+  360 ticks a frame, an event `back` unfreezes the apple on every peer in the same tick. `test/netrejoin.js`: lockstep after the return.
+  No full state serializer (T13) was needed. Over 30 minutes of run the log is dropped and a return is refused.
+* Guest progress: `keepProgress(mine, base, run)` in net.js adds what changed in the run copy of the host save (stats, found, seen,
+  achievements, unlocks, bests) to the guest's own save when the run ends.
+* T15 renames (ids unchanged, saves unaffected): Creeper is the Knaller, the Ender Wyrm is the Rift Wyrm, the Minecraft portal is a
+  rift (roots and a turning vortex, 06-draw.js), BP Tankstation and pumps are PIT. T14: story 2's Alesen and Senale are Jorik and Mels
+  (ids `alesen`/`senale` unchanged). Old texts files: `T15_OLD` in 44-v10-sounds-achs.js maps the old names to the new ones.
+
+### Core feel (src/94-v1410-core.js, `B.CORE1410`)
+* Sim (lockstep safe): charged shot (0.6 s of fire, then a piercing 1.5x seed, 2.4 s cooldown), perfect dash (venom in the first 80 ms
+  of a dash: dash back, time at 45% for 0.2 s), knockback by weight on every seed hit (`kbW`: small 1.6x, bosses 0.08x), overheat for
+  builds at 0.16 s per shot or faster (full heat: 1 s without seeds).
+* Screen only: death replay (last 3 s, every second update recorded, drawn with renderRoom on game over), damage numbers (setting,
+  off), hit stop (2 to 4 frames on big kills and boss stage lines, off with reduced motion or shake off), interact rings, seed type row
+  (normal, pierce, split, bounce with the number of powerups that give it), heat and charge arcs.
+* Auto aim (76) skips snakes under 40% visible (fade or cloak). Touch auto fire (setting, off): keeps shooting along the last aim
+  while snakes are in the room; a quick tap on the aim side dashes.
+* The sim features change the seeded bot numbers: test/ref.json was rewritten after them.

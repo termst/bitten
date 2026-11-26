@@ -53,6 +53,8 @@
       return best;
     }
 
+    /* how much of a snake you can see: its fade and its cloak, as drawn (06-draw.js) */
+    const visOf = (sn) => Math.min(sn.fade == null ? 1 : sn.fade, sn.cloak == null ? 1 : sn.cloak);
     function pick() {
       const P = G.player, room = G.room;
       if (!P || !room) return null;
@@ -63,6 +65,7 @@
       let best = null;
       for (const sn of room.snakes) {
         if (!sn.canBeHit() || sn.burrowed || sn.shell || sn.fade < 0.25) continue;
+        if (visOf(sn) < 0.4) continue;                                   // v14.10: fading or cloaked (Pluto, Kameleon): not a target
         const pt = bestPoint(room, P, sn, ss, R, pierce);
         if (!pt) continue;
         let w = (KIND_W[sn.kind] || 1) * (sn.champ ? 1.25 : 1);
@@ -104,7 +107,7 @@
     };
 
     window.__bitten = window.__bitten || {};
-    Object.assign(window.__bitten, { autoaim133: { isOn, pick, dbg, KIND_W } });
+    Object.assign(window.__bitten, { autoaim133: { isOn, pick, dbg, KIND_W, visOf } });
   } catch (e) {
     try { console.warn('autoaim133 failed', e); } catch (x) { /* ignore */ }
   }
